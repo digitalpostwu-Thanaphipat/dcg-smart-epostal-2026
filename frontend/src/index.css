@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&family=Sarabun:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* Typography Strategies */
+  --font-heading: "Prompt", sans-serif;
+  --font-body: "Sarabun", sans-serif;
+
+  /* Academic Palette (High-End Zinc + Emerald) */
+  --color-primary: #047857; /* Emerald 700 (Light Mode) */
+  --color-primary-hover: #065f46;
+  
+  --color-zinc-50: #fafafa;
+  --color-zinc-100: #f4f4f5;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #52525b;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-zinc-950: #09090b;
+
+  --color-app-bg: var(--color-zinc-50);
+  --color-card-bg: #ffffff;
+  --color-nav-bg: #ffffff;
+  
+  /* Radii Refinement (Professional) */
+  --radius-3xl: 1.5rem; /* 24px - for large panels */
+  --radius-2xl: 1rem;   /* 16px - for standard buttons/cards */
+  --radius-xl: 0.75rem;
+
+  /* Shadow Refinement */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.1);
+
+  /* Claymorphism Tokens [v4.0] */
+  --clay-bg: rgba(255, 255, 255, 0.7);
+  --clay-shadow: 8px 8px 16px 0 rgba(0, 0, 0, 0.08), 
+                 inset -8px -8px 12px 0 rgba(0, 0, 0, 0.05),
+                 inset 8px 8px 12px 0 rgba(255, 255, 255, 0.8);
+  --clay-border: 1px solid rgba(255, 255, 255, 0.4);
+  
+  --clay-deep-shadow: 16px 16px 32px 0 rgba(0, 0, 0, 0.1), 
+                      inset -12px -12px 16px 0 rgba(0, 0, 0, 0.05),
+                      inset 12px 12px 16px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Dark Mode Specific Adjustments */
+.dark {
+  --color-primary: #10b981; /* Emerald 500 - slightly brighter for dark backgrounds */
+  --color-primary-hover: #34d399;
+  --color-app-bg: var(--color-zinc-950);
+  --color-card-bg: var(--color-zinc-900);
+  --color-nav-bg: var(--color-zinc-950);
+
+  /* Dark Mode Clay */
+  --clay-bg: rgba(24, 24, 27, 0.7);
+  --clay-shadow: 12px 12px 24px 0 rgba(0, 0, 0, 0.4), 
+                 inset -8px -8px 12px 0 rgba(255, 255, 255, 0.03),
+                 inset 8px 8px 12px 0 rgba(255, 255, 255, 0.05);
+  --clay-border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Global Typography & Resets */
+@layer base {
+  body {
+    @apply bg-app-bg text-zinc-900 dark:text-zinc-100 antialiased selection:bg-primary/20;
+    font-family: var(--font-body);
+    /* Safe Area Support for Physical Mobile Devices */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading tracking-tight;
+  }
+}
+
+/* UI Utilities & Components Overhaul */
+@layer components {
+  .glass-card {
+    @apply bg-white/80 dark:bg-zinc-900/40 backdrop-blur-[8px] border border-zinc-200/50 dark:border-zinc-800/50;
+  }
+  
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-2xl font-heading font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-primary/20 cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 px-6 py-3 rounded-2xl font-heading font-black text-xs uppercase tracking-widest transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-95 cursor-pointer;
+  }
+
+  /* Improved Form Inputs */
+  input, select, textarea {
+    @apply bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700;
+  }
+
+  label {
+    @apply block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 px-1;
+  }
+
+  /* Utility for hiding scrollbars while maintaining functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none !important;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .clay-card {
+    background: var(--clay-bg);
+    box-shadow: var(--clay-shadow);
+    border: var(--clay-border);
+    backdrop-filter: blur(12px);
+    border-radius: 2.5rem;
+    @apply transition-all duration-500;
+  }
+
+  .clay-card-deep {
+    background: var(--clay-bg);
+    box-shadow: var(--clay-deep-shadow);
+    border: var(--clay-border);
+    backdrop-filter: blur(16px);
+    border-radius: 3rem;
+    @apply transition-all duration-500;
+  }
+}
+
+/* Animation Refinement */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-fade-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-fade-in {
+  animation: slide-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Keyframes & Animations (Ref: Blueprint L7) */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@layer utilities {
+  .animate-slide-up {
+    animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .text-shadow-glow {
+    text-shadow: 0 0 20px rgba(16,185,129,0.3);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/20 rounded-full;
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "project": "DCG Smart Digital Office",
+  "version": "3.0.0",
+  "phase": "Bootstrap",
+  "active_agents": 0,
+  "start_time": "2026-02-26T11:18:00+07:00",
+  "metrics": {
+    "tasks_completed": 0,
+    "issues_resolved": 0,
+    "current_efficiency_score": 1.0
+  }
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#10b981">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;200;300;400;500;600;700;800;900&family=Sarabun:wght@100;200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>DCG Smart ePostal - ระบบบริหารจัดการไปรษณีย์ภัณฑ์</title>
+  
+  <!-- Favicon / Web App Icon (DCG Primary) -->
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2331/2331837.png">
+
+  <!-- PWA Dynamic Manifest Loader -->
+  <script>
+    (function() {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return;
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = window.location.href.split(/[?#]/)[0] + '?get=manifest';
+      document.head.appendChild(link);
+    })();
+  </script>
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 transition-colors duration-500">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

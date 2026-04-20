@@ -1,0 +1,208 @@
+import React, { useRef, useState, useMemo } from 'react';
+import SignatureCanvas from 'react-signature-canvas';
+import { X, Check, Trash2, PenTool, Info, Loader2, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { SearchableSelect } from './SearchableSelect';
+import { useMasterDataStore } from '@/store/useMasterDataStore';
+
+interface SignaturePadProps {
+  onConfirm: (signature: string, receiverName: string) => void;
+  onClose: () => void;
+  loading?: boolean;
+  /** จำนวนรายการที่จะนำจ่าย */
+  itemCount?: number;
+  /** ชื่อหน่วยงานที่นำจ่าย (DeptName — used to filter personnel) */
+  departmentName?: string;
+}
+
+export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, loading, itemCount, departmentName }) => {
+  const sigCanvas = useRef<SignatureCanvas>(null);
+  const [isEmpty, setIsEmpty] = useState(true);
+  const [receiverName, setReceiverName] = useState('');
+  const [receiverSelectValue, setReceiverSelectValue] = useState<string | number>('');
+
+  const { personnel, positions, representatives, departments } = useMasterDataStore();
+
+  // Resolve department to match personnel filtering (same as PostalEntryForm)
+  const selectedDept = useMemo(() => {
+    if (!departmentName) return null;
+    const dName = String(departmentName).trim();
+    return departments.find(d => 
+      String(d.name).trim() === dName || 
+      String(d.id).trim() === dName
+    ) || null;
+  }, [departmentName, departments]);
+
+  // Build filtered options: Positions + Personnel + Representatives (same as PostalEntryForm)
+  const signerOptions = useMemo(() => {
+    const opts: { id: string | number; label: string; cleanLabel: string; subLabel?: string }[] = [];
+
+    // Positions filtered by department
+    positions
+      .filter((pos: any) => !selectedDept || String(pos.DeptID) === String(selectedDept.id))
+      .forEach((pos: any) => {
+        opts.push({
+          id: `pos-${pos.PositionName}`,
+          label: `🏛️ [ตำแหน่ง] ${pos.PositionName}`,
+          cleanLabel: pos.PositionName,
+        });
+      });
+
+    // Personnel filtered by department
+    personnel
+      .filter((p: any) => {
+        if (!selectedDept) return true;
+        const pDept = String(p.department || '').trim();
+        const sDeptId = String(selectedDept.id || '').trim();
+        const sDeptName = String(selectedDept.name || '').trim();
+        return pDept === sDeptId || pDept === sDeptName || (sDeptName && pDept.includes(sDeptName));
+      })
+      .forEach((p: any) => {
+        opts.push({
+          id: `person-${p.email || p.fullName}`,
+          label: `👤 ${p.fullName}`,
+          cleanLabel: p.fullName,
+        });
+      });
+
+    // Representatives filtered by department
+    representatives
+      .filter((r: any) => {
+        if (!selectedDept) return true;
+        const rDept = String(r.dept || '').trim();
+        const sDeptId = String(selectedDept.id || '').trim();
+        const sDeptName = String(selectedDept.name || '').trim();
+        return rDept === sDeptId || rDept === sDeptName || (sDeptName && rDept.includes(sDeptName));
+      })
+      .forEach((r: any) => {
+        opts.push({
+          id: `rep-${r.id || r.name}`,
+          label: `🏢 [ตัวแทน] ${r.name}`,
+          cleanLabel: r.name,
+        });
+      });
+
+    return opts;
+  }, [selectedDept, personnel, positions, representatives]);
+
+  const clear = () => {
+    sigCanvas.current?.clear();
+    setIsEmpty(true);
+  };
+
+  const handleConfirm = () => {
+    if (!receiverName.trim()) return;
+    if (sigCanvas.current?.isEmpty()) return;
+    // Use toDataURL directly to avoid getTrimmedCanvas dependency bug
+    const canvas = sigCanvas.current?.getCanvas();
+    const data = canvas?.toDataURL('image/png');
+    if (data) onConfirm(data, receiverName.trim());
+  };
+
+  const handleSignerChange = (val: string | number) => {
+    setReceiverSelectValue(val);
+    // Resolve the cleanLabel from the option
+    const found = signerOptions.find(o => String(o.id) === String(val));
+    setReceiverName(found ? found.cleanLabel : String(val));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-start pt-6 sm:pt-10 justify-center px-3 sm:px-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300 font-body overflow-y-auto">
+      <div className="w-full max-w-2xl clay-card-deep p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500 mb-8 !rounded-[3rem]">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 sm:p-8">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-[0.2em] border border-primary/10">
+               <PenTool className="w-3 h-3" /> โพรโทคอลการลงนามดิจิทัล (Digital Signature)
+            </div>
+            <h3 className="text-xl sm:text-2xl font-heading font-black text-zinc-900 dark:text-white tracking-tighter uppercase leading-none">ลงนามรับพัสดุ</h3>
+            {departmentName && (
+              <p className="text-xs font-medium text-primary mt-1">📦 {departmentName} {itemCount ? `(${itemCount} รายการ)` : ''}</p>
+            )}
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 hover:text-rose-500 transition-all active:scale-95"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        </div>
+
+        {/* Signer Name — SearchableSelect filtered by department */}
+        <div className="px-5 sm:px-8 pb-4">
+          <label className="block text-sm font-heading font-black text-zinc-700 dark:text-zinc-300 mb-2">
+            <User className="w-4 h-4 inline mr-1.5 text-primary" />
+            ชื่อผู้เซ็นรับ <span className="text-rose-500">*</span>
+          </label>
+          <SearchableSelect
+            allowCustom
+            onCustomChange={(val) => setReceiverName(val)}
+            options={signerOptions}
+            value={receiverSelectValue}
+            onChange={handleSignerChange}
+            placeholder={selectedDept ? `ค้นหาชื่อใน ${departmentName}...` : 'กรุณาเลือกหน่วยงานก่อน...'}
+          />
+          {!receiverName.trim() && (
+            <p className="mt-1.5 text-[10px] font-bold text-rose-400 px-1">กรุณาเลือกหรือกรอกชื่อผู้เซ็นรับก่อนยืนยัน</p>
+          )}
+        </div>
+
+        {/* Canvas Area */}
+        <div className="px-5 sm:px-8 pb-5 space-y-3">
+           <div className="relative group">
+              <div className="absolute inset-0 bg-primary/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              <div className="border-4 border-dashed border-zinc-100 dark:border-zinc-800 rounded-3xl bg-zinc-50 dark:bg-zinc-950/50 overflow-hidden">
+                 <SignatureCanvas
+                   ref={sigCanvas}
+                   penColor="#047857"
+                   canvasProps={{
+                     className: "w-full h-36 sm:h-52 cursor-crosshair",
+                   }}
+                   onBegin={() => setIsEmpty(false)}
+                 />
+              </div>
+              
+              {isEmpty && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
+                   <PenTool className="w-8 h-8 text-zinc-300 dark:text-zinc-700 mb-2" />
+                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">กรุณาลงลายมือชื่อภายในกรอบนี้</p>
+                </div>
+              )}
+
+              <button 
+                onClick={clear}
+                className="absolute top-3 right-3 p-2 rounded-xl bg-white dark:bg-zinc-900 text-zinc-400 hover:text-rose-500 shadow-lg border border-zinc-100 dark:border-zinc-800 transition-all active:scale-90"
+                title="ล้างหน้าจอ"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+           </div>
+
+           <div className="flex items-center gap-2 text-zinc-400 px-1 leading-relaxed">
+              <Info className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-[9px] font-bold uppercase tracking-wider">ลายเซ็นอิเล็กทรอนิกส์นี้จะถูกบันทึกเข้าระบบเพื่อใช้เป็นหลักฐานการนำจ่าย</p>
+           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 p-4 sm:p-8 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-800">
+           <button 
+             onClick={onClose}
+             className="px-6 py-3.5 bg-white dark:bg-zinc-900 text-zinc-400 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 transition-all active:scale-95 text-center"
+           >
+             ยกเลิก
+           </button>
+           <button 
+             onClick={handleConfirm}
+             disabled={isEmpty || loading || !receiverName.trim()}
+             className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50 disabled:grayscale hover:brightness-110"
+           >
+             {loading ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <Check className="w-5 h-5" />}
+             ยืนยันตัวตนและบันทึก
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,32 @@
+{
+  "tasks": [
+    {
+      "id": "T-002",
+      "title": "Full Duplicate Prevention (UI & Backend)",
+      "priority": "High",
+      "status": "Completed",
+      "phase": "Phase 1"
+    },
+    {
+      "id": "T-004",
+      "title": "Backend Hardening & Backup Restore",
+      "priority": "Medium",
+      "status": "Completed",
+      "phase": "Phase 2"
+    },
+    {
+      "id": "T-005",
+      "title": "Archive Index & Fiscal Year Sharding",
+      "priority": "Low",
+      "status": "Completed",
+      "phase": "Phase 5"
+    },
+    {
+      "id": "T-006",
+      "title": "Batch Label Printer",
+      "priority": "Low",
+      "status": "Postponed",
+      "phase": "Phase 6"
+    }
+  ]
+}

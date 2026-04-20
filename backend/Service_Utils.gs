@@ -1,0 +1,240 @@
+/**
+ * Service_Utils.gs
+ * Shared Utilities for Date Formatting, ID Generation, and Helpers
+ * [Loki Mode] Refactored to Object Pattern (Sec 3.5, 3.6 Compliance)
+ */
+
+var Service_Utils = {
+  createJSONOutput: function (data) {
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(
+      ContentService.MimeType.JSON,
+    );
+  },
+
+  // [Extreme Optimized] Get current sequence using PropertiesService for speed
+  getLatestSequence: function (sheet, prefix) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const dateStr = `${yyyy}${mm}${dd}`;
+    const propKey = `SEQ_${prefix}_${dateStr}`;
+    
+    // 1. Try Script Properties first (Fastest)
+    const props = PropertiesService.getScriptProperties();
+    let seq = props.getProperty(propKey);
+    
+    if (seq !== null) {
+      return { dateStr: dateStr, seq: parseInt(seq, 10), fromCache: true };
+    }
+
+    // 2. Fallback to Sheet Scan (Only once per day or server restart)
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { dateStr: dateStr, seq: 0, fromCache: false };
+
+    const idTop = sheet.getRange(2, 1).getValue();
+    const idBottom = sheet.getRange(lastRow, 1).getValue();
+    const lastId = String(idTop) > String(idBottom) ? idTop : idBottom;
+
+    const parts = String(lastId).split("-");
+    if (parts.length === 3 && parts[1] === dateStr) {
+      seq = parseInt(parts[2], 10) || 0;
+      props.setProperty(propKey, seq.toString());
+      return { dateStr: dateStr, seq: seq, fromCache: false };
+    }
+    
+    props.setProperty(propKey, "0");
+    return { dateStr: dateStr, seq: 0, fromCache: false };
+  },
+
+  // Save the new sequence back to PropertiesService after batch save
+  setLatestSequence: function (prefix, seq) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const dateStr = `${yyyy}${mm}${dd}`;
+    const propKey = `SEQ_${prefix}_${dateStr}`;
+    PropertiesService.getScriptProperties().setProperty(propKey, seq.toString());
+  },
+
+  // Refactored generateNextId to support batch increments
+  generateNextId: function (sheet, prefix, batchOffset) {
+    const info = this.getLatestSequence(sheet, prefix);
+    const nextSeq = (info.seq || 0) + (batchOffset || 1);
+    const seqStr = String(nextSeq).padStart(4, "0");
+    return `${prefix}-${info.dateStr}-${seqStr}`;
+  },
+
+  // Helper to parse date handles Buddhist Year transparently
+  parseDate: function (dateVal) {
+    if (!dateVal) return null;
+
+    let date;
+    if (dateVal instanceof Date) {
+      date = new Date(dateVal); // Clone
+      // T-016: Normalize Buddhist Year in Date object if necessary
+      if (date.getFullYear() > 2400) {
+        date.setFullYear(date.getFullYear() - 543);
+      }
+    } else if (typeof dateVal === "string") {
+      const cleanVal = dateVal.trim();
+      // Handle YYYY-MM-DD (ISO)
+      if (cleanVal.includes("-")) {
+        date = new Date(cleanVal);
+      } else if (cleanVal.includes("/")) {
+        // Handle D/M/YYYY
+        const parts = cleanVal.split("/");
+        if (parts.length === 3) {
+          let yearPart = parts[2];
+          let timePart = "00:00:00";
+
+          if (yearPart.includes(" ")) {
+            const splitYear = yearPart.split(" ");
+            yearPart = splitYear[0];
+            timePart = splitYear.slice(1).join(" ");
+          }
+
+          let year = parseInt(yearPart, 10);
+          // Handle Buddhist Year
+          if (year > 2400) year -= 543;
+
+          const [hours, minutes, seconds] = timePart
+            .split(":")
+            .map((val) => parseInt(val, 10) || 0);
+
+          date = new Date(
+            year,
+            parts[1] - 1,
+            parts[0],
+            hours,
+            minutes,
+            seconds,
+          );
+        } else {
+          date = new Date(cleanVal);
+        }
+      } else {
+        date = new Date(cleanVal);
+      }
+    } else {
+      return null;
+    }
+
+    if (date && !isNaN(date.getTime())) {
+      if (date.getFullYear() > 2400) {
+        date.setFullYear(date.getFullYear() - 543);
+      }
+      return date;
+    }
+    return null;
+  },
+
+  logAction: function (actor, action, details) {
+    try {
+      const sheet = typeof getSheet === "function" ? getSheet(SHEET_NAMES.LOGS_AUDIT) : null; 
+      if (sheet) sheet.appendRow([new Date(), actor, action, details, ""]);
+    } catch (e) {
+      console.error("Log failed: " + e.message);
+    }
+  },
+
+  formatThaiDateTime: function (date) {
+    if (!date) return "";
+    var d = new Date(date);
+    // Easy Thai Format: DD/MM/YYYY HH:mm
+    var day = d.getDate();
+    var month = d.getMonth() + 1;
+    var year = d.getFullYear() + 543;
+    var hours = d.getHours();
+    var minutes = d.getMinutes();
+    return `${day}/${month}/${year} ${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
+  },
+
+  /**
+   * getHeaderMap (Retained for Backward Compatibility)
+   * Creates a map of headers to their column index (0-based)
+   * @param {Array} headers 
+   */
+  getHeaderMap: function(headers) {
+    var map = {};
+    headers.forEach(function(h, i) {
+      if (h) map[h.toString().trim()] = i;
+    });
+    return map;
+  },
+
+  /**
+   * findHeader (Retained for Backward Compatibility)
+   * Finds a header index that contains any of the given keywords
+   * @param {Array} headers 
+   * @param {Array} keywords 
+   */
+  findHeader: function(headers, keywords) {
+    for (var i = 0; i < headers.length; i++) {
+      var h = headers[i] ? headers[i].toString().toLowerCase() : "";
+      for (var k = 0; k < keywords.length; k++) {
+        if (h.indexOf(keywords[k].toLowerCase()) > -1) return i;
+      }
+    }
+    return -1;
+  },
+
+  /**
+   * saveBase64ToDrive
+   * Decodes a base64 data URL, saves it as a PNG to Google Drive,
+   * and returns a publicly viewable thumbnail URL.
+   * @param {string} base64DataUrl - A data:image/png;base64,... string
+   * @param {string} fileName - Desired file name (without extension)
+   * @returns {string} Public thumbnail URL or empty string on failure
+   */
+  saveBase64ToDrive: function(base64DataUrl, fileName) {
+    try {
+      if (!base64DataUrl || !base64DataUrl.startsWith('data:image')) return '';
+      
+      // Extract base64 content (remove "data:image/png;base64," prefix)
+      var base64Content = base64DataUrl.split(',')[1];
+      if (!base64Content) return '';
+      
+      var decoded = Utilities.base64Decode(base64Content);
+      var blob = Utilities.newBlob(decoded, 'image/png', fileName + '.png');
+      
+      // Get or create the "ePostal_Signatures" folder
+      var folderName = 'ePostal_Signatures';
+      var folders = DriveApp.getFoldersByName(folderName);
+      var folder;
+      if (folders.hasNext()) {
+        folder = folders.next();
+      } else {
+        folder = DriveApp.createFolder(folderName);
+      }
+      
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      
+      // Return a direct viewable thumbnail URL
+      var fileId = file.getId();
+      return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400';
+    } catch (e) {
+      console.error('saveBase64ToDrive error:', e.message);
+      return '';
+    }
+  }
+};
+
+// Global Aliases for Backward Compatibility
+function createJSONOutput(data) {
+  return Service_Utils.createJSONOutput(data);
+}
+function generateNextId(sheet, prefix) {
+  return Service_Utils.generateNextId(sheet, prefix);
+}
+function formatThaiDateTime(date) {
+  return Service_Utils.formatThaiDateTime(date);
+}
+function parseDate(d) {
+  return Service_Utils.parseDate(d);
+}
+function logAction(actor, action, details) {
+  return Service_Utils.logAction(actor, action, details);
+}
