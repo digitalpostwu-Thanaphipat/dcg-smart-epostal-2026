@@ -195,9 +195,9 @@ function App() {
       }}>
         <VersionMismatchBanner />
         <Toaster position="top-right" />
-        <main className="animate-slide-fade-in" key={activeTab}>
+        <div className="animate-slide-fade-in" key={activeTab}>
           {renderContent()}
-        </main>
+        </div>
         <ConnectionDiagnostic />
         <ReloadPrompt />
       </Layout>

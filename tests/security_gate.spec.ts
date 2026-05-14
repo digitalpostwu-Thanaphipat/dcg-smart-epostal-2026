@@ -46,6 +46,10 @@ test.describe('Loki Security Gate', () => {
 
   test('should verify role caching persistence (Loki Hardened)', async ({ page }) => {
     await page.goto('/');
+    
+    // [Loki] Ensure ApiClient is loaded before checking
+    await page.waitForFunction(() => typeof (window as any).ApiClient !== 'undefined', { timeout: 10000 });
+    
     // Verify the login/auth state doesn't leak or bypass the role check
     const isHardened = await page.evaluate(() => {
         return typeof (window as any).ApiClient !== 'undefined';

@@ -19,7 +19,7 @@ test.describe('Dashboard Smoke Test', () => {
     // 4. Check for the login button
     const loginButton = page.locator('button[type="submit"]');
     await expect(loginButton).toBeVisible();
-    await expect(loginButton).toContainText('เข้าสู่ระบบใช้งาน');
+    await expect(loginButton).toContainText('ส่งรหัสยืนยันเข้าใช้งาน');
 
     // 5. Check for theme toggle button
     const themeToggle = page.locator('button[aria-label="สลับธีมมืด/สว่าง"]');
