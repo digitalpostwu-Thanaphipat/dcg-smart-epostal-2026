@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterBySelectedDept } from '../src/lib/filterUtils';
+import { filterBySelectedDept } from '../frontend/src/lib/filterUtils';
 import { MOCK_DEPARTMENTS, MOCK_POSITIONS, MOCK_PERSONNEL, MOCK_REPRESENTATIVES } from './mocks/api-mocks';
 
 describe('filterBySelectedDept', () => {

@@ -11,5 +11,5 @@ export const filterBySelectedDept = (item: any, selectedDept: any) => {
     (iDeptName && (iDeptName === sId || iDeptName === sName))
   );
 
-  return isMatched as boolean;
+  return !!isMatched;
 };

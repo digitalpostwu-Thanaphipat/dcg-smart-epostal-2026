@@ -22,6 +22,8 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test
+    - name: Run Vitest unit tests
+      run: npm run test:unit
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:

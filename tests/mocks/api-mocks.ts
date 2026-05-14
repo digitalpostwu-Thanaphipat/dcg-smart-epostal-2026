@@ -4,13 +4,22 @@
  */
 
 export const MOCK_DEPARTMENTS = [
-  { DeptID: 'D01', DeptName: 'สำนักงานคณบดี', Building: 'อาคาร 1', Floor: '1' },
-  { DeptID: 'D02', DeptName: 'ภาควิชาวิศวกรรมคอมพิวเตอร์', Building: 'อาคาร 3', Floor: '4' },
+  { id: 'D001', name: 'สำนักผู้บริหาร', DeptID: 'D001', DeptName: 'สำนักผู้บริหาร', Building: 'อาคาร 1', Floor: '1' },
+  { id: 'D002', name: 'ฝ่ายไอที', DeptID: 'D002', DeptName: 'ฝ่ายไอที', Building: 'อาคาร 3', Floor: '4' },
+];
+
+export const MOCK_POSITIONS = [
+  { id: 'P01', PositionName: 'ผู้อำนวยการ', DeptID: 'D001' },
+  { id: 'P02', PositionName: 'หัวหน้าฝ่าย', DeptID: 'D002' },
+];
+
+export const MOCK_REPRESENTATIVES = [
+  { id: 'R01', RepName: 'นายใจดี', DeptID: 'D001' },
 ];
 
 export const MOCK_PERSONNEL = [
-  { Email: 'admin@epostal.ai', FullName: 'Admin ePostal', DeptID: 'D01', Department: 'สำนักงานคณบดี' },
-  { Email: 'staff@epostal.ai', FullName: 'Staff User', DeptID: 'D02', Department: 'ภาควิชาวิศวกรรมคอมพิวเตอร์' },
+  { Email: 'admin@epostal.ai', FullName: 'Admin ePostal', DeptID: 'D001', Department: 'สำนักผู้บริหาร' },
+  { Email: 'staff@epostal.ai', FullName: 'Staff User', DeptID: 'D002', Department: 'ฝ่ายไอที' },
 ];
 
 export const MOCK_PACKAGES = [
