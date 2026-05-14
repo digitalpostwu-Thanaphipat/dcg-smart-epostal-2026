@@ -66,7 +66,7 @@
 
 ## 🔧 Dev Server Proxy
 - Vite proxy `/api` → `https://script.google.com/macros/s/{DEPLOY_ID}/exec`
-- **Current Deploy ID:** `AKfycbxyEL4AQIOP2XezApaGyhYWdnBgP7MawvqfX6qGZtOKcQ3PCfRQFKlw8eTmmakpk8V-Gw` (@216)
+- **Current Deploy ID:** `AKfycbyoA4IRJzAerCqrGl3eHymWpM8b8b5uUDF_p0MMvz05VPK3RpCcLCljgGY8Qc5i7iPH-Q` (@223)
 - ⚠️ **ต้องอัปเดต `vite.config.ts` proxy URL ทุกครั้งที่ `clasp deploy` ใหม่**
 
 ## ⚠️ Known Gotchas

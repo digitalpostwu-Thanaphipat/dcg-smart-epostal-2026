@@ -192,3 +192,4 @@
 - **Impact:** Schema เปลี่ยน 17->18 cols, ข้อมูลเก่าไม่ได้รับผลกระทบ (backward-compatible)
 - **Status:** Deployed @216
 - **Lead Agent:** @antigravity
+$newDecision
