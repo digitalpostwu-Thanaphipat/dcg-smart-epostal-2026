@@ -73,7 +73,7 @@ export const Login = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-6 relative overflow-hidden font-body selection:bg-emerald-500/30 transition-all duration-700 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-zinc-900'}`}>
+    <div className={`min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden font-body selection:bg-emerald-500/30 transition-all duration-700 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-zinc-900'}`}>
       
       {/* Skip Link for Accessibility */}
       <a 
