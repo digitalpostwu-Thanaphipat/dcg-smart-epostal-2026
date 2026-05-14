@@ -9,6 +9,8 @@ import { haptics } from '@/utils/haptics';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
   const { theme, setTheme, initTheme } = useThemeStore();
@@ -29,15 +31,24 @@ export const Login = () => {
     }
     setLoading(true);
     try {
-      const response: any = await ApiClient.auth.login({ email });
+      const response: any = otpRequested
+        ? await ApiClient.auth.verifyOtp({ email, otp })
+        : await ApiClient.auth.requestOtp({ email });
+      if (!otpRequested && response?.success && response?.requiresOtp) {
+        setOtpRequested(true);
+        haptics.success();
+        toast.success(response.message || 'ส่งรหัสยืนยันไปที่อีเมลแล้ว');
+        return;
+      }
       if (response?.success && response?.data) {
         const userData = response.data;
         login({
-          email: userData.email || email,
-          fullName: userData.fullName || userData.FullName || email,
-          role: userData.role || 'User',
-          department: userData.department || userData.Department || userData.หน่วยงาน || 'มหาลัย',
-          picture: userData.picture || '',
+          email: userData.Email || userData.email || email,
+          fullName: userData.FullName || userData.fullName || email,
+          role: userData.Role || userData.role || 'User',
+          department: userData.Department || userData.department || userData['หน่วยงาน'] || 'มหาลัย',
+          picture: userData.Picture || userData.picture || '',
+          sessionToken: userData.sessionToken || userData.authToken || '',
         });
         haptics.success();
         toast.success('เข้าสู่ระบบสำเร็จ');
@@ -109,11 +120,12 @@ export const Login = () => {
 
            <form onSubmit={handleLogin} className="space-y-12 relative z-10">
               <div className="space-y-4">
-                 <label className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 px-2 transition-colors ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                 <label htmlFor="email-input" className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 px-2 transition-colors ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                     <Mail className="w-4 h-4 text-emerald-500" /> ข้อมูลผู้ใช้งานในระบบส่วนกลาง (DCG Central DB)
                  </label>
                  <div className="relative group">
                     <input
+                      id="email-input"
                       type="email"
                       required
                       placeholder="ระบุอีเมลผู้ใช้งานของคุณ..."
@@ -125,6 +137,35 @@ export const Login = () => {
                  </div>
               </div>
 
+              {otpRequested && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
+                  <label htmlFor="otp-input" className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 px-2 transition-colors ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                    รหัสยืนยัน 6 หลัก
+                  </label>
+                  <input
+                    id="otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    maxLength={6}
+                    placeholder="กรอกรหัสจากอีเมล..."
+                    className={`w-full px-8 py-6 border rounded-[2.5rem] transition-all font-heading font-black text-3xl tracking-[0.35em] text-center ${isDark ? 'bg-zinc-950 border-white/5 text-white placeholder:text-zinc-800 focus:ring-emerald-500/10 focus:border-emerald-500/50' : 'bg-slate-50 border-zinc-200 text-zinc-900 placeholder:text-zinc-300 focus:ring-emerald-500/5 focus:border-emerald-400'}`}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpRequested(false);
+                      setOtp('');
+                    }}
+                    className={`w-full text-xs font-black uppercase tracking-widest ${isDark ? 'text-zinc-500 hover:text-emerald-400' : 'text-zinc-400 hover:text-emerald-600'}`}
+                  >
+                    เปลี่ยนอีเมล / ขอรหัสใหม่
+                  </button>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={loading}
@@ -134,7 +175,7 @@ export const Login = () => {
                    <Loader2 className="w-8 h-8 animate-spin" />
                  ) : (
                    <>
-                     เข้าสู่ระบบใช้งาน 
+                     {otpRequested ? 'ยืนยันรหัสและเข้าสู่ระบบ' : 'ส่งรหัสยืนยันเข้าใช้งาน'} 
                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center group-hover:translate-x-1 transition-transform ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
                         <ArrowRight className={`w-6 h-6 ${isDark ? 'text-emerald-400' : 'text-zinc-900'}`} /> 
                      </div>

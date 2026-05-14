@@ -33,8 +33,8 @@ var Service_Health = {
 
     // 2. Database Access Check
     try {
-      const localSS = SpreadsheetApp.openById(SPREADSHEET_ID);
-      const centralSS = SpreadsheetApp.openById(CENTRAL_SPREADSHEET_ID);
+      const localSS = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL);
+      const centralSS = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
       checks.push({
         name: "access",
         status: "pass",
@@ -114,22 +114,9 @@ var Service_Health = {
   _checkDatabaseIntegrity: function () {
     const localSchemas = {
       [SHEET_NAMES.PACKAGE_LOG]: [
-        "PackageID",
-        "TrackingNumber",
-        "ItemType",
-        "DepartmentID",
-        "RecipientName",
-        "Status",
-        "EntryTimestamp",
-        "DeliveryTimestamp",
-        "StaffEmail",
-        "ReceiverName",
-        "SignatureUrl",
-        "PhotoUrl",
-        "GPSLocation",
-        "DeliveryMethod",
-        "Notes",
-        "LineNotifyStatus",
+        "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับ", "สถานะ",
+        "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับจริง", "ลายเซ็น",
+        "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line"
       ],
       [SHEET_NAMES.LOGS_AUDIT]: ["Timestamp", "Actor", "Action", "Details", "Status"],
     };

@@ -7,12 +7,14 @@ import { UserManagementPage } from './components/admin/UserManagementPage'
 import { SystemSettingsPage } from './components/admin/SystemSettingsPage'
 import { useMasterDataStore } from './store/useMasterDataStore'
 import { useAuthStore } from './store/useAuthStore'
+import { ApiClient } from './api/client'
 import { Login } from './pages/Login'
 import { BentoStats } from './components/dashboard/BentoStats'
 import { Toaster } from 'react-hot-toast'
 import { haptics } from './utils/haptics'
 import { AlertCircle, Megaphone, Loader2 } from 'lucide-react'
 import * as Sentry from "@sentry/react"
+import { ReloadPrompt } from './components/common/ReloadPrompt'
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
@@ -32,6 +34,36 @@ function App() {
     }
     init()
   }, [fetchMasterData, isAuthenticated])
+
+  // Background Role Sync
+  useEffect(() => {
+    const syncUserRole = async () => {
+      if (isAuthenticated && user?.email) {
+        try {
+          const response: any = await ApiClient.auth.verifySession();
+          if (response?.success && response?.data) {
+            const userData = response.data;
+            const updatedRole = userData.Role || userData.role || 'User';
+            const updatedDept = userData.Department || userData.department || userData.หน่วยงาน || 'มหาลัย';
+            
+            if (user.role !== updatedRole || user.department !== updatedDept) {
+              console.log(`[Auth Sync] Updating user session: Role(${updatedRole}), Dept(${updatedDept})`);
+              useAuthStore.getState().login({
+                ...user,
+                role: updatedRole,
+                department: updatedDept,
+                sessionToken: user.sessionToken
+              });
+            }
+          }
+        } catch(e) {
+          console.warn('[Auth Sync] Failed to sync session', e);
+        }
+      }
+    };
+    syncUserRole();
+  }, [isAuthenticated, user?.email]);
+
 
   // Version Handshake Alert
   const isVersionMismatch = systemInfo && systemInfo.version !== APP_VERSION;
@@ -127,12 +159,14 @@ function App() {
             <div className="flex gap-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-2xl w-fit">
               <button 
                 onClick={() => setAdminSubTab('users')}
+                aria-label="จัดการผู้ใช้งาน"
                 className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminSubTab === 'users' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-zinc-500'}`}
               >
                 จัดการผู้ใช้งาน
               </button>
               <button 
                 onClick={() => setAdminSubTab('settings')}
+                aria-label="ตั้งค่าระบบ"
                 className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminSubTab === 'settings' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-zinc-500'}`}
               >
                 ตั้งค่าระบบ
@@ -152,7 +186,7 @@ function App() {
         <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-black mb-2">เกิดข้อผิดพลาดบางอย่าง</h2>
         <p className="text-zinc-500 max-w-md mb-6">{(error as any)?.message || "ข้อผิดพลาดที่ไม่ทราบสาเหตุ"}</p>
-        <button onClick={() => window.location.reload()} className="btn-primary">โหลดระบบใหม่</button>
+        <button onClick={() => window.location.reload()} aria-label="โหลดระบบใหม่" className="btn-primary">โหลดระบบใหม่</button>
       </div>
     )}>
       <Layout activeTab={activeTab} onTabChange={(tab) => {
@@ -165,6 +199,7 @@ function App() {
           {renderContent()}
         </main>
         <ConnectionDiagnostic />
+        <ReloadPrompt />
       </Layout>
     </Sentry.ErrorBoundary>
   )

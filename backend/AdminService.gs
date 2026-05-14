@@ -83,16 +83,9 @@ var AdminService = {
     }
   },
 
-  /**
-   * getRepresentatives
-   */
   getRepresentatives: function() {
     try {
-      // Representatives usually tracked in SHEET_NAMES.USERS or a custom sheet 
-      // but based on Blueprint we'll fetch from the central DB.
-      // If a specific sheet exists for reps, use it, else fallback to personnel for now 
-      // but the blueprint says representatives.
-      return getData(SHEET_NAMES.USERS) || [];
+      return getCentralReps();
     } catch (e) {
       console.error("Error getRepresentatives:", e.message);
       return [];
@@ -156,7 +149,12 @@ var AdminService = {
         // Ensure standard keys exist
         obj.Email = obj.Email || obj.email || "";
         obj.FullName = obj.FullName || obj.fullName || "";
-        obj.Role = obj.Role || obj.role || "User";
+        // Normalize role: "admin" → "Admin", "user" → "User", "staff" → "Staff"
+        var rawRole = String(obj.Role || obj.role || "User").trim().toLowerCase();
+        if (rawRole === "admin") obj.Role = "Admin";
+        else if (rawRole === "postal") obj.Role = "Postal";
+        else if (rawRole === "staff") obj.Role = "Staff";
+        else obj.Role = "User";
         obj.Department = obj.Department || obj.department || "";
         
         return obj;
@@ -357,19 +355,23 @@ var AdminService = {
       lock.waitLock(10000);
       var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
       var sheet = ss.getSheetByName(SHEET_NAMES.SYSTEM_CONFIGS) || this._initSystemConfigSheet(ss);
-      var data = sheet.getDataRange().getValues();
-      var found = false;
+      var headers = data[0];
+      var keyIdx = getHeaderIndex(headers, ["Key", "หัวข้อ"]);
+      var valIdx = getHeaderIndex(headers, ["Value", "ค่า"]);
+      var updateIdx = getHeaderIndex(headers, ["LastUpdated", "อัปเดตล่าสุด"]);
       
+      var found = false;
       for (var i = 1; i < data.length; i++) {
-        if (data[i][0] === key) {
-          sheet.getRange(i + 1, 2).setValue(value);
-          sheet.getRange(i + 1, 4).setValue(new Date());
+        if (data[i][keyIdx] === key) {
+          if (valIdx !== -1) sheet.getRange(i + 1, valIdx + 1).setValue(value);
+          if (updateIdx !== -1) sheet.getRange(i + 1, updateIdx + 1).setValue(new Date());
           found = true;
           break;
         }
       }
       
       if (!found) {
+        // [Security] Use Schema-aware mapping for new rows if possible, or appendRow as fallback
         sheet.appendRow([key, value, "Auto-generated setting", new Date()]);
       }
       
@@ -411,6 +413,18 @@ var AdminService = {
     } catch (e) {
       console.error("Error getInitialData:", e.message);
       return { error: e.message };
+    }
+  },
+
+  /**
+   * setupUptimeMonitor
+   * Installs the time-driven trigger for system health monitoring.
+   */
+  setupUptimeMonitor: function() {
+    try {
+      return typeof setupUptimeMonitor === 'function' ? setupUptimeMonitor() : { success: false, error: "Monitor Service not found" };
+    } catch (e) {
+      return { success: false, error: e.message };
     }
   }
 };

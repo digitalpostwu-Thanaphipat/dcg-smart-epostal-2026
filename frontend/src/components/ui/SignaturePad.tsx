@@ -1,89 +1,163 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { X, Check, Trash2, PenTool, Info, Loader2, User } from 'lucide-react';
+import { X, Check, Trash2, PenTool, Info, Loader2, User, Store, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SearchableSelect } from './SearchableSelect';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
 
 interface SignaturePadProps {
-  onConfirm: (signature: string, receiverName: string) => void;
+  onConfirm: (signature: string, receiverName: string, deliveryMethod: string) => void;
   onClose: () => void;
   loading?: boolean;
-  /** จำนวนรายการที่จะนำจ่าย */
-  itemCount?: number;
-  /** ชื่อหน่วยงานที่นำจ่าย (DeptName — used to filter personnel) */
-  departmentName?: string;
+  /** รายการพัสดุที่เลือกนำจ่าย */
+  selectedItems: any[];
 }
 
-export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, loading, itemCount, departmentName }) => {
+export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, loading, selectedItems }) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [receiverName, setReceiverName] = useState('');
   const [receiverSelectValue, setReceiverSelectValue] = useState<string | number>('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'เซ็นรับที่เคาน์เตอร์' | 'นำจ่ายที่หน่วยงาน'>('เซ็นรับที่เคาน์เตอร์');
 
   const { personnel, positions, representatives, departments } = useMasterDataStore();
 
-  // Resolve department to match personnel filtering (same as PostalEntryForm)
-  const selectedDept = useMemo(() => {
-    if (!departmentName) return null;
-    const dName = String(departmentName).trim();
-    return departments.find(d => 
-      String(d.name).trim() === dName || 
-      String(d.id).trim() === dName
-    ) || null;
-  }, [departmentName, departments]);
+  // Extract unique departments from selected items
+  const itemDepartments = useMemo(() => {
+    const depts = new Set<string>();
+    selectedItems.forEach(item => {
+      const d = item.department || item.departmentName || item.deptName;
+      if (d) depts.add(String(d).trim());
+    });
+    return Array.from(depts);
+  }, [selectedItems]);
 
-  // Build filtered options: Positions + Personnel + Representatives (same as PostalEntryForm)
+  // Extract unique recipient names from selected items (Original Receiver on Label)
+  const originalRecipients = useMemo(() => {
+    const names = new Set<string>();
+    selectedItems.forEach(item => {
+      const n = item.recipientName || item.receiverName || item.ชื่อผู้รับ;
+      if (n && n !== 'ไม่ระบุชื่อผู้รับ') names.add(String(n).trim());
+    });
+    return Array.from(names);
+  }, [selectedItems]);
+
+  // Resolve department objects to match personnel filtering
+  const selectedDepts = useMemo(() => {
+    if (itemDepartments.length === 0) return [];
+    return departments.filter(d => {
+      const dName = String(d.name).trim().toLowerCase();
+      const dId = String(d.id).trim().toLowerCase();
+      return itemDepartments.some(target => {
+        const t = target.toLowerCase();
+        return dName === t || dId === t || dName.includes(t) || t.includes(dName);
+      });
+    });
+  }, [itemDepartments, departments]);
+
+  // Pre-fill receiver name if exactly one unique recipient name exists
+  useEffect(() => {
+    if (originalRecipients.length === 1 && !receiverName) {
+      setReceiverName(originalRecipients[0]);
+    }
+  }, [originalRecipients]);
+
+  // Build filtered options: Original Recipients + Positions + Personnel + Representatives
   const signerOptions = useMemo(() => {
-    const opts: { id: string | number; label: string; cleanLabel: string; subLabel?: string }[] = [];
+    const opts: { id: string | number; label: string; cleanLabel: string; group: string }[] = [];
 
-    // Positions filtered by department
+    // 1. Original Recipients (from Label)
+    originalRecipients.forEach(name => {
+      opts.push({
+        id: `label-${name}`,
+        label: `📋 ${name}`,
+        cleanLabel: name,
+        group: '📋 ชื่อผู้รับตามจ่าหน้าซอง'
+      });
+    });
+
+    // 2. Positions filtered by department(s)
     positions
-      .filter((pos: any) => !selectedDept || String(pos.DeptID) === String(selectedDept.id))
+      .filter((pos: any) => {
+        if (selectedDepts.length > 0) {
+          return selectedDepts.some(d => String(pos.deptId) === String(d.id));
+        }
+        if (itemDepartments.length > 0) {
+          const pDeptId = String(pos.deptId).toLowerCase();
+          return itemDepartments.some(target => {
+            const t = target.toLowerCase();
+            return pDeptId.includes(t) || t.includes(pDeptId);
+          });
+        }
+        return true;
+      })
       .forEach((pos: any) => {
         opts.push({
-          id: `pos-${pos.PositionName}`,
-          label: `🏛️ [ตำแหน่ง] ${pos.PositionName}`,
-          cleanLabel: pos.PositionName,
+          id: `pos-${pos.name}`,
+          label: `🏛️ ${pos.name}`,
+          cleanLabel: pos.name,
+          group: '📋 ตำแหน่ง'
         });
       });
 
-    // Personnel filtered by department
+    // 3. Personnel filtered by department(s)
     personnel
       .filter((p: any) => {
-        if (!selectedDept) return true;
-        const pDept = String(p.department || '').trim();
-        const sDeptId = String(selectedDept.id || '').trim();
-        const sDeptName = String(selectedDept.name || '').trim();
-        return pDept === sDeptId || pDept === sDeptName || (sDeptName && pDept.includes(sDeptName));
+        const pDept = String(p.deptId || '').trim().toLowerCase();
+        if (selectedDepts.length > 0) {
+          return selectedDepts.some(d => {
+            const sId = String(d.id || '').trim().toLowerCase();
+            const sName = String(d.name || '').trim().toLowerCase();
+            return pDept === sId || pDept === sName;
+          });
+        }
+        if (itemDepartments.length > 0) {
+          return itemDepartments.some(target => {
+            const t = target.toLowerCase().trim();
+            return pDept === t || t.includes(pDept) || pDept.includes(t);
+          });
+        }
+        return true;
       })
       .forEach((p: any) => {
         opts.push({
           id: `person-${p.email || p.fullName}`,
           label: `👤 ${p.fullName}`,
           cleanLabel: p.fullName,
+          group: '👤 บุคลากรในหน่วยงาน'
         });
       });
 
-    // Representatives filtered by department
+    // 4. Representatives filtered by department(s)
     representatives
       .filter((r: any) => {
-        if (!selectedDept) return true;
-        const rDept = String(r.dept || '').trim();
-        const sDeptId = String(selectedDept.id || '').trim();
-        const sDeptName = String(selectedDept.name || '').trim();
-        return rDept === sDeptId || rDept === sDeptName || (sDeptName && rDept.includes(sDeptName));
+        const rDept = String(r.deptId || '').trim().toLowerCase();
+        if (selectedDepts.length > 0) {
+          return selectedDepts.some(d => {
+            const sId = String(d.id || '').trim().toLowerCase();
+            const sName = String(d.name || '').trim().toLowerCase();
+            return rDept === sId || rDept === sName;
+          });
+        }
+        if (itemDepartments.length > 0) {
+          return itemDepartments.some(target => {
+            const t = target.toLowerCase().trim();
+            return rDept === t || t.includes(rDept) || rDept.includes(t);
+          });
+        }
+        return true;
       })
       .forEach((r: any) => {
         opts.push({
           id: `rep-${r.id || r.name}`,
-          label: `🏢 [ตัวแทน] ${r.name}`,
+          label: `🏢 ${r.name}`,
           cleanLabel: r.name,
+          group: '🏢 ตัวแทนรับพัสดุ'
         });
       });
 
     return opts;
-  }, [selectedDept, personnel, positions, representatives]);
+  }, [selectedDepts, personnel, positions, representatives, originalRecipients]);
 
   const clear = () => {
     sigCanvas.current?.clear();
@@ -93,18 +167,20 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
   const handleConfirm = () => {
     if (!receiverName.trim()) return;
     if (sigCanvas.current?.isEmpty()) return;
-    // Use toDataURL directly to avoid getTrimmedCanvas dependency bug
     const canvas = sigCanvas.current?.getCanvas();
     const data = canvas?.toDataURL('image/png');
-    if (data) onConfirm(data, receiverName.trim());
+    if (data) onConfirm(data, receiverName.trim(), deliveryMethod);
   };
 
   const handleSignerChange = (val: string | number) => {
     setReceiverSelectValue(val);
-    // Resolve the cleanLabel from the option
     const found = signerOptions.find(o => String(o.id) === String(val));
     setReceiverName(found ? found.cleanLabel : String(val));
   };
+
+  const displayDeptName = itemDepartments.length > 1 
+    ? `${itemDepartments[0]} และอื่นๆ (${itemDepartments.length} หน่วยงาน)`
+    : itemDepartments[0] || 'ไม่ระบุหน่วยงาน';
 
   return (
     <div className="fixed inset-0 z-[200] flex items-start pt-6 sm:pt-10 justify-center px-3 sm:px-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300 font-body overflow-y-auto">
@@ -117,13 +193,12 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
                <PenTool className="w-3 h-3" /> โพรโทคอลการลงนามดิจิทัล (Digital Signature)
             </div>
             <h3 className="text-xl sm:text-2xl font-heading font-black text-zinc-900 dark:text-white tracking-tighter uppercase leading-none">ลงนามรับพัสดุ</h3>
-            {departmentName && (
-              <p className="text-xs font-medium text-primary mt-1">📦 {departmentName} {itemCount ? `(${itemCount} รายการ)` : ''}</p>
-            )}
+            <p className="text-xs font-medium text-primary mt-1">📦 {displayDeptName} {selectedItems.length ? `(${selectedItems.length} รายการ)` : ''}</p>
           </div>
           <button 
             onClick={onClose}
             className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 hover:text-rose-500 transition-all active:scale-95"
+            aria-label="ปิดหน้าต่างลงนาม"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
@@ -138,14 +213,43 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
           <SearchableSelect
             allowCustom
             onCustomChange={(val) => setReceiverName(val)}
+            groupOrder={['📋 ชื่อผู้รับตามจ่าหน้าซอง', '👤 บุคลากรในหน่วยงาน', '🏢 ตัวแทนรับพัสดุ', '📋 ตำแหน่ง']}
             options={signerOptions}
             value={receiverSelectValue}
             onChange={handleSignerChange}
-            placeholder={selectedDept ? `ค้นหาชื่อใน ${departmentName}...` : 'กรุณาเลือกหน่วยงานก่อน...'}
+            placeholder={itemDepartments.length > 0 ? `ค้นหาชื่อใน ${itemDepartments.join(', ')}...` : 'กรุณาเลือกรายการก่อน...'}
           />
           {!receiverName.trim() && (
             <p className="mt-1.5 text-[10px] font-bold text-rose-400 px-1">กรุณาเลือกหรือกรอกชื่อผู้เซ็นรับก่อนยืนยัน</p>
           )}
+        </div>
+
+        {/* Delivery Method Selection */}
+        <div className="px-5 sm:px-8 pb-4">
+          <label className="block text-sm font-heading font-black text-zinc-700 dark:text-zinc-300 mb-2">
+            <Info className="w-4 h-4 inline mr-1.5 text-primary" />
+            วิธีการส่งมอบ
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'เซ็นรับที่เคาน์เตอร์', label: 'รับที่เคาน์เตอร์', icon: Store },
+              { id: 'นำจ่ายที่หน่วยงาน', label: 'ส่งที่หน่วยงาน', icon: Truck }
+            ].map(method => (
+              <button
+                key={method.id}
+                onClick={() => setDeliveryMethod(method.id as any)}
+                className={cn(
+                  "py-3 rounded-2xl text-[11px] font-heading font-black border transition-all flex items-center justify-center gap-1.5",
+                  deliveryMethod === method.id 
+                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent shadow-md" 
+                    : "border-zinc-100 dark:border-zinc-800 text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                )}
+              >
+                <method.icon className="w-4 h-4" aria-hidden="true" />
+                {method.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Canvas Area */}
@@ -174,6 +278,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
                 onClick={clear}
                 className="absolute top-3 right-3 p-2 rounded-xl bg-white dark:bg-zinc-900 text-zinc-400 hover:text-rose-500 shadow-lg border border-zinc-100 dark:border-zinc-800 transition-all active:scale-90"
                 title="ล้างหน้าจอ"
+                aria-label="ล้างหน้าจอลงนาม"
               >
                 <Trash2 className="w-4 h-4" />
               </button>

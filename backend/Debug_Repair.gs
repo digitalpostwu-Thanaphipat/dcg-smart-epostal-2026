@@ -103,6 +103,20 @@ function repairWrapper() {
 }
 
 /**
+ * [Security: Admin Only]
+ * Aggressive Header Repair Trigger
+ */
+function repairHeadersWrapper() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert('ยืนยันการจัดระเบียบหัวตาราง?', 'ระบบจะลบหัวตารางที่เกินมาออกและจัดเรียง 16 คอลัมน์มาตรฐานใหม่ (ข้อมูลแถวที่ 2 เป็นต้นไปจะไม่ถูกลบ)', ui.ButtonSet.YES_NO);
+  
+  if (response == ui.Button.YES) {
+    const result = Service_Schema.repairPackageLogHeaders();
+    ui.alert('ผลการดำเนินการ', result, ui.ButtonSet.OK);
+  }
+}
+
+/**
  * listAllRelevantSheets
  * Diagnostic tool to list ePostal-related files
  */

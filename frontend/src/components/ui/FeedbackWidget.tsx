@@ -72,6 +72,7 @@ export const FeedbackWidget = () => {
         onClick={toggleModal}
         className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors tooltip-trigger relative group"
         title="ส่งข้อเสนอแนะ/แจ้งปัญหา"
+        aria-label="เปิดหน้าต่างส่งข้อเสนอแนะ"
       >
         <MessageSquareWarning className="h-5 w-5" />
       </button>
@@ -99,6 +100,7 @@ export const FeedbackWidget = () => {
                <button 
                   onClick={toggleModal}
                   className="relative z-10 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
+                  aria-label="ปิดหน้าต่าง"
                >
                  <X className="w-5 h-5" />
                </button>
@@ -144,6 +146,7 @@ export const FeedbackWidget = () => {
                              ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/30' 
                              : 'bg-zinc-50 dark:bg-zinc-800/50 text-zinc-300 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                          }`}
+                        aria-label={`ให้คะแนน ${star} ดาว`}
                       >
                          <Star className={`w-6 h-6 ${formData.rating >= star ? 'fill-current' : ''}`} />
                       </button>

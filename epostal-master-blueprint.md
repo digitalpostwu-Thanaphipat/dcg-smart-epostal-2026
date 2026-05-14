@@ -2,7 +2,7 @@
 
 **Role:** Senior Systems Architect & Lead Developer
 **Project Context:** Enterprise-grade government application (Thai Language — ภาษาไทย 100%)
-**Version:** 2.0.0 | **Last Updated:** 26 มีนาคม 2569 (Session T-011)
+**Version:** 4.0.2 | **Last Updated:** 5 พฤษภาคม 2569 (Hardening Phase)
 
 ---
 
@@ -256,13 +256,19 @@ DCG-Skill Mapping is described in Section 13.1. This section links Module Regist
 
 ### 11.2 📦 DCG Smart ePostal (ระบบไปรษณีย์ - 16 Cols)
 
-`0:รหัสพัสดุ, 1:เลขพัสดุ, 2:ประเภท, 3:ชื่อหน่วยงาน (ภาษาไทย), 4:ชื่อผู้รับ (หน้ากล่อง), 5:สถานะ, 6:เวลาบันทึก, 7:เวลาจ่าย, 8:จนท.นำจ่าย, 9:ผู้รับจริง, 10:ลายเซ็น, 11:รูปภาพ, 12:GPS, 13:วิธีส่งมอบ, 14:ประเภทการใช้ (งาน/ส่วนตัว), 15:หมายเหตุ / สถานะ Line`
+`0:รหัสพัสดุ, 1:เลขพัสดุ, 2:ประเภท, 3:หน่วยงานต้นทาง, 4:ชื่อผู้รับ, 5:สถานะปัจจุบัน, 6:เวลาบันทึกรายการ, 7:เวลาจ่ายจริง, 8:จนท.ผู้นำจ่าย, 9:ผู้รับมอบจริง, 10:หลักฐานลายเซ็น, 11:รูปภาพแนบ, 12:พิกัด GPS, 13:วิธีการส่งมอบ, 14:ประเภทการใช้งาน, 15:หมายเหตุ / แจ้งเตือน Line`
+
+### 11.3 📊 System_Stats (ตารางสรุปสถิติ) ✅ [เพิ่มใหม่]
+
+`0:หมวดหมู่ (ภาพรวม/หน่วยงาน), 1:ทั้งหมด, 2:รอนำจ่าย, 3:จ่ายสำเร็จ, 4:เปอร์เซ็นต์สำเร็จ, 5:อัปเดตล่าสุด`
 
 ### 11.5 🛡️ DCG Smart Digital Office (โครงสร้างพื้นฐาน)
 
 - **บันทึกการตรวจสอบ (Audit):** `[เวลา, ผู้กระทำ, การกระทำ, รายละเอียด, IP Address]`
 - **บันทึกข้อผิดพลาด (Error):** `[เวลา, ฟังก์ชัน, ข้อความ, รายละเอียดย่อ]`
-- **System Config:** `[Key, Value, Description]`
+- System Config: `[Key, Value, Description]` ✅ **Dynamic Schema Enabled**
+  - **Key:** `SCHEMA_Package_Log` สำหรับควบคุมลำดับและชื่อคอลัมน์แบบ Dynamic
+  - **Self-Healing:** ระบบจะตรวจสอบและซ่อมแซมหัวตารางอัตโนมัติ (Truncate 17+ columns) ทุกครั้งที่มีการเข้าถึงผ่าน `Service_DB.gs`
 
 ---
 
@@ -360,7 +366,7 @@ DCG-Skill Mapping is described in Section 13.1. This section links Module Regist
 - แยก Business Logic ออกจาก UI → ใช้ Custom Hooks (`usePackages`, `useWorkload`)
 - แยก API calls → `src/api/client.ts`
 - แยก Types → `src/types/schema.ts`
-- **Utility Functions:** `cn()` ควรอยู่ใน `@/lib/utils.ts` แทนที่จะประกาศซ้ำในทุกไฟล์ ⚠️ **Tech Debt — ยังไม่แก้**
+- **Utility Functions:** `cn()` and `formatThaiDate()` are centralized in `@/lib/utils.ts`. ✅ **FIXED T-014**
 
 ### 14.4 Format & Syntax (รูปแบบโค้ด)
 
@@ -474,6 +480,8 @@ updatePackageEntry: payload { packageId, trackingNumber, itemType, departmentNam
 getPendingDeliveries: {} -> [ { packageId, trackingNumber, itemType, departmentName, buildingName, recipientName, receivedAt } ]
 confirmDelivery: payload { packageIds[], staffEmail, userEmail, receiverName, recipientSignature } -> { success, updated }
 searchPackages: payload { query, status, type, department, dateFrom, dateTo, fiscalYear } -> [ { id, packageId, trackingNumber, recipientName, departmentName, buildingName, status, lastUpdated } ]
+getDailyOperationalStats: { startDate, endDate, department } -> { total, pending, delivered, successRate, yoy, depts... }
+recalculateStatsSnapshot: {} -> { success, stats }
 checkDuplicate: { trackingNumber } -> { isDuplicate, detail? }
 revertDelivery: { packageId, reason } -> { success, message }
 reportDeliveryIssue: { packageId, reason } -> { success, message }
@@ -591,8 +599,8 @@ ApiClient = {
 - ✅ [FIXED] L3: TestingFramework class deduplicated
 - ✅ [FIXED] L4: Dispatcher.gs.gs deleted
 - ✅ [FIXED] L5: Service_CentralSync uses Service_Batch.insertRows
-- ⚠️ **L6: `cn()` utility ประกาศซ้ำในทุกไฟล์** → ควรย้ายเป็น `@/lib/utils.ts` ✅ **เพิ่มใหม่ T-011**
-- ⚠️ **L7: `animate-slide-up` ใช้ inline `<style>` ใน PostalSearchPage** → ควรย้ายเข้า `index.css` ✅ **เพิ่มใหม่ T-011**
+- ✅ [FIXED] L6: `cn()` utility centralized in `@/lib/utils.ts`
+- ✅ [FIXED] L7: `animate-slide-up` moved to `index.css`
 
 ---
 
@@ -609,6 +617,8 @@ ApiClient = {
 | T-010   | Config Decoupling | `ScriptProperties` for CENTRAL_DB_ID, `updateCentralDbConfig()` | ✅ |
 | T-011   | UI Audit & Fix | Theme unification, Sidebar branding, Thai localization (9 fixes) | ✅ |
 | T-012   | Production Hardening | Vite 8 build fix (oxc), RBAC Staff/Postal, SPREADSHEET_ID cache, E2E 7/7 pass | ✅ |
+| T-013   | Stats & L10n Hardening | Materialized Dept Stats, Robust Date Parsing, Dept Fallback Fix, Deployed @190 | ✅ |
+| T-014   | Tech Debt Cleanup | Centralized `cn()`, `formatThaiDate()`, Fixed L6/L7 | ✅ |
 
 ---
 

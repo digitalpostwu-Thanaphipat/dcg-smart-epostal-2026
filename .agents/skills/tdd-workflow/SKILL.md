@@ -1,154 +1,100 @@
 ---
 name: tdd-workflow
-description: "Test-Driven Development workflow principles. RED-GREEN-REFACTOR cycle."
-risk: unknown
+description: "Hardened Test-Driven Development workflow. Focuses on Vertical Slicing, Tracer Bullets, and Public Interface verification."
+risk: low
 source: community
 date_added: "2026-02-27"
+last_updated: "2026-05-01"
 ---
 
-# TDD Workflow
+# Hardened TDD Workflow
 
-> Write tests first, code second.
+> Write tests first, code second. Verify behavior, not implementation.
 
 ---
 
-## 1. The TDD Cycle
+## 1. Philosophy: Public Interface Focus
+
+**Core principle**: Tests should verify behavior through public interfaces, not implementation details.
+- **Good tests** are integration-style: they exercise real code paths through public APIs. They describe *what* the system does, not *how* it does it.
+- **Bad tests** are coupled to implementation. They mock internal collaborators unnecessarily or test private methods. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
+
+---
+
+## 2. Anti-Pattern: Horizontal Slices
+
+**DO NOT write all tests first, then all implementation.** This is "horizontal slicing" and leads to "outrunning your headlights."
+
+- Tests written in bulk test *imagined* behavior.
+- You commit to test structure before understanding implementation.
+- Tests become fragile and insensitive to real behavior changes.
+
+**Correct approach**: **Vertical slices via tracer bullets.** One test → one implementation → repeat.
+
+---
+
+## 3. The Vertical TDD Cycle
 
 ```
-🔴 RED → Write failing test
+🔴 RED → Write ONE failing test for ONE behavior
     ↓
-🟢 GREEN → Write minimal code to pass
+🟢 GREEN → Write minimal code to pass THAT test
     ↓
-🔵 REFACTOR → Improve code quality
+🔵 REFACTOR → Improve code quality (staying GREEN)
     ↓
-   Repeat...
+   Repeat for the next behavior...
 ```
 
----
-
-## 2. The Three Laws of TDD
-
-1. Write production code only to make a failing test pass
-2. Write only enough test to demonstrate failure
-3. Write only enough code to make the test pass
+### Tracer Bullet (Cycle #1)
+The first cycle must be a **tracer bullet**—a test that confirms the path works end-to-end (e.g., a simple API response or a component rendering). This proves the plumbing is correct before building complexity.
 
 ---
 
-## 3. RED Phase Principles
+## 4. Workflow Steps
 
-### What to Write
+### Phase 1: Planning (Spec-First)
+- [ ] Confirm with user what interface changes are needed.
+- [ ] Confirm which behaviors to test (prioritize critical paths).
+- [ ] List behaviors (not implementation steps).
+- [ ] Get user approval on the plan.
 
-| Focus | Example |
-|-------|---------|
-| Behavior | "should add two numbers" |
-| Edge cases | "should handle empty input" |
-| Error states | "should throw for invalid data" |
-
-### RED Phase Rules
-
-- Test must fail first
-- Test name describes expected behavior
-- One assertion per test (ideally)
+### Phase 2: The Loop
+For each behavior:
+1. **RED**: Write the next test for the smallest observable behavior. Ensure it fails.
+2. **GREEN**: Write the **simplest** code to make the test pass. Avoid YAGNI (You Aren't Gonna Need It).
+3. **REFACTOR**: Only once green. Clean up duplication, improve naming, but keep tests passing.
 
 ---
 
-## 4. GREEN Phase Principles
+## 5. AAA Pattern (Arrange, Act, Assert)
 
-### Minimum Code
-
-| Principle | Meaning |
-|-----------|---------|
-| **YAGNI** | You Aren't Gonna Need It |
-| **Simplest thing** | Write the minimum to pass |
-| **No optimization** | Just make it work |
-
-### GREEN Phase Rules
-
-- Don't write unneeded code
-- Don't optimize yet
-- Pass the test, nothing more
+Every test should follow:
+- **Arrange**: Set up test data and state.
+- **Act**: Execute the public interface under test.
+- **Assert**: Verify the expected outcome/behavior.
 
 ---
 
-## 5. REFACTOR Phase Principles
+## 6. Checklist Per Cycle
 
-### What to Improve
-
-| Area | Action |
-|------|--------|
-| Duplication | Extract common code |
-| Naming | Make intent clear |
-| Structure | Improve organization |
-| Complexity | Simplify logic |
-
-### REFACTOR Rules
-
-- All tests must stay green
-- Small incremental changes
-- Commit after each refactor
+- [ ] Test describes behavior, not implementation.
+- [ ] Test uses public interface only.
+- [ ] Test would survive internal refactor.
+- [ ] Code is minimal for this specific test.
+- [ ] No speculative features added.
 
 ---
 
-## 6. AAA Pattern
-
-Every test follows:
-
-| Step | Purpose |
-|------|---------|
-| **Arrange** | Set up test data |
-| **Act** | Execute code under test |
-| **Assert** | Verify expected outcome |
-
----
-
-## 7. When to Use TDD
-
-| Scenario | TDD Value |
-|----------|-----------|
-| New feature | High |
-| Bug fix | High (write test first) |
-| Complex logic | High |
-| Exploratory | Low (spike, then TDD) |
-| UI layout | Low |
-
----
-
-## 8. Test Prioritization
-
-| Priority | Test Type |
-|----------|-----------|
-| 1 | Happy path |
-| 2 | Error cases |
-| 3 | Edge cases |
-| 4 | Performance |
-
----
-
-## 9. Anti-Patterns
+## 7. Anti-Patterns to Avoid
 
 | ❌ Don't | ✅ Do |
 |----------|-------|
-| Skip the RED phase | Watch test fail first |
-| Write tests after | Write tests before |
-| Over-engineer initial | Keep it simple |
-| Multiple asserts | One behavior per test |
-| Test implementation | Test behavior |
+| Skip the RED phase | Watch test fail first. |
+| Write tests after code | Write tests before code. |
+| **Horizontal Slicing** | **Vertical Slicing (One at a time).** |
+| Mock internal logic | Mock only external boundaries (APIs/DB). |
+| Test implementation | Test behavior via public APIs. |
 
 ---
 
-## 10. AI-Augmented TDD
-
-### Multi-Agent Pattern
-
-| Agent | Role |
-|-------|------|
-| Agent A | Write failing tests (RED) |
-| Agent B | Implement to pass (GREEN) |
-| Agent C | Optimize (REFACTOR) |
-
----
-
-> **Remember:** The test is the specification. If you can't write a test, you don't understand the requirement.
-
-## When to Use
-This skill is applicable to execute the workflow or actions described in the overview.
+> **Note:** The test is the specification. If you can't write a test, you don't understand the requirement. Respect the "Immutable After Pass" rule—once a vertical slice is complete and verified, avoid touching it unless restarting the cycle.

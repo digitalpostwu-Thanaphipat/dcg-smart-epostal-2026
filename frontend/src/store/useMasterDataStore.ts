@@ -66,6 +66,7 @@ export const useMasterDataStore = create<MasterDataState>((set) => ({
   fetchMasterData: async () => {
     // 1. Try loading from Cache first
     try {
+      localStorage.removeItem('epostal_cache_master-data-bundle'); // TEMPORARY CLEAR CACHE
       const cached = await offlineDb.get('master-data-bundle');
       if (cached) {
         set({ ...cached, isLoading: false });
@@ -89,23 +90,43 @@ export const useMasterDataStore = create<MasterDataState>((set) => ({
           floor: d.Floor || d.floor
         }));
 
-        const normalizedPersonnel = (personnel || []).map((p: any) => ({
-          email: p.Email || p.email,
-          fullName: p.FullName || p.fullName || p.name,
-          department: p.Department || p.department
-        }));
+        // Resolve Department IDs from Names if needed
+        const deptNameToId: Record<string, string> = {};
+        (departments || []).forEach((d: any) => {
+          const name = String(d.DeptName || d.name || '').trim();
+          const id = String(d.DeptID || d.id || '').trim();
+          if (name && id) {
+            deptNameToId[name] = id;
+            deptNameToId[name.toLowerCase()] = id;
+          }
+        });
 
+        const normalizedPersonnel = (personnel || []).map((p: any) => ({
+          email: p.Email || p.email || "",
+          fullName: p.FullName || p.fullName || p.name || "",
+          deptId: String(p.DeptID || p.deptId || "").trim(),
+          department: p.Department || p.deptName || p.DeptName || ""
+        }));
+ 
         const normalizedReps = (representatives || []).map((r: any) => ({
-          id: r.id || r.id_,
-          name: r.name || r.FullName || r.Name || "ตัวแทน",
-          dept: r.department || r.DeptName || ""
+          id: r.id || r.Email || `rep-${r.FullName || r.RepName}`,
+          name: r.FullName || r.RepName || r.name || "ตัวแทน",
+          deptId: String(r.DeptID || r.deptId || "").trim(),
+          department: r.Department || r.deptName || r.DeptName || ""
+        }));
+ 
+        const normalizedPositions = (positions || []).map((p: any) => ({
+          id: p.id || `pos-${p.PositionName || p.name}`,
+          name: p.PositionName || p.name || "",
+          deptId: String(p.DeptID || p.deptId || "").trim(),
+          department: p.Department || p.deptName || p.DeptName || ""
         }));
 
         const freshData = {
           departments: normalizedDepts, 
           buildings: Array.from(new Set(normalizedDepts.map((d: any) => d.building))).map((b: any) => ({ id: b, name: b })),
           personnel: normalizedPersonnel,
-          positions: positions || [],
+          positions: normalizedPositions,
           representatives: normalizedReps,
           announcements: announcements || [],
           systemInfo: systemInfo || null,

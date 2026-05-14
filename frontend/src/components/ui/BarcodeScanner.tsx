@@ -53,8 +53,8 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             <h3 className="text-2xl font-heading font-black text-zinc-900 dark:text-white tracking-tighter uppercase leading-none">ระบบสแกนบาร์โค้ด</h3>
           </div>
           <div className="flex items-center gap-3">
-             <button onClick={switchCamera} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 hover:text-primary transition-all active:scale-90"><SwitchCamera className="w-6 h-6" /></button>
-             <button onClick={() => { stopScanning(); onClose(); }} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 hover:text-rose-500 transition-all active:scale-90"><X className="w-6 h-6" /></button>
+             <button onClick={switchCamera} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 hover:text-primary transition-all active:scale-90" aria-label="สลับกล้อง"><SwitchCamera className="w-6 h-6" /></button>
+             <button onClick={() => { stopScanning(); onClose(); }} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 hover:text-rose-500 transition-all active:scale-90" aria-label="ปิดเครื่องสแกน"><X className="w-6 h-6" /></button>
           </div>
         </div>
 

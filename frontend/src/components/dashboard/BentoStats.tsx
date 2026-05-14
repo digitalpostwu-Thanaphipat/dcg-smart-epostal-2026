@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Package, CheckCircle2, AlertCircle, Clock, TrendingUp, Building2, User, Filter, X, Calendar, Search } from 'lucide-react';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
-import { cn } from '@/lib/utils';
+import { cn, formatThaiDate } from '@/lib/utils';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 interface StatCardProps {
@@ -99,10 +99,12 @@ export const BentoStats = () => {
   // Format the applied date label properly
   let dateLabel = "วันนี้";
   if (statsFilters.startDate) {
+    const start = formatThaiDate(statsFilters.startDate, false);
+    const end = statsFilters.endDate ? formatThaiDate(statsFilters.endDate, false) : 'ปัจจุบัน';
     if (statsFilters.startDate === statsFilters.endDate) {
-      dateLabel = statsFilters.startDate;
+      dateLabel = start;
     } else {
-      dateLabel = `${statsFilters.startDate} ถึง ${statsFilters.endDate || 'ปัจจุบัน'}`;
+      dateLabel = `${start} ถึง ${end}`;
     }
   }
 

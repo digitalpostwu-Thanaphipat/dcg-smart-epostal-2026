@@ -88,8 +88,13 @@ var Service_Batch = {
     var lastRow = sheet.getLastRow();
 
     if (lastRow > 1) {
-      var lastIdBottom = sheet.getRange(lastRow, 1).getValue();
-      var lastIdTop = sheet.getRange(2, 1).getValue();
+      var data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+      var headers = data[0];
+      var idIdx = getHeaderIndex(headers, ["รหัส", "ID"]);
+      if (idIdx === -1) idIdx = 0; // Fallback to column A
+
+      var lastIdBottom = data[lastRow - 1][idIdx];
+      var lastIdTop = data[1][idIdx];
 
       var seqBottom = this._parseSeq(lastIdBottom, fullPrefix);
       var seqTop = this._parseSeq(lastIdTop, fullPrefix);

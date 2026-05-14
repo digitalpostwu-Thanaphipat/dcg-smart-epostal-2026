@@ -123,6 +123,42 @@ export const SystemSettingsPage = () => {
     }
   };
 
+  const handleSetupMonitor = async () => {
+    if (!configs.LINE_NOTIFY_TOKEN) {
+      toast.error('กรุณาระบุ LINE Notify Token ก่อนเปิดใช้งานระบบติดตาม');
+      return;
+    }
+    
+    setLoading(true);
+    haptics.medium();
+    const t = toast.loading('กำลังติดตั้งระบบติดตาม Uptime...');
+    try {
+      const res: any = await ApiClient.admin.setupUptimeMonitor();
+      if (res.success) {
+        haptics.success();
+        toast.success(res.message || 'ติดตั้งระบบติดตามสำเร็จ (ตรวจสอบทุก 10 นาที)', { id: t });
+      } else {
+        throw new Error(res.error);
+      }
+    } catch (error: any) {
+      haptics.error();
+      toast.error(error.message || 'ไม่สามารถติดตั้งระบบติดตามได้', { id: t });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateConfig = async (key: string, value: string) => {
+    try {
+      const res: any = await ApiClient.admin.updateSystemConfig(key, value);
+      if (res.success) {
+        setConfigs((prev: any) => ({ ...prev, [key]: value }));
+      }
+    } catch (e) {
+      console.error(`Failed to update config ${key}`, e);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in font-body pb-20">
       {/* Hero Header Pattern (Strict Section 2) */}
@@ -166,6 +202,7 @@ export const SystemSettingsPage = () => {
                     key={model.id}
                     onClick={() => handleUpdateModel(model.id)}
                     disabled={loading || activeAiModel === model.id}
+                    aria-label={`เลือกโมเดล ${model.name}`}
                     className={cn(
                       "group p-6 rounded-3xl border transition-all text-left space-y-4 relative overflow-hidden active:scale-[0.98]",
                       activeAiModel === model.id 
@@ -214,6 +251,7 @@ export const SystemSettingsPage = () => {
                  <button 
                    onClick={handleMaintenance}
                    disabled={loading}
+                   aria-label="จัดระเบียบข้อมูลปีงบประมาณ"
                    className="group p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-emerald-500/50 transition-all text-left space-y-4 active:scale-[0.98]"
                  >
                     <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
@@ -228,6 +266,7 @@ export const SystemSettingsPage = () => {
                  <button 
                    onClick={handleBackup}
                    disabled={loading}
+                   aria-label="สำรองข้อมูลทันที"
                    className="group p-6 rounded-3xl bg-emerald-600 hover:bg-emerald-500 transition-all text-left space-y-4 active:scale-[0.98] shadow-lg shadow-emerald-600/20"
                  >
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:rotate-12 transition-transform">
@@ -246,6 +285,53 @@ export const SystemSettingsPage = () => {
                     <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">ข้อควรระวัง</p>
                     <p className="text-zinc-500 dark:text-zinc-400 text-[10px] leading-relaxed">การจัดระเบียบข้อมูลจะทำการย้ายแถวข้อมูลที่ไม่ได้อยู่ในปีงบประมาณปัจจุบันออกจากชีตหลัก เพื่อรักษาประสิทธิภาพความเร็วของระบบ</p>
                  </div>
+              </div>
+           </div>
+
+           {/* Section: Uptime Monitor (T-020) */}
+           <div className="clay-card p-8 shadow-xl space-y-6">
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                    <AlertTriangle className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-heading font-black text-zinc-900 dark:text-white uppercase">ระบบติดตามสถานะเว็บไซต์ (Uptime Monitor)</h3>
+                    <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-tighter">รับการแจ้งเตือนทันทีผ่าน LINE เมื่อระบบมีปัญหา</p>
+                 </div>
+              </div>
+
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">LINE Notify Token (สำหรับการแจ้งเตือน)</label>
+                    <div className="relative">
+                       <input 
+                         type="password" 
+                         placeholder="วาง Token ที่ได้จาก LINE Notify..."
+                         className="w-full pl-4 pr-10 py-4 bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500/50 transition-all font-medium"
+                         value={configs.LINE_NOTIFY_TOKEN || ''}
+                         onChange={(e) => setConfigs((prev: any) => ({ ...prev, LINE_NOTIFY_TOKEN: e.target.value }))}
+                         onBlur={(e) => updateConfig('LINE_NOTIFY_TOKEN', e.target.value)}
+                       />
+                    </div>
+                 </div>
+
+                 <button 
+                   onClick={handleSetupMonitor}
+                   disabled={loading || !configs.LINE_NOTIFY_TOKEN}
+                   aria-label="เปิดใช้งาน / อัปเดตระบบติดตาม"
+                   className="group w-full p-6 rounded-3xl bg-zinc-900 dark:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 transition-all text-left flex items-center justify-between active:scale-[0.98]"
+                 >
+                    <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500">
+                          <ShieldCheck className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <h4 className="font-heading font-black text-white text-sm uppercase">เปิดใช้งาน / อัปเดตระบบติดตาม</h4>
+                          <p className="text-zinc-500 text-[10px] font-bold">ตรวจสอบสุขภาพระบบทุก 10 นาที และแจ้งเตือนเมื่อล่ม</p>
+                       </div>
+                    </div>
+                    <Zap className="w-5 h-5 text-amber-500 group-hover:scale-125 transition-transform" />
+                 </button>
               </div>
            </div>
         </div>
@@ -278,6 +364,7 @@ export const SystemSettingsPage = () => {
                  <button 
                    onClick={handleRestore}
                    disabled={loading || !restoreFileId}
+                   aria-label="ดำเนินการกู้คืนระบบ"
                    className="w-full h-16 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-black font-heading uppercase text-xs tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30 shadow-2xl shadow-zinc-950/20"
                  >
                     ดำเนินการกู้คืนระบบ

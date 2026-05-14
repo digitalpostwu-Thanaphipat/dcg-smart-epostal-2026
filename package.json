@@ -4,10 +4,14 @@
   "description": "DCG Smart ePostal - Evolution v4.0",
   "main": "index.js",
   "scripts": {
+    "dev": "npm run dev --prefix frontend",
     "test:loki": "npx playwright test",
     "test:unit": "vitest run",
     "test:watch": "vitest",
-    "deploy": "powershell -File ./deploy.ps1"
+    "deploy": "powershell -File ./deploy.ps1",
+    "deploy:sync": "node .agents/scripts/sync-deploy.js",
+    "skill": "node .agents/scripts/skill-loader.js",
+    "skill-check": "node .agents/scripts/validator.js"
   },
   "keywords": [],
   "author": "Antigravity",
@@ -17,7 +21,14 @@
     "@axe-core/playwright": "^4.11.2",
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.5.0",
+    "fake-indexeddb": "^6.2.5",
     "vitest": "^3.0.0",
     "zod": "^3.24.2"
+  },
+  "dependencies": {
+    "dexie": "^4.4.2",
+    "googleapis": "^171.4.0",
+    "mcp-gsheets": "^1.8.1",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

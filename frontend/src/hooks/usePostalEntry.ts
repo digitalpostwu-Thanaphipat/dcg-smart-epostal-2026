@@ -4,6 +4,7 @@ import { useMasterDataStore } from '@/store/useMasterDataStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { toast } from 'react-hot-toast';
 import { haptics } from '@/utils/haptics';
+import { db } from '@/db/dexie';
 
 export interface EmsItem {
   trackingNumber: string;
@@ -154,29 +155,87 @@ export function usePostalEntry() {
     }
 
     setLoading(true);
+    const t = toast.loading('กำลังบันทึกข้อมูล...');
+    
+    const payload = {
+      ...batchData,
+      departmentName: selectedDept?.DeptName || selectedDept?.name || batchData.departmentId,
+      staffEmail: user?.email || 'admin@university.ac.th',
+      offlineCreatedAt: Date.now()
+    };
+
     try {
-      const payload = {
-        ...batchData,
-        departmentName: selectedDept?.DeptName || selectedDept?.name || batchData.departmentId,
-        staffEmail: user?.email || 'admin@university.ac.th'
-      };
+      // 1. Try Online First
       const res = await ApiClient.postal.saveEntry(payload);
+      
       if (res.success) {
+        // Save to Dexie as 'synced' for history
+        for (const item of batchData.emsList) {
+          await db.receiveRecords.add({
+            trackingId: item.trackingNumber,
+            senderName: '-', // Needs OCR or Input
+            receiverName: item.recipientName,
+            type: item.itemType,
+            status: 'synced',
+            offlineCreatedAt: payload.offlineCreatedAt,
+            syncedAt: Date.now(),
+            version: 1
+          });
+        }
+
         haptics.success();
-        toast.success(res.message || 'บันทึกข้อมูลสำเร็จ');
+        toast.success(res.message || 'บันทึกข้อมูลสำเร็จ (Online)', { id: t });
+        
         setBatchData({
           departmentId: '',
           personalQty: 0,
           workQty: 0,
           emsList: []
         });
-        fetchMasterData(); // Refresh stats
+        fetchMasterData();
       } else {
-        throw new Error(res.error);
+        throw new Error(res.error || 'Server returned error');
       }
     } catch (error: any) {
-      haptics.error();
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      // 2. Offline Fallback
+      console.warn('Network failed, falling back to Offline mode', error);
+      
+      try {
+        // Save records as 'pending' for local UI visibility
+        for (const item of batchData.emsList) {
+          await db.receiveRecords.add({
+            trackingId: item.trackingNumber,
+            senderName: '-',
+            receiverName: item.recipientName,
+            type: item.itemType,
+            status: 'pending',
+            offlineCreatedAt: payload.offlineCreatedAt,
+            version: 1
+          });
+        }
+
+        // Save the ENTIRE batch as a single sync item to preserve workQty/personalQty
+        await db.syncQueue.add({
+          action: 'create-batch',
+          entityType: 'receive',
+          entityId: 0,
+          payload: payload,
+          createdAt: Date.now()
+        });
+
+        haptics.notification('warning');
+        toast.success('บันทึกข้อมูลแบบ Offline เรียบร้อยแล้ว (จะ Sync เมื่อต่อเน็ตได้)', { id: t, icon: '📶' });
+        
+        setBatchData({
+          departmentId: '',
+          personalQty: 0,
+          workQty: 0,
+          emsList: []
+        });
+      } catch (dbError: any) {
+        haptics.error();
+        toast.error('ไม่สามารถบันทึกข้อมูลแบบ Offline ได้: ' + dbError.message, { id: t });
+      }
     } finally {
       setLoading(false);
     }

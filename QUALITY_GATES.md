@@ -30,9 +30,12 @@
 - [ ] **Copy dist:** `Copy-Item frontend\dist\index.html backend\index.html -Force`
 - [ ] **Push source:** `clasp push` — อัปเดต HEAD code
 - [ ] **Create deployment:** `clasp deploy -d "Description (YYYY-MM-DD)"` — สร้าง Live version ใหม่
-- [ ] **Verify URL:** ตรวจสอบว่า Proxy URL ใน `vite.config.ts` ชี้ไปยัง Deployment ที่ถูกต้อง
+- [ ] **Update Proxy:** อัปเดต Deployment ID ใน `vite.config.ts` (บรรทัด 70) ให้ตรงกับ @version ใหม่
+- [ ] **Verify URL:** ทดสอบ localhost + Production URL ว่าไม่ได้ 404
+- [ ] **Deployment Cleanup:** ถ้ามี 20 deployments แล้ว ต้อง `clasp undeploy <OLD_ID>` ก่อน
 
 > ⚠️ `clasp push` เพียงอย่างเดียว **ไม่ทำให้การเปลี่ยนแปลงมีผลบน Published URL** — ต้อง `clasp deploy` เสมอ
+> ⚠️ **ห้ามลืมอัปเดต proxy URL!** — ถ้าลบ deployment เก่าแล้วไม่อัปเดต proxy จะได้ 404 ทั้ง localhost
 
 ---
 
@@ -50,6 +53,10 @@
 | Quality: Performance | `@web-performance-optimization` | ✅ Installed |
 | Quality: Security | `@security-auditor` | ✅ Installed |
 | Final Approval | `@loki-mode` | ✅ Installed |
+| Engineering: Planning | `@grill-with-docs`, `@to-prd` | ✅ Installed |
+| Engineering: Execution | `@to-issues`, `@diagnose` | ✅ Installed |
+| Engineering: Architecture | `@improve-codebase-architecture` | ✅ Installed |
+| Productivity: Strategy | `@grill-me`, `@caveman` | ✅ Installed |
 
 > 💡 Skills ทั้งหมดติดตั้งอยู่ใน `.agents/skills/` — ถ้า Agent รายงานว่า "not found" ให้ตรวจสอบ context budget และรัน session ใหม่
 

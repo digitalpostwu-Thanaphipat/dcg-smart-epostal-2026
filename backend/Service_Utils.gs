@@ -32,8 +32,10 @@ var Service_Utils = {
     const lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { dateStr: dateStr, seq: 0, fromCache: false };
 
-    const idTop = sheet.getRange(2, 1).getValue();
-    const idBottom = sheet.getRange(lastRow, 1).getValue();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const idIdx = this.findHeader(headers, ["รหัส", "ID"]);
+    const idTop = sheet.getRange(2, idIdx + 1).getValue();
+    const idBottom = sheet.getRange(lastRow, idIdx + 1).getValue();
     const lastId = String(idTop) > String(idBottom) ? idTop : idBottom;
 
     const parts = String(lastId).split("-");
@@ -122,6 +124,7 @@ var Service_Utils = {
     }
 
     if (date && !isNaN(date.getTime())) {
+      // Ensure we normalize to Gregorian if still > 2400 (safety double-check)
       if (date.getFullYear() > 2400) {
         date.setFullYear(date.getFullYear() - 543);
       }
@@ -130,25 +133,71 @@ var Service_Utils = {
     return null;
   },
 
+  /**
+   * getThaiFiscalYear
+   * Thai FY starts Oct 1st. FY 2567 = 1 Oct 2023 to 30 Sep 2024.
+   * @param {Date|string} dateInput
+   * @returns {number} Thai BE Fiscal Year
+   */
+  getThaiFiscalYear: function (dateInput) {
+    const d = this.parseDate(dateInput) || new Date();
+    const month = d.getMonth() + 1; // 1-12
+    const year = d.getFullYear();
+    let fy = month >= 10 ? year + 1 : year;
+    return fy + 543;
+  },
+
   logAction: function (actor, action, details) {
+    var lock = LockService.getScriptLock();
     try {
+      lock.waitLock(10000);
       const sheet = typeof getSheet === "function" ? getSheet(SHEET_NAMES.LOGS_AUDIT) : null; 
       if (sheet) sheet.appendRow([new Date(), actor, action, details, ""]);
     } catch (e) {
       console.error("Log failed: " + e.message);
+    } finally {
+      lock.releaseLock();
     }
   },
 
   formatThaiDateTime: function (date) {
     if (!date) return "";
-    var d = new Date(date);
-    // Easy Thai Format: DD/MM/YYYY HH:mm
+    var d = this.parseDate(date);
+    if (!d) return String(date);
+    
     var day = d.getDate();
     var month = d.getMonth() + 1;
     var year = d.getFullYear() + 543;
     var hours = d.getHours();
     var minutes = d.getMinutes();
     return `${day}/${month}/${year} ${hours}:${minutes < 10 ? "0" + minutes : minutes}`;
+  },
+
+  getFiscalYear: function (date) {
+    var d = date || new Date();
+    var year = d.getFullYear() + 543;
+    var month = d.getMonth() + 1;
+    // Thai Fiscal Year starts in October
+    if (month >= 10) year += 1;
+    return year;
+  },
+
+  getThaiDate: function (date) {
+     var d = date || new Date();
+     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
+  },
+
+  getThaiTime: function (date) {
+     var d = date || new Date();
+     return `${d.getHours()}:${d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes()}`;
+  },
+
+  getDeptById: function(deptId) {
+     if (!deptId) return null;
+     var depts = typeof getCentralDepts === 'function' ? getCentralDepts() : [];
+     return depts.find(function(d) {
+        return String(d.DeptID) === String(deptId) || String(d.name) === String(deptId);
+     });
   },
 
   /**
@@ -219,6 +268,30 @@ var Service_Utils = {
       console.error('saveBase64ToDrive error:', e.message);
       return '';
     }
+  },
+
+  /**
+   * sendLineNotify
+   * Sends a message via LINE Notify API using the token from script properties.
+   * @param {string} message - The message to send.
+   */
+  sendLineNotify: function (message) {
+    try {
+      const token = PropertiesService.getScriptProperties().getProperty("LINE_NOTIFY_TOKEN");
+      if (!token) return { success: false, error: "LINE Notify Token not set" };
+
+      const options = {
+        method: "post",
+        headers: { Authorization: "Bearer " + token },
+        payload: { message: message },
+      };
+
+      const res = UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+      return { success: res.getResponseCode() === 200 };
+    } catch (e) {
+      console.error("LINE Notify Error:", e.message);
+      return { success: false, error: e.message };
+    }
   }
 };
 
@@ -237,4 +310,7 @@ function parseDate(d) {
 }
 function logAction(actor, action, details) {
   return Service_Utils.logAction(actor, action, details);
+}
+function sendLineNotify(msg) {
+  return Service_Utils.sendLineNotify(msg);
 }

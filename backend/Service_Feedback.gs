@@ -7,7 +7,9 @@
 
 var Service_Feedback = {
   submitFeedback: function (payload) {
+    var lock = LockService.getScriptLock();
     try {
+      lock.waitLock(10000);
       // [Loki: Guardrail] Input Validation
       if (!payload || !payload.userEmail) {
         return { success: false, error: "payload.userEmail required" };
@@ -41,13 +43,15 @@ var Service_Feedback = {
         sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#10b981").setFontColor("white");
       }
 
-      // Atomic Write via Service_Batch.insertRows
+      // Atomic Write via Service_Batch.insertRows (already has internal locking, but we lock the whole flow)
       Service_Batch.insertRows(SHEET_NAMES.FEEDBACK_LOG, [rowData], "BOTTOM");
 
       return { success: true, message: "ขอบคุณสำหรับความคิดเห็นครับ" };
     } catch (e) {
       Logger.log("Feedback Error: " + e.toString());
       return { success: false, error: e.toString() };
+    } finally {
+      lock.releaseLock();
     }
   },
 };

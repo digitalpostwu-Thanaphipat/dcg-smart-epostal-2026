@@ -13,7 +13,7 @@ import sys
 import os
 from pathlib import Path
 
-SKILLS_DIR = Path(__file__).parent.parent / "skills"
+SKILLS_DIR = Path(__file__).parent.parent.parent.parent / "skills"
 DISABLED_DIR = SKILLS_DIR / ".disabled"
 
 

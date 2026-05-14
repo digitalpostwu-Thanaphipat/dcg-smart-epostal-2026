@@ -1,10 +1,16 @@
 import { defineConfig } from 'vitest/config'
+import path from 'path'
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/**/*.spec.ts'], // Exclude Playwright specs
+    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/**/*.spec.ts'],
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './frontend/src'),
+    },
   },
 })

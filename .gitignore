@@ -48,3 +48,12 @@ backups/
 # System
 tmp/
 .gemini/
+
+# Sensitive Keys
+epostal-mcp-key.json/
+
+# Assets
+*.jpg
+*.png
+*.gif
+!frontend/src/assets/**/*

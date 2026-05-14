@@ -25,7 +25,7 @@ var SPREADSHEET_ID = (function() {
   }
   
   // 2. Discovery Fallback
-  console.log("⚠️ SPREADSHEET_ID Cache Miss: Discovering...");
+  console.log("โ ๏ธ SPREADSHEET_ID Cache Miss: Discovering...");
   let discoveredId = "";
   try {
     // Try finding by name (Dynamic lookup)
@@ -67,9 +67,23 @@ function getHeaderIndex(headers, key) {
   
   for (let i = 0; i < cleanHeaders.length; i++) {
     const h = cleanHeaders[i];
+    // Exact match first
+    if (keywords.some(k => h === k.toLowerCase())) return i;
+  }
+  // Partial match fallback
+  for (let i = 0; i < cleanHeaders.length; i++) {
+    const h = cleanHeaders[i];
     if (keywords.some(k => h.includes(k.toLowerCase()))) return i;
   }
   return -1;
+}
+
+/**
+ * [Hardened] forceStandardizeHeaders
+ * Aggressively wipes and resets the header row to exactly 16 columns.
+ */
+function forceStandardizeHeaders(sheetName) {
+  return JSON.stringify(Service_Schema.repairPackageLogHeaders());
 }
 
 var SHEET_NAMES = {
@@ -78,12 +92,14 @@ var SHEET_NAMES = {
   DEPTS: "\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19",
   CONFIG: "\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e23\u0e30\u0e1a\u0e1a",
   POSITIONS: "\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e1a\u0e23\u0e34\u0e2b\u0e32\u0e23",
+  REPS: "\u0e15\u0e31\u0e27\u0e41\u0e17\u0e19\u0e23\u0e31\u0e1a\u0e1e\u0e31\u0e2a\u0e14\u0e38", // ตัวแทนรับพัสดุ
   PACKAGE_LOG: "Package_Log",
   LOGS_AUDIT: "Audit_Log",
   LOGS_ERROR: "Error_Log",
   FEEDBACK_LOG: "Feedback_Log",
   ANNOUNCEMENTS: "\u0e1b\u0e23\u0e30\u0e01\u0e32\u0e28\u0e08\u0e32\u0e01\u0e23\u0e30\u0e1a\u0e1a",
-  SYSTEM_CONFIGS: "System_Configs"
+  SYSTEM_CONFIGS: "System_Configs",
+  SYSTEM_STATS: "System_Stats"
 };
 
 
@@ -151,8 +167,8 @@ function maintainDatabaseShards() {
   if (data.length < 2) return "No data to archive.";
 
   var headers = data[0];
-  var dateIdx = headers.indexOf("วันที่-เวลา");
-  if (dateIdx === -1) return "Date column not found.";
+  var dateIdx = getHeaderIndex(headers, ["เวลาที่บันทึก", "วันที่-เวลา", "createdAt"]);
+  if (dateIdx === -1) return "Date column (เวลาที่บันทึก) not found.";
 
   var rowsToMove = {}; // Group rows by fiscal year
   var rowsToDelete = [];
@@ -192,7 +208,14 @@ function maintainDatabaseShards() {
     }
 
     var targetSheet = SpreadsheetApp.openById(targetId).getSheetByName(SHEET_NAMES.PACKAGE_LOG);
-    targetSheet.getRange(targetSheet.getLastRow() + 1, 1, rowsToMove[year].length, headers.length).setValues(rowsToMove[year]);
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+      targetSheet.getRange(targetSheet.getLastRow() + 1, 1, rowsToMove[year].length, headers.length).setValues(rowsToMove[year]);
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
+    }
     moveCount += rowsToMove[year].length;
   }
 
@@ -207,7 +230,14 @@ function maintainDatabaseShards() {
       startIndex--;
       i++;
     }
-    mainSheet.deleteRows(startIndex, endIndex - startIndex + 1);
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+      mainSheet.deleteRows(startIndex, endIndex - startIndex + 1);
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
+    }
     i++;
   }
 
@@ -246,7 +276,7 @@ function _syncArchiveIndexSheet() {
     if (!sheet) return;
 
     var registry = _getShardRegistry();
-    var rows = [["ปีงบประมาณ", "Spreadsheet ID", "ชื่อไฟล์", "วันที่ย้ายล่าสุด", "จำนวนแถวที่เก็บ", "ยอดรวมพัสดุ", "ยอดสำเร็จ"]];
+    var rows = [["เธเธตเธเธเธเธฃเธฐเธกเธฒเธ“", "Spreadsheet ID", "เธเธทเนเธญเนเธเธฅเน", "เธงเธฑเธเธ—เธตเนเธขเนเธฒเธขเธฅเนเธฒเธชเธธเธ”", "เธเธณเธเธงเธเนเธ–เธงเธ—เธตเนเน€เธเนเธ", "เธขเธญเธ”เธฃเธงเธกเธเธฑเธชเธ”เธธ", "เธขเธญเธ”เธชเธณเน€เธฃเนเธ"]];
     
     var statsCache = {};
     for (var fy in registry) {
@@ -264,7 +294,7 @@ function _syncArchiveIndexSheet() {
         if (shardSheet && shardSheet.getLastRow() > 1) {
            var shardData = shardSheet.getDataRange().getValues();
            totalPackages = shardData.length - 1; // Exclude Header
-           var statIdx = getHeaderIndex(shardData[0], "สถานะ");
+           var statIdx = getHeaderIndex(shardData[0], ["สถานะ", "status"]);
            if (statIdx > -1) {
              for (var r = 1; r < shardData.length; r++) {
                var sText = String(shardData[r][statIdx]).trim();
@@ -294,8 +324,15 @@ function _syncArchiveIndexSheet() {
     // Persist Cache globally for extreme fast Dashboard load
     PropertiesService.getScriptProperties().setProperty("YOY_STATS_CACHE", JSON.stringify(statsCache));
 
-    sheet.clear();
-    sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+      sheet.clear();
+      sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
+    }
     _protectHeaders(ss);
   } catch(e) {
     Logger.log("Archive Index Sync Error: " + e.message);
@@ -306,7 +343,7 @@ function _syncArchiveIndexSheet() {
 
 
 function initializeSystemSheets() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet(); // ใช้ไฟล์ที่กำลังเปิดอยู่เป็นหลัก
+  var ss = SpreadsheetApp.getActiveSpreadsheet(); // เนเธเนเนเธเธฅเนเธ—เธตเนเธเธณเธฅเธฑเธเน€เธเธดเธ”เธญเธขเธนเนเน€เธเนเธเธซเธฅเธฑเธ
   var centralSs;
   try {
     centralSs = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
@@ -315,36 +352,63 @@ function initializeSystemSheets() {
     centralSs = ss;
   }
 
-  // 1. สร้าง Header สำหรับชีทต่างๆ (ภาษาไทย 100%)
-  _setupSheet(ss, SHEET_NAMES.LOGS_AUDIT, ["วัน-เวลา", "ผู้ดำเนินการ", "การกระทำ", "รายละเอียด", "หมายเหตุ"]);
-  _setupSheet(ss, SHEET_NAMES.CONFIG, ["ชื่อการตั้งค่า (Key)", "ค่าที่ตั้งไว้ (Value)", "คำอธิบาย"]);
-  _setupSheet(ss, SHEET_NAMES.FEEDBACK_LOG, ["วัน-เวลา", "อีเมลผู้ส่ง", "หัวข้อ", "รายละเอียด", "คะแนนความพึงพอใจ"]);
-  _setupSheet(ss, SHEET_NAMES.ANNOUNCEMENTS, ["ลำดับ", "วันที่", "หัวข้อประกาศ", "เนื้อหา", "สถานะ (แสดง/ซ่อน)"]);
+  // 1. เธชเธฃเนเธฒเธ Header เธชเธณเธซเธฃเธฑเธเธเธตเธ—เธ•เนเธฒเธเน (เธ เธฒเธฉเธฒเนเธ—เธข 100%)
+  _setupSheet(ss, SHEET_NAMES.LOGS_AUDIT, ["เธงเธฑเธ-เน€เธงเธฅเธฒ", "เธเธนเนเธ”เธณเน€เธเธดเธเธเธฒเธฃ", "เธเธฒเธฃเธเธฃเธฐเธ—เธณ", "เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”", "เธซเธกเธฒเธขเน€เธซเธ•เธธ"]);
+  _setupSheet(ss, SHEET_NAMES.CONFIG, ["เธเธทเนเธญเธเธฒเธฃเธ•เธฑเนเธเธเนเธฒ (Key)", "เธเนเธฒเธ—เธตเนเธ•เธฑเนเธเนเธงเน (Value)", "เธเธณเธญเธเธดเธเธฒเธข"]);
+  // 1. เธชเธฃเน‰เธฒเธ‡ Header เธชเธณเธซเธฃเธฑเธšเธŠเธตเธ—เธ•เนˆเธฒเธ‡เน† (เธ เธฒเธฉเธฒเน„เธ—เธข 100%)
+  _setupSheet(ss, SHEET_NAMES.LOGS_AUDIT, ["เธงเธฑเธ™-เน€เธงเธฅเธฒ", "เธœเธนเน‰เธ”เธณเน€เธ™เธดเธ™เธ เธฒเธฃ", "เธ เธฒเธฃเธ เธฃเธฐเธ—เธณ", "เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”", "เธซเธกเธฒเธขเน€เธซเธ•เธธ"]);
+  _setupSheet(ss, SHEET_NAMES.CONFIG, ["เธŠเธทเนˆเธญเธ เธฒเธฃเธ•เธฑเน‰เธ‡เธ„เนˆเธฒ (Key)", "เธ„เนˆเธฒเธ—เธตเนˆเธ•เธฑเน‰เธ‡เธ„เนˆเธฒ (Value)", "เธ„เธณเธญเธ˜เธดเธšเธฒเธข"]);
+  _setupSheet(ss, SHEET_NAMES.FEEDBACK_LOG, ["เธงเธฑเธ™-เน€เธงเธฅเธฒ", "เธญเธตเน€เธกเธฅเธœเธนเน‰เธชเนˆเธ‡", "เธซเธฑเธงเธ‚เน‰เธญ", "เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”", "เธ„เธฐเน เธ™เธ™เธ„เธงเธฒเธกเธžเธถเธ‡เธžเธญเนƒเธˆ"]);
+  _setupSheet(ss, SHEET_NAMES.ANNOUNCEMENTS, ["เธฅเธณเธ”เธฑเธš", "เธงเธฑเธ™เธ—เธตเนˆ", "เธซเธฑเธงเธ‚เน‰เธญเธ›เธฃเธฐเธ เธฒเธจ", "เน€เธ™เธทเน‰เธญเธซเธฒ", "เธชเธ–เธฒเธ™เธฐ (เน เธชเธ”เธ‡/เธ‹เนˆเธญเธ™)"]);
   
   // T-005: Archive Index Materialization (Extended YoY Schema)
-  _setupSheet(ss, "Archive_Index", ["ปีงบประมาณ", "Spreadsheet ID", "ชื่อไฟล์", "วันที่ย้ายล่าสุด", "จำนวนแถวที่เก็บ", "ยอดรวมพัสดุ", "ยอดสำเร็จ"]);
+  _setupSheet(ss, "Archive_Index", ["เธ›เธตเธ‡เธšเธ›เธฃเธฐเธกเธฒเธ“", "Spreadsheet ID", "เธŠเธทเนˆเธญเน„เธŸเธฅเนŒ", "เธงเธฑเธ™เธ—เธตเนˆเธขเน‰เธฒเธขเธฅเนˆเธฒเธชเธธเธ”", "เธˆเธณเธ™เธงเธ™เน เธ–เธงเธ—เธตเนˆเน€เธ เน‡เธš", "เธขเธญเธ”เธฃเธงเธกเธžเธฑเธชเธ”เธธ", "เธขเธญเธ”เธชเธณเน€เธฃเน‡เธˆ"]);
+  // T-Dashboard: Materialized Stats Snapshot
+  _setupSheet(ss, SHEET_NAMES.SYSTEM_STATS, ["หมวดหมู่", "ตัวชี้วัด", "ค่าตัวเลข", "อัปเดตล่าสุด"]);
+
+  // Package_Log Master Schema (v2.0.0 Blueprint Standard)
+  const masterSchema = [
+    "เธฃเธซเธฑเธชเธžเธฑเธชเธ”เธธ", "เน€เธฅเธ‚เธžเธฑเธชเธ”เธธ", "เธ›เธฃเธฐเน€เธ เธ—", "เธŠเธทเนˆเธญเธซเธ™เนˆเธงเธขเธ‡เธฒเธ™", "เธŠเธทเนˆเธญเธœเธนเน‰เธฃเธฑเธš", "เธชเธ–เธฒเธ™เธฐ",
+    "เน€เธงเธฅเธฒเธ—เธตเนˆเธšเธฑเธ™เธ—เธถเธ ", "เน€เธงเธฅเธฒเธ—เธตเนˆเธˆเนˆเธฒเธข", "เธˆเธ™เธ—.เธœเธนเน‰เธ™เธณเธˆเนˆเธฒเธข", "เธœเธนเน‰เธฃเธฑเธšเธˆเธฃเธดเธ‡", "เธฅเธฒเธขเน€เธ‹เน‡เธ™",
+    "เธฃเธนเธ›เธ เธฒเธž", "เธžเธดเธ เธฑเธ” GPS", "เธงเธดเธ˜เธตเธ เธฒเธฃเธชเนˆเธ‡เธกเธญเธš", "เธ›เธฃเธฐเน€เธ เธ—เธ เธฒเธฃเนƒเธŠเน‰", "เธซเธกเธฒเธขเน€เธซเธ•เธธ / Line"
+  ];
+  _setupSheet(ss, SHEET_NAMES.PACKAGE_LOG, masterSchema);
+
+  // Seed Dynamic Schema to System Configs if missing
+  const configSheet = ss.getSheetByName(SHEET_NAMES.CONFIG);
+  if (configSheet) {
+    const data = configSheet.getDataRange().getValues();
+    const key = "SCHEMA_" + SHEET_NAMES.PACKAGE_LOG;
+    const exists = data.some(row => row[0] === key);
+    if (!exists) {
+      configSheet.appendRow([
+        key, 
+        JSON.stringify(masterSchema), 
+        "Database Schema Blueprint for Package_Log (16 Columns)"
+      ]);
+    }
+  }
   
-  // ใส่ตัวอย่างประกาศถ้ายังไม่มี
+  // เนเธชเนเธ•เธฑเธงเธญเธขเนเธฒเธเธเธฃเธฐเธเธฒเธจเธ–เนเธฒเธขเธฑเธเนเธกเนเธกเธต
   var annSheet = ss.getSheetByName(SHEET_NAMES.ANNOUNCEMENTS);
   if (annSheet && annSheet.getLastRow() === 1) {
-    annSheet.appendRow([1, new Date(), "ยินดีต้อนรับสู่ DCG Smart ePostal", "ระบบพร้อมใช้งานสำหรับการจัดการไปรษณีย์ภัณฑ์ภายในหน่วยงานแล้วครับ", "แสดง"]);
+    annSheet.appendRow([1, new Date(), "เธขเธดเธเธ”เธตเธ•เนเธญเธเธฃเธฑเธเธชเธนเน DCG Smart ePostal", "เธฃเธฐเธเธเธเธฃเนเธญเธกเนเธเนเธเธฒเธเธชเธณเธซเธฃเธฑเธเธเธฒเธฃเธเธฑเธ”เธเธฒเธฃเนเธเธฃเธฉเธ“เธตเธขเนเธ เธฑเธ“เธ‘เนเธ เธฒเธขเนเธเธซเธเนเธงเธขเธเธฒเธเนเธฅเนเธงเธเธฃเธฑเธ", "เนเธชเธ”เธ"]);
   }
   
-  // สร้าง/ตรวจสอบชีทผู้ใช้งานใน Central DB
+  // เธชเธฃเนเธฒเธ/เธ•เธฃเธงเธเธชเธญเธเธเธตเธ—เธเธนเนเนเธเนเธเธฒเธเนเธ Central DB
   if (centralSs) {
-    _setupSheet(centralSs, SHEET_NAMES.USERS, ["รหัสพนักงาน", "อีเมล (Google)", "ชื่อ-นามสกุล", "สิทธิ์ (Admin/User/Postal)", "หน่วยงาน"]);
+    _setupSheet(centralSs, SHEET_NAMES.USERS, ["เธฃเธซเธฑเธชเธเธเธฑเธเธเธฒเธ", "เธญเธตเน€เธกเธฅ (Google)", "เธเธทเนเธญ-เธเธฒเธกเธชเธเธธเธฅ", "เธชเธดเธ—เธเธดเน (Admin/User/Postal)", "เธซเธเนเธงเธขเธเธฒเธ"]);
   }
 
-  // 2. ตั้งค่าเริ่มต้นสำหรับ GEMINI_API_KEY ในชีทการตั้งค่าระบบ
-  var configSheet = ss.getSheetByName(SHEET_NAMES.CONFIG);
+  // 2. เธ•เธฑเนเธเธเนเธฒเน€เธฃเธดเนเธกเธ•เนเธเธชเธณเธซเธฃเธฑเธ GEMINI_API_KEY เนเธเธเธตเธ—เธเธฒเธฃเธ•เธฑเนเธเธเนเธฒเธฃเธฐเธเธ (เนเธเนเธ•เธฑเธงเนเธเธฃเน€เธ”เธดเธก)
   if (configSheet && configSheet.getLastRow() === 1) {
-    configSheet.appendRow(["GEMINI_API_KEY", "", "รหัส API สำหรับใช้งานระบบสแกนพัสดุ AI (Gemini 1.5 Flash)"]);
+    configSheet.appendRow(["GEMINI_API_KEY", "", "เธฃเธซเธฑเธช API เธชเธณเธซเธฃเธฑเธเนเธเนเธเธฒเธเธฃเธฐเธเธเธชเนเธเธเธเธฑเธชเธ”เธธ AI (Gemini 1.5 Flash)"]);
   }
 
-  // 3. ตั้งค่า Conditional Formatting สำหรับ Package_Log (สีบ่งบอกสถานะ)
+  // 3. เธ•เธฑเนเธเธเนเธฒ Conditional Formatting เธชเธณเธซเธฃเธฑเธ Package_Log (เธชเธตเธเนเธเธเธญเธเธชเธ–เธฒเธเธฐ)
   _setupStatusColors(ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG));
 
-  // 4. ล็อกหัวคอลัมน์ (แถวที่ 1) ทุกชีท ห้ามแก้ไขเด็ดขาด
+  // 4. เธฅเนเธญเธเธซเธฑเธงเธเธญเธฅเธฑเธกเธเน (เนเธ–เธงเธ—เธตเน 1) เธ—เธธเธเธเธตเธ— เธซเนเธฒเธกเนเธเนเนเธเน€เธ”เนเธ”เธเธฒเธ”
   _protectHeaders(ss);
   if (centralSs !== ss) _protectHeaders(centralSs);
 }
@@ -360,21 +424,21 @@ function _setupSheet(ss, name, headers) {
     }
   }
   
-  // ตรวจสอบข้อมูลในแถวที่ 1
+  // เธ•เธฃเธงเธเธชเธญเธเธเนเธญเธกเธนเธฅเนเธเนเธ–เธงเธ—เธตเน 1
   var firstCell = sheet.getRange(1, 1).getValue();
   
-  // ถ้าแถวที่ 1 ว่าง หรือไม่มีหัวตาราง ให้บังคับเขียน
+  // เธ–เนเธฒเนเธ–เธงเธ—เธตเน 1 เธงเนเธฒเธ เธซเธฃเธทเธญเนเธกเนเธกเธตเธซเธฑเธงเธ•เธฒเธฃเธฒเธ เนเธซเนเธเธฑเธเธเธฑเธเน€เธเธตเธขเธ
   if (!firstCell || firstCell === "") {
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
-      .setBackground("#1e293b") // สีน้ำเงินเข้มเข้มขรึม
+      .setBackground("#1e293b") // เธชเธตเธเนเธณเน€เธเธดเธเน€เธเนเธกเน€เธเนเธกเธเธฃเธถเธก
       .setFontColor("white")
       .setFontWeight("bold")
       .setHorizontalAlignment("center")
       .setVerticalAlignment("middle");
     
     sheet.setFrozenRows(1);
-    // ปรับขนาดคอลัมน์ให้อัตโนมัติ
+    // เธเธฃเธฑเธเธเธเธฒเธ”เธเธญเธฅเธฑเธกเธเนเนเธซเนเธญเธฑเธ•เนเธเธกเธฑเธ•เธด
     try {
       sheet.autoResizeColumns(1, headers.length);
     } catch(e) {}
@@ -388,11 +452,11 @@ function _setupStatusColors(sheet) {
 
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
-  // ค้นหาคอลัมน์สถานะ (รองรับทั้งไทยและอังกฤษ)
+  // เธเนเธเธซเธฒเธเธญเธฅเธฑเธกเธเนเธชเธ–เธฒเธเธฐ (เธฃเธญเธเธฃเธฑเธเธ—เธฑเนเธเนเธ—เธขเนเธฅเธฐเธญเธฑเธเธเธคเธฉ)
   var statusCol = -1;
   for (var i = 0; i < headers.length; i++) {
     var h = String(headers[i]);
-    if (h.includes("สถานะ") || h.includes("Status")) {
+    if (h.includes("เธชเธ–เธฒเธเธฐ") || h.includes("Status")) {
       statusCol = i + 1;
       break;
     }
@@ -406,10 +470,10 @@ function _setupStatusColors(sheet) {
   var rules = [];
 
   var statusMap = {
-    "รอจ่าย": "#fef3c7",      
-    "ส่งมอบแล้ว": "#dcfce7",  
-    "จ่ายแล้ว": "#dcfce7",    
-    "มีปัญหา/ตีกลับ": "#fee2e2" 
+    "เธฃเธญเธเนเธฒเธข": "#fef3c7",      
+    "เธชเนเธเธกเธญเธเนเธฅเนเธง": "#dcfce7",  
+    "เธเนเธฒเธขเนเธฅเนเธง": "#dcfce7",    
+    "เธกเธตเธเธฑเธเธซเธฒ/เธ•เธตเธเธฅเธฑเธ": "#fee2e2" 
   };
 
   for (var status in statusMap) {
@@ -431,11 +495,11 @@ function _protectHeaders(ss) {
     var lastCol = Math.max(1, s.getLastColumn());
     var range = s.getRange(1, 1, 1, lastCol);
     
-    // ตรวจสอบ Protection เดิม
+    // เธ•เธฃเธงเธเธชเธญเธ Protection เน€เธ”เธดเธก
     var protections = s.getProtections(SpreadsheetApp.ProtectionType.RANGE);
     var protection;
     
-    // ถ้ามีอยู่แล้วให้ใช้ตัวเดิม ถ้าไม่มีให้สร้างใหม่
+    // เธ–เนเธฒเธกเธตเธญเธขเธนเนเนเธฅเนเธงเนเธซเนเนเธเนเธ•เธฑเธงเน€เธ”เธดเธก เธ–เนเธฒเนเธกเนเธกเธตเนเธซเนเธชเธฃเนเธฒเธเนเธซเธกเน
     var existing = protections.filter(function(p) { return p.getDescription() === 'LOCK_HEADER'; });
     if (existing.length > 0) {
       protection = existing[0];
@@ -443,7 +507,7 @@ function _protectHeaders(ss) {
       protection = range.protect().setDescription('LOCK_HEADER');
     }
     
-    // ตั้งค่าสิทธิ์: อนุญาตเฉพาะเรา (ระบบ)
+    // เธ•เธฑเนเธเธเนเธฒเธชเธดเธ—เธเธดเน: เธญเธเธธเธเธฒเธ•เน€เธเธเธฒเธฐเน€เธฃเธฒ (เธฃเธฐเธเธ)
     protection.removeEditors(protection.getEditors());
     protection.addEditor(me);
     if (protection.canDomainEdit()) {
@@ -454,14 +518,33 @@ function _protectHeaders(ss) {
 
 
 
-function isCentralSheet(sheetName) {
-  var central = ["ผู้ใช้งานระบบ", "รายชื่อพนักงาน", "รายชื่อหน่วยงาน", "การตั้งค่าระบบ", "รายชื่อตำแหน่งบริหาร"];
-  return central.indexOf(sheetName) > -1;
+/**
+ * _findSheetRobust [Resilience]
+ * Finds a sheet by exact name. If not found, searches using fallback keywords to prevent index hardcoding errors.
+ */
+function _findSheetRobust(ss, exactName, fallbackKeywords) {
+  var sheet = ss.getSheetByName(exactName);
+  if (sheet) return sheet;
+  
+  var sheets = ss.getSheets();
+  var keywords = Array.isArray(fallbackKeywords) ? fallbackKeywords : [fallbackKeywords];
+  
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName().toLowerCase();
+    if (keywords.some(k => name.includes(k.toLowerCase()))) {
+      console.log("Fallback matched: " + exactName + " -> " + sheets[i].getName());
+      return sheets[i];
+    }
+  }
+  return null;
 }
 
 function getData(sheetName) {
   if (sheetName === SHEET_NAMES.DEPTS) return getCentralDepts();
   if (sheetName === SHEET_NAMES.PERSONNEL) return getCentralPersonnel();
+  if (sheetName === SHEET_NAMES.POSITIONS) return getCentralPositions();
+  if (sheetName === SHEET_NAMES.REPS) return getCentralReps();
+  
   const sheet = getSheet(sheetName);
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
@@ -475,25 +558,26 @@ function getData(sheetName) {
 }
 
 function getCentralDepts() {
-  var cacheKey = "CACHE_DEPTS_V26_REFRESH";
+  var cacheKey = "CACHE_DEPTS_V3_REPAIRED";
   var cached = Service_Cache.get(cacheKey);
   if (cached) return cached;
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
-    const sheet = ss.getSheetByName(SHEET_NAMES.DEPTS) || ss.getSheets()[0];
+    const sheet = _findSheetRobust(ss, SHEET_NAMES.DEPTS, ["หน่วยงาน"]);
+
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return [];
 
     const headers = data[0].map(h => String(h).trim().toLowerCase());
     
-    // Explicitly exclude "รหัสหน่วยงาน" from "หน่วยงาน" search
+    // Explicitly exclude "เธฃเธซเธฑเธชเธซเธเนเธงเธขเธเธฒเธ" from "เธซเธเนเธงเธขเธเธฒเธ" search
     let idIdx = headers.findIndex(h => h.includes("รหัส") && (h.includes("หน่วยงาน") || h.includes("แผนก") || h.includes("ศูนย์")));
     if (idIdx === -1) idIdx = headers.findIndex(h => h.includes("deptid") || h.includes("departmentid") || h.includes("รหัสแผนก"));
     
     let tempHeaders = [...headers];
     if (idIdx > -1) tempHeaders[idIdx] = "";
     
-    // Find the name column, being careful not to match "ชื่อผู้ประสานงาน" or "ชื่อย่อ"
+    // Find the name column, being careful not to match "เธเธทเนเธญเธเธนเนเธเธฃเธฐเธชเธฒเธเธเธฒเธ" or "เธเธทเนเธญเธขเนเธญ"
     let nameIdx = tempHeaders.findIndex(h => h === "หน่วยงาน" || h === "คณะ/ส่วนงาน" || h === "ชื่อหน่วยงาน" || h === "แผนก" || h === "ชื่อแผนก");
     if (nameIdx === -1) nameIdx = tempHeaders.findIndex(h => h.includes("ชื่อหน่วยงาน") || h.includes("ชื่อแผนก"));
     if (nameIdx === -1) nameIdx = tempHeaders.findIndex(h => (h.includes("หน่วยงาน") || h.includes("แผนก") || h.includes("ส่วนงาน")) && !h.includes("รหัส") && !h.includes("เบอร์") && !h.includes("โทร"));
@@ -523,63 +607,149 @@ function getCentralDepts() {
 }
 
 function getCentralPersonnel() {
-  var cacheKey = "CACHE_PERSONNEL_V27_REFRESH";
+  var cacheKey = "CACHE_PERSONNEL_V6_DYNAMIC";
   var cached = Service_Cache.get(cacheKey);
   if (cached) return cached;
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
-    const sheet = ss.getSheetByName(SHEET_NAMES.PERSONNEL) || ss.getSheets()[2];
+    const sheet = _findSheetRobust(ss, SHEET_NAMES.PERSONNEL, ["พนักงาน", "Personnel", "รายชื่อพนักงาน"]);
+    if (!sheet) return [];
+
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return [];
 
-    const headers = data[0].map(h => String(h).trim().toLowerCase());
-    const emailIdx = headers.findIndex(h => h.includes("อีเมล") || h.includes("email"));
-    const nameIdx = headers.findIndex(h => h.includes("ชื่อ-ชื่อสกุล") || h.includes("ชื่อ-นามสกุล") || h.includes("ชื่อ") || h.includes("fullname") || h.includes("name"));
-    const deptIdx = headers.findIndex(h => h.includes("หน่วยงาน") || h.includes("คณะ") || h.includes("สังกัด") || h.includes("ส่วนงาน") || h.includes("แผนก") || h.includes("dept"));
-    
-    // Fallbacks
-    const finalEmailIdx = emailIdx > -1 ? emailIdx : 1;
-    const finalNameIdx = nameIdx > -1 ? nameIdx : 2;
-    const finalDeptIdx = deptIdx > -1 ? deptIdx : 4;
+    const headers = data[0];
+    const emailIdx = getHeaderIndex(headers, ["อีเมล", "Email", "Gmail"]);
+    const nameIdx = getHeaderIndex(headers, ["ชื่อ-นามสกุล", "ชื่อนามสกุล", "Name", "Full Name", "พนักงาน"]);
+    const deptIdx = getHeaderIndex(headers, ["รหัสหน่วยงาน", "DeptID", "DepartmentID", "รหัสแผนก", "หน่วยงาน"]);
 
-    const result = data.slice(1).map((row) => ({
-      Email: String(row[finalEmailIdx] || "").trim(),
-      FullName: String(row[finalNameIdx] || "").trim(),
-      Department: String(row[finalDeptIdx] || "").trim()
-    })).filter(i => i.FullName !== "");
+    // Fallback logic if headers not found (using old indices as last resort)
+    const finalEmailIdx = emailIdx > -1 ? emailIdx : 0;
+    const finalNameIdx = nameIdx > -1 ? nameIdx : 1;
+    const finalDeptIdx = deptIdx > -1 ? deptIdx : 2;
+
+    const result = data.slice(1).map((row) => {
+      const fullName = String(row[finalNameIdx] || "").trim();
+      if (!fullName) return null;
+      return {
+        Email: String(row[finalEmailIdx] || "").trim(),
+        FullName: fullName,
+        DeptID: String(row[finalDeptIdx] || "").trim(),
+        Department: "" 
+      };
+    }).filter(i => i !== null);
     
     Service_Cache.put(cacheKey, result, 21600);
     return result;
-  } catch (e) { return []; }
+  } catch (e) { 
+    console.error("getCentralPersonnel Error: " + e.message);
+    return []; 
+  }
 }
 
 function getCentralPositions() {
-  var cacheKey = "CACHE_POSITIONS_V1";
+  var cacheKey = "CACHE_POSITIONS_V6_DYNAMIC";
   var cached = Service_Cache.get(cacheKey);
   if (cached) return cached;
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
-    const sheet = ss.getSheetByName(SHEET_NAMES.POSITIONS);
+    const sheet = _findSheetRobust(ss, SHEET_NAMES.POSITIONS, ["ตำแหน่งบริหาร", "Positions", "รายชื่อตำแหน่ง"]);
     if (!sheet) return [];
+
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return [];
 
-    const headers = data[0].map(h => String(h).trim().toLowerCase());
-    const deptIdx = headers.findIndex(h => h.includes("รหัสหน่วยงาน") || h.includes("deptid"));
-    const nameIdx = headers.findIndex(h => h.includes("ชื่อตำแหน่ง") || h.includes("position"));
+    const headers = data[0];
+    const deptIdx = getHeaderIndex(headers, ["รหัสหน่วยงาน", "DeptID", "DepartmentID", "รหัสแผนก", "หน่วยงาน"]);
+    const posIdx = getHeaderIndex(headers, ["ชื่อตำแหน่ง", "ตำแหน่ง", "Position", "Job Title"]);
 
-    // Fallbacks
     const finalDeptIdx = deptIdx > -1 ? deptIdx : 0;
-    const finalNameIdx = nameIdx > -1 ? nameIdx : 1;
+    const finalPosIdx = posIdx > -1 ? posIdx : 1;
 
-    const result = data.slice(1).map((row) => ({
-      DeptID: String(row[finalDeptIdx] || "").trim(),
-      PositionName: String(row[finalNameIdx] || "").trim()
-    })).filter(i => i.PositionName !== "");
+    const result = data.slice(1).map((row) => {
+      const posName = String(row[finalPosIdx] || "").trim();
+      if (!posName) return null;
+      return {
+        DeptID: String(row[finalDeptIdx] || "").trim(),
+        PositionName: posName
+      };
+    }).filter(i => i !== null);
     
     Service_Cache.put(cacheKey, result, 21600);
     return result;
-  } catch (e) { return []; }
+  } catch (e) { 
+    console.error("getCentralPositions Error: " + e.message);
+    return []; 
+  }
+}
+
+function getCentralReps() {
+  var cacheKey = "CACHE_REPS_V6_DYNAMIC";
+  var cached = Service_Cache.get(cacheKey);
+  if (cached) return cached;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
+    const sheet = _findSheetRobust(ss, SHEET_NAMES.REPS, ["ตัวแทนรับพัสดุ", "ตัวแทน", "Representatives", "Reps"]);
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0];
+    const emailIdx = getHeaderIndex(headers, ["อีเมล", "Email", "Gmail"]);
+    const nameIdx = getHeaderIndex(headers, ["ชื่อ-นามสกุล", "ชื่อนามสกุล", "Name", "Full Name", "ตัวแทน"]);
+    const deptIdx = getHeaderIndex(headers, ["รหัสหน่วยงาน", "DeptID", "DepartmentID", "รหัสแผนก", "หน่วยงาน"]);
+
+    const finalEmailIdx = emailIdx > -1 ? emailIdx : 0;
+    const finalNameIdx = nameIdx > -1 ? nameIdx : 1;
+    const finalDeptIdx = deptIdx > -1 ? deptIdx : 2;
+
+    const result = data.slice(1).map((row) => {
+      const fullName = String(row[finalNameIdx] || "").trim();
+      if (!fullName) return null;
+      return {
+        Email: String(row[finalEmailIdx] || "").trim(),
+        FullName: fullName,
+        DeptID: String(row[finalDeptIdx] || "").trim()
+      };
+    }).filter(i => i !== null);
+    
+    Service_Cache.put(cacheKey, result, 21600);
+    return result;
+  } catch (e) { 
+    console.error("getCentralReps Error: " + e.message);
+    return []; 
+  }
+}
+
+/**
+ * getSchema [Resilience]
+ * Loads schema for a sheet from System_Configs if available.
+ */
+function getSchema(sheetName) {
+  try {
+    const ssId = getActiveDatabaseId();
+    const ss = SpreadsheetApp.openById(ssId);
+    const configSheet = ss.getSheetByName(SHEET_NAMES.SYSTEM_CONFIGS);
+    if (!configSheet) return null;
+    
+    const data = configSheet.getDataRange().getValues();
+    const key = "SCHEMA_" + sheetName;
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        try {
+          return JSON.parse(data[i][1]);
+        } catch(pErr) {
+          // If not JSON, maybe comma separated?
+          return String(data[i][1]).split(",").map(s => s.trim());
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error loading schema for " + sheetName + ": " + e.message);
+  }
+  return null;
 }
 
 /**
@@ -589,9 +759,11 @@ function getCentralPositions() {
  */
 function ensureHeadersSync(sheet, desiredHeaders) {
   if (!sheet) return;
-  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
-  const missing = desiredHeaders.filter(h => getHeaderIndex(currentHeaders, h) === -1);
+  const lastCol = sheet.getLastColumn();
+  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, lastCol)).getValues()[0];
   
+  // 1. Healing: Add missing columns
+  const missing = desiredHeaders.filter(h => getHeaderIndex(currentHeaders, h) === -1);
   if (missing.length > 0) {
     console.log(`Healing headers for ${sheet.getName()}: Adding ${missing.join(", ")}`);
     const startCol = sheet.getLastColumn() + 1;
@@ -601,13 +773,20 @@ function ensureHeadersSync(sheet, desiredHeaders) {
       .setFontColor("white")
       .setFontWeight("bold");
   }
+
+  // 2. Hardening: Truncate extra columns [TDD GREEN Phase]
+  // Note: We check again after healing in case columns were added
+  const finalColCount = sheet.getLastColumn();
+  if (finalColCount > desiredHeaders.length) {
+    console.warn(`Schema warning for ${sheet.getName()}: ${finalColCount - desiredHeaders.length} extra columns detected. Runtime will not delete columns.`);
+  }
 }
 
 /**
  * getSheet [GLOBAL DISPATCHER]
  * T-005 Component: Routes database requests to the correct physical Spreadsheet.
  */
-function getSheet(sheetName, targetDate) {
+function getSheet(sheetName, targetDate, options) {
   try {
     var ssId;
     if (isCentralSheet(sheetName)) {
@@ -626,15 +805,25 @@ function getSheet(sheetName, targetDate) {
       }
     }
 
-    // Auto-Heal Package_Log headers if necessary
+    // Auto-Heal Package_Log headers if necessary (v4.0.2 Thai Standard)
+    // [HARDENED] Always use the canonical 16-column schema.
+    // DO NOT use getSchema() here โ€” it pulls stale 33-col schema from System_Configs
+    // which causes phantom black columns (Q-AG) to reappear on every page load.
     if (sheet && sheetName === SHEET_NAMES.PACKAGE_LOG) {
-      const schema = ["รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับ", "สถานะ", "เวลาบันทึก", "เวลาจ่าย", "จนท.นำจ่าย", "ผู้รับจริง", "ลายเซ็น", "รูปภาพ", "GPS", "วิธีส่งมอบ", "ประเภทการใช้", "หมายเหตุ / สถานะ Line", "AppVersion", "Metadata"];
-      ensureHeadersSync(sheet, schema);
+      if (!options || !options.skipSchemaValidation) {
+        var validation = Service_Schema.validatePackageLogSheet(sheet);
+        if (!validation.valid) {
+          throw new Error("Package_Log schema mismatch: " + validation.error);
+        }
+      }
     }
     
     return sheet;
   } catch (e) {
     Logger.log("getSheet Dispatch Error: " + e.message + " for " + sheetName);
+    if (sheetName === SHEET_NAMES.PACKAGE_LOG && String(e.message).indexOf("Package_Log schema mismatch") > -1) {
+      throw e;
+    }
     return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   }
 }
@@ -644,7 +833,9 @@ function isCentralSheet(name) {
     SHEET_NAMES.USERS, 
     SHEET_NAMES.PERSONNEL, 
     SHEET_NAMES.DEPTS, 
-    SHEET_NAMES.POSITIONS
+    SHEET_NAMES.POSITIONS,
+    SHEET_NAMES.REPS
   ];
   return centralNames.indexOf(name) !== -1;
 }
+

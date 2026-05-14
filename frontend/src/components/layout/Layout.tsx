@@ -2,9 +2,11 @@ import React, { useMemo } from 'react';
 import { LayoutDashboard, Package, Search, Settings, User, Moon, Sun, Clock, Shield, LogOut, Mail } from 'lucide-react';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 import { FeedbackWidget } from '../ui/FeedbackWidget';
 import { haptics } from '../../utils/haptics';
+import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,6 +42,39 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
     }
     return items;
   }, [user]);
+
+  const { isOnline, isSyncing, pendingCount, processQueue } = useOfflineSync();
+
+  const SyncBadge = () => {
+    if (pendingCount === 0 && isOnline) return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
+        <Wifi className="w-3 h-3" /> Online
+      </div>
+    );
+
+    return (
+      <button 
+        onClick={() => isOnline && processQueue()}
+        disabled={isSyncing || !isOnline}
+        aria-label={!isOnline ? 'ออฟไลน์' : `กำลังซิงค์ ${pendingCount} รายการ`}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all",
+          !isOnline 
+            ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
+            : "bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse"
+        )}
+      >
+        {isSyncing ? (
+          <RefreshCw className="w-3 h-3 animate-spin" />
+        ) : !isOnline ? (
+          <WifiOff className="w-3 h-3" />
+        ) : (
+          <RefreshCw className="w-3 h-3" />
+        )}
+        {!isOnline ? 'Offline' : `Syncing ${pendingCount}...`}
+      </button>
+    );
+  };
 
   return (
     <div className={cn(
@@ -106,16 +141,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
             {menuItems.find(m => m.id === activeTab)?.label || 'หน้าแรก'}
           </h2>
           <div className="flex items-center gap-2 lg:gap-4">
+            <SyncBadge />
             <button
               onClick={toggleTheme}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors tooltip-trigger relative group"
               title="สลับโหมดสี"
+              aria-label="สลับโหมดสว่าง/มืด"
             >
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
             <FeedbackWidget />
             <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-2" />
-            <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 hover:ring-2 hover:ring-primary/20 transition-all">
+            <button 
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 hover:ring-2 hover:ring-primary/20 transition-all"
+              aria-label="โปรไฟล์ผู้ใช้งาน"
+            >
               <User className="h-5 w-5" />
             </button>
           </div>

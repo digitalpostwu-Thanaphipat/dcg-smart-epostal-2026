@@ -7,6 +7,7 @@ interface User {
   role: string;
   department: string;
   picture?: string;
+  sessionToken?: string;
 }
 
 interface AuthState {
@@ -21,13 +22,10 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      login: (user) => {
-        set({ user, isAuthenticated: true });
-        localStorage.setItem('epostal_user', JSON.stringify(user));
-      },
+      login: (user: User) => set({ user, isAuthenticated: true }),
       logout: () => {
-        set({ user: null, isAuthenticated: false });
         localStorage.removeItem('epostal_user');
+        set({ user: null, isAuthenticated: false });
       },
     }),
     {

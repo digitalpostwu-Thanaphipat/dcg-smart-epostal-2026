@@ -25,10 +25,11 @@ import {
 } from 'lucide-react';
 import { ApiClient, type PostalPackage } from '@/api/client';
 import { toast } from 'react-hot-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatThaiDate, getThaiFiscalYear } from '@/lib/utils';
 import { haptics } from '@/utils/haptics';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { getBuildingColorClass } from '@/utils/designUtils';
 // import * as XLSX from 'xlsx'; // Removed for Dynamic Import Performance Optimization
 
 
@@ -37,10 +38,11 @@ export const PostalSearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<PostalPackage[]>([]);
   const [showFilters, setShowFilters] = useState(false); // Mobile Drawer Toggle
+  const [selectedPackage, setSelectedPackage] = useState<PostalPackage | null>(null);
   const { departments } = useMasterDataStore();
   
   // Intelligence Filters
-  const currentFY = String(new Date().getFullYear() + 543);
+  const currentFY = String(getThaiFiscalYear());
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
@@ -66,8 +68,8 @@ export const PostalSearchPage = () => {
         dateTo: filters.dateTo,
         fiscalYear: filters.fiscalYear
       });
-      if (res.success) {
-        const hits = res.data?.results || res.results || [];
+      if (res && res.success) {
+        const hits = Array.isArray(res.data) ? res.data : (res.results || []);
         setResults(hits);
         if (e && (hits.length === 0)) {
           toast.error('ไม่พบข้อมูลพัสดุตามเงื่อนไขที่ระบุ');
@@ -137,8 +139,8 @@ export const PostalSearchPage = () => {
       'หน่วยงาน': pkg.departmentName || '-',
       'สถานะ': pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' ? 'ส่งมอบสำเร็จ' : (pkg.status === 'Pending' ? 'รอนำจ่าย' : pkg.status),
       'ประเภท': pkg.type || pkg.itemประเภท || 'พัสดุ',
-      'วันที่บันทึก': pkg.timestamp || pkg.created_at ? new Date(pkg.timestamp || pkg.created_at).toLocaleString('th-TH') : '-',
-      'วันที่นำจ่าย': pkg.delivered_at ? new Date(pkg.delivered_at).toLocaleString('th-TH') : '-'
+      'วันที่บันทึก': formatThaiDate(pkg.timestamp || pkg.created_at),
+      'วันที่นำจ่าย': formatThaiDate(pkg.delivered_at)
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -160,7 +162,7 @@ export const PostalSearchPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 pb-24 relative min-h-[120vh] space-y-6">
       {/* 1. SECTION: HERO SEARCH (MATCHING GLOBAL STYLE) */}
-      <section className="relative overflow-hidden rounded-[3rem] clay-card-deep p-8 sm:p-12 lg:p-16 animate-fade-in border-none">
+      <section className="relative overflow-hidden rounded-5xl clay-card-deep p-8 sm:p-12 lg:p-16 animate-fade-in border-none">
         {/* Background Icon Accent */}
         <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
            <Search className="w-64 h-64 text-zinc-400 dark:text-white rotate-[-10deg]" />
@@ -185,7 +187,7 @@ export const PostalSearchPage = () => {
           {/* Search Input Layer inside Header or directly below */}
           <form onSubmit={handleSearch} className="relative group max-w-4xl font-body">
              <div className="absolute inset-x-0 inset-y-0 bg-primary/20 blur-2xl group-focus-within:bg-primary/40 transition-all rounded-3xl" />
-             <div className="relative flex items-center bg-zinc-100/50 dark:bg-zinc-950/50 backdrop-blur-3xl border-2 border-zinc-100 dark:border-zinc-800 p-2 sm:p-3 rounded-[2.5rem] shadow-2xl transition-all group-focus-within:border-primary group-focus-within:bg-white/15">
+             <div className="relative flex items-center bg-zinc-100/50 dark:bg-zinc-950/50 backdrop-blur-3xl border-2 border-zinc-100 dark:border-zinc-800 p-2 sm:p-3 rounded-5xl shadow-2xl transition-all group-focus-within:border-primary group-focus-within:bg-white/15">
                 <Search className="w-6 h-6 sm:w-8 sm:h-8 ml-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
                 <input
                   type="text"
@@ -233,7 +235,7 @@ export const PostalSearchPage = () => {
           {results.length > 0 && (
             <button 
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-heading font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 border border-emerald-500/20"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-success/10 hover:bg-success/20 text-success dark:text-success/80 font-heading font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 border border-success/20"
             >
               <Download className="w-4 h-4" /> 
               ดาวน์โหลดรายงาน
@@ -250,12 +252,12 @@ export const PostalSearchPage = () => {
               </div>
             )}
             {filters.status !== 'all' && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-black whitespace-nowrap">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-warning/10 text-warning border border-warning/20 text-[10px] font-black whitespace-nowrap">
                 <Tag className="w-3.5 h-3.5" /> {filters.status}
               </div>
             )}
             {(filters.dateFrom || filters.dateTo) && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[10px] font-black whitespace-nowrap">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-info/10 text-info border border-info/20 text-[10px] font-black whitespace-nowrap">
                 <Calendar className="w-3.5 h-3.5" /> ช่วงเวลา
               </div>
             )}
@@ -276,66 +278,111 @@ export const PostalSearchPage = () => {
       <div className="font-body">
         {results.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((pkg, idx) => (
-              <div 
-                key={`${pkg.id}-${idx}`}
-                className="group relative p-6 clay-card hover:border-primary/50 transition-all animate-slide-fade-in hover:shadow-2xl hover:scale-[1.01] cursor-pointer !rounded-3xl"
-                style={{ animationDelay: `${idx * 40}ms` }}
-              >
-                {/* Top Row: Icon and Badge */}
-                <div className="flex justify-between items-start mb-5">
-                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-zinc-400 group-hover:text-primary transition-colors">
-                    <Package className="w-6 h-6" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                      (pkg.status === 'ส่งมอบแล้ว' || pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว') ? "bg-emerald-500/10 text-emerald-500" :
-                      (pkg.status === 'รอจ่าย' || pkg.status === 'Pending') ? "bg-amber-500/10 text-amber-500" :
-                      "bg-rose-500/10 text-rose-500"
-                    )}>
-                      {pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' ? 'ส่งมอบสำเร็จ' : 
-                       pkg.status === 'Pending' ? 'รอนำจ่าย' : pkg.status}
-                    </span>
-                    <div className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[9px] font-black uppercase tracking-widest">
-                       {pkg.type || pkg.itemType || 'พัสดุ'}
+            {results.map((pkg, idx) => {
+              const buildingColor = getBuildingColorClass(pkg.building || '', 'bg');
+              const buildingLightBg = getBuildingColorClass(pkg.building || '', 'lightBg');
+              const isDelivered = pkg.status === 'ส่งมอบแล้ว' || pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว';
+
+              return (
+                <div 
+                  key={`${pkg.id}-${idx}`}
+                  className={cn(
+                    "group relative p-6 bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-4xl transition-all animate-slide-fade-in hover:shadow-2xl hover:scale-[1.03] cursor-pointer overflow-hidden shadow-sm shadow-zinc-200/50",
+                    idx === 0 ? "delay-0" :
+                    idx === 1 ? "delay-75" :
+                    idx === 2 ? "delay-100" :
+                    idx === 3 ? "delay-150" :
+                    idx === 4 ? "delay-200" :
+                    idx === 5 ? "delay-300" :
+                    idx === 6 ? "delay-500" :
+                    "delay-700"
+                  )}
+                  onClick={() => { haptics.light(); setSelectedPackage(pkg); }}
+                >
+                  {/* Building Color Stripe */}
+                  <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 transition-all", buildingColor)} />
+
+                  {/* Top Row: Icon & Status & Tracking */}
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex gap-3">
+                      <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-2xl text-zinc-400 group-hover:text-primary transition-all duration-500 group-hover:rotate-12">
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">Tracking No.</span>
+                        <span className="text-sm font-mono font-black tracking-tighter text-zinc-900 dark:text-zinc-100 truncate max-w-[120px]">
+                          {pkg.trackingNumber || pkg.trackingNo || "-"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={cn(
+                        "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                        isDelivered ? "bg-success/10 text-success border-success/10" :
+                        (pkg.status === 'รอจ่าย' || pkg.status === 'รอนำจ่าย' || pkg.status === 'Pending') ? "bg-warning/10 text-warning border-warning/10" :
+                        "bg-error/10 text-error border-error/10"
+                      )}>
+                        {isDelivered ? 'ส่งมอบสำเร็จ' : 
+                         (pkg.status === 'Pending' || pkg.status === 'รอจ่าย' || pkg.status === 'รอนำจ่าย') ? 'รอนำจ่าย' : (pkg.status || 'รอนำจ่าย')}
+                      </span>
                     </div>
                   </div>
-                </div>
 
-                {/* Content Area */}
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-heading font-black text-zinc-900 dark:text-white group-hover:text-primary transition-colors leading-tight truncate">
-                      {pkg.receiverName || pkg.recipientName}
-                    </h3>
-                    <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
-                       <Building2 className="w-3.5 h-3.5 opacity-50 text-zinc-400" /> {pkg.department}
-                    </p>
+                  {/* Content Area */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl font-heading font-black text-zinc-900 dark:text-white group-hover:text-primary transition-colors leading-tight truncate">
+                        {pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับ'}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-colors", buildingLightBg)}>
+                          {pkg.building || 'ไม่ระบุอาคาร'}
+                        </div>
+                        <p className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
+                           <Building2 className="w-3.5 h-3.5 opacity-50" /> {pkg.department || pkg.deptName || 'ไม่ระบุหน่วยงาน'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isDelivered && pkg.signerName && pkg.signerName !== "-" && (
+                      <div className="p-3 rounded-2xl bg-success/5 border border-success/10 flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                        <p className="text-[10px] font-black text-success uppercase tracking-widest">
+                          รับโดย: {pkg.signerName}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-4 border-t border-zinc-50 dark:border-zinc-800/50 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-zinc-300" />
+                        <span className="text-[10px] font-bold text-zinc-500">{formatThaiDate(pkg.date || pkg.receivedAt)}</span>
+                      </div>
+                      <div className="px-2.5 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-900 text-[8px] font-black uppercase tracking-widest text-zinc-400 border border-zinc-100 dark:border-zinc-800">
+                        {pkg.type || pkg.itemType || 'พัสดุทั่วไป'}
+                      </div>
+                    </div>
                   </div>
 
-                  <p className="text-[11px] font-bold text-zinc-400 flex items-center gap-2 pt-1">
-                    <Clock className="w-3.5 h-3.5 text-zinc-300" /> {(pkg.date || pkg.receivedAt || "").split(' ')[0]}
-                  </p>
+                  {/* Bottom ID Bar (Subtle) */}
+                  <div className="mt-4 pt-3 border-t border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
+                    <p className="font-mono text-[8px] font-black tracking-widest uppercase opacity-40 text-zinc-400">
+                      SYS-ID: {pkg.id}
+                    </p>
+                    
+                    {isDelivered && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleRevert(pkg); }}
+                        className="p-2.5 rounded-xl bg-warning/5 hover:bg-warning text-warning hover:text-white transition-all font-black text-[9px] flex items-center gap-1.5 uppercase tracking-widest shadow-sm active:scale-90"
+                      >
+                        <RotateCcw className="w-3 h-3" /> ยกเลิก
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                {/* Bottom Bar: Tracking ID */}
-                <div className="mt-5 pt-4 border-t border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
-                  <p className="font-mono text-[11px] font-black text-zinc-400 dark:text-zinc-500 tracking-tighter uppercase">
-                    ID: {pkg.id} · {pkg.trackingNo || pkg.trackingNumber}
-                  </p>
-                  
-                  {(pkg.status === 'ส่งมอบแล้ว' || pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว') && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleRevert(pkg); }}
-                      className="p-2 rounded-xl bg-orange-500/5 hover:bg-orange-500 text-orange-500 hover:text-white transition-all font-black text-[9px] flex items-center gap-1.5 uppercase tracking-widest shadow-sm"
-                    >
-                      <RotateCcw className="w-3 h-3" /> ยกเลิก
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="glass-card p-24 rounded-[3rem] text-center space-y-6 flex flex-col items-center border border-dashed border-zinc-200 dark:border-zinc-800">
@@ -408,7 +455,7 @@ export const PostalSearchPage = () => {
                         className={cn(
                           "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
                           filters.status === s.id 
-                          ? "bg-primary text-white border-primary shadow-[0_12px_24px_-8px_rgba(16,185,129,0.5)] scale-105" 
+                          ? "bg-primary text-white border-primary shadow-success/50 scale-105" 
                           : "bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-100 dark:border-zinc-800 hover:border-zinc-300"
                         )}
                       >
@@ -451,8 +498,8 @@ export const PostalSearchPage = () => {
                   <div className="flex flex-wrap gap-2">
                     {[
                       { id: currentFY, label: `ปี ${currentFY} (ปัจจุบัน)` },
-                      { id: String(new Date().getFullYear() + 542), label: `ปี ${new Date().getFullYear() + 542}` },
-                      { id: String(new Date().getFullYear() + 541), label: `ปี ${new Date().getFullYear() + 541}` },
+                      { id: String(Number(currentFY) - 1), label: `ปี ${Number(currentFY) - 1}` },
+                      { id: String(Number(currentFY) - 2), label: `ปี ${Number(currentFY) - 2}` },
                       { id: 'all', label: 'ค้นหาทุกปี (ช้า)' }
                     ].map((y) => (
                       <button 
@@ -465,7 +512,7 @@ export const PostalSearchPage = () => {
                         className={cn(
                           "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
                           filters.fiscalYear === y.id 
-                          ? "bg-primary text-white border-primary shadow-[0_12px_24px_-8px_rgba(16,185,129,0.5)] scale-105" 
+                          ? "bg-primary text-white border-primary shadow-success/50 scale-105" 
                           : "bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-100 dark:border-zinc-800 hover:border-zinc-300"
                         )}
                       >
@@ -504,6 +551,153 @@ export const PostalSearchPage = () => {
                 </button>
              </div>
           </div>
+        </div>
+      )}
+      {/* 5. PACKAGE DETAIL MODAL */}
+      {selectedPackage && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xl animate-fade-in" onClick={() => setSelectedPackage(null)} />
+           
+           <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-start justify-between bg-zinc-50/50 dark:bg-zinc-800/50">
+                 <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                       <span className={cn(
+                          "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                          (selectedPackage.status === 'ส่งมอบแล้ว' || selectedPackage.status === 'Delivered' || selectedPackage.status === 'จ่ายแล้ว') ? "bg-success text-white" : "bg-warning text-white"
+                       )}>
+                          {selectedPackage.status}
+                       </span>
+                       <span className="px-3 py-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-[10px] font-black uppercase tracking-widest">
+                          {selectedPackage.type || selectedPackage.itemType}
+                       </span>
+                    </div>
+                    <h2 className="text-3xl font-heading font-black text-zinc-900 dark:text-white tracking-tighter leading-tight">
+                       {selectedPackage.recipientName || selectedPackage.receiverName}
+                    </h2>
+                    <p className="text-sm font-bold text-zinc-500 flex items-center gap-2">
+                       <Building2 className="w-4 h-4" /> {selectedPackage.department}
+                    </p>
+                 </div>
+                 <button onClick={() => setSelectedPackage(null)} className="p-3 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all shadow-sm">
+                    <X className="w-6 h-6" />
+                 </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Delivery Evidence */}
+                    <div className="space-y-6">
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">ลายเซ็นผู้รับ</label>
+                          <div className="aspect-[4/3] rounded-3xl bg-zinc-50 dark:bg-zinc-950 border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center justify-center overflow-hidden">
+                             {selectedPackage.signature ? (
+                               <img src={selectedPackage.signature} alt="Signature" className="w-full h-full object-contain p-4 dark:invert" />
+                             ) : (
+                               <div className="text-center space-y-2 opacity-20">
+                                  <User className="w-12 h-12 mx-auto" />
+                                  <p className="text-[10px] font-black uppercase tracking-widest">ไม่มีข้อมูลลายเซ็น</p>
+                               </div>
+                             )}
+                          </div>
+                       </div>
+                       
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">รูปภาพยืนยัน</label>
+                          <div className="aspect-square rounded-3xl bg-zinc-50 dark:bg-zinc-950 border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center justify-center overflow-hidden">
+                             {selectedPackage.photo ? (
+                               <img src={selectedPackage.photo} alt="Delivery Proof" className="w-full h-full object-cover" />
+                             ) : (
+                               <div className="text-center space-y-2 opacity-20">
+                                  <Package className="w-12 h-12 mx-auto" />
+                                  <p className="text-[10px] font-black uppercase tracking-widest">ไม่มีข้อมูลรูปภาพ</p>
+                               </div>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* Meta Data */}
+                    <div className="space-y-6">
+                       <div className="clay-card-deep p-6 rounded-3xl space-y-6 border-none shadow-none bg-zinc-50/50 dark:bg-white/5">
+                          <div className="grid grid-cols-1 gap-4">
+                             <div className="space-y-1">
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">รหัสพัสดุ / เลข Tracking</span>
+                                <p className="text-sm font-mono font-black text-zinc-900 dark:text-white uppercase tracking-tighter">
+                                   {selectedPackage.id}
+                                   <span className="block text-primary text-xs mt-1">{selectedPackage.trackingNo || selectedPackage.trackingNumber}</span>
+                                </p>
+                             </div>
+                             
+                             <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
+                             
+                             <div className="space-y-1">
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">ผู้รับจริง / ผู้ลงนาม</span>
+                                <p className="text-base font-black text-zinc-900 dark:text-white">
+                                   {selectedPackage.signerName || "-"}
+                                </p>
+                             </div>
+
+                             <div className="space-y-1">
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">วิธีการส่งมอบ / ประเภทการใช้</span>
+                                <p className="text-sm font-bold text-zinc-600 dark:text-zinc-300">
+                                   {selectedPackage.method || "-"} · {selectedPackage.useType || "-"}
+                                </p>
+                             </div>
+
+                             <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
+
+                             <div className="space-y-1">
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">เจ้าหน้าที่ผู้นำจ่าย</span>
+                                <p className="text-sm font-black text-primary flex items-center gap-2">
+                                   <User className="w-4 h-4" /> {selectedPackage.deliverer || "-"}
+                                </p>
+                             </div>
+
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">เวลาที่รับเข้า</span>
+                                   <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
+                                      {formatThaiDate(selectedPackage.date)}
+                                   </p>
+                                </div>
+                                <div className="space-y-1">
+                                   <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">เวลาที่ส่งมอบ</span>
+                                   <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
+                                      {formatThaiDate(selectedPackage.deliveredAt)}
+                                   </p>
+                                </div>
+                             </div>
+
+                             {selectedPackage.note && selectedPackage.note !== "-" && (
+                               <>
+                                 <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
+                                 <div className="space-y-1">
+                                    <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">หมายเหตุ</span>
+                                    <p className="text-xs font-medium text-rose-500 bg-rose-500/5 p-3 rounded-xl border border-rose-500/10">
+                                       {selectedPackage.note}
+                                    </p>
+                                 </div>
+                               </>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+                 <button 
+                   onClick={() => setSelectedPackage(null)}
+                   className="px-10 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-heading font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-zinc-500/20"
+                 >
+                    ปิดหน้าต่าง
+                 </button>
+              </div>
+           </div>
         </div>
       )}
     </div>
