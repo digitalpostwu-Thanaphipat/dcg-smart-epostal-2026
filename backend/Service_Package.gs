@@ -763,7 +763,7 @@ function executeSearchPackages(filters) {
 
     ssList.forEach(ss => {
       if (results.length >= maxResults) return;
-      var sheet = ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log");
+      var sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : (ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log"));
       if (!sheet) return;
       
       var data = sheet.getDataRange().getValues();

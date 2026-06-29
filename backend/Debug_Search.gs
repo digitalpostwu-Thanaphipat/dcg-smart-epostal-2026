@@ -16,9 +16,9 @@ function debugSearchDiagnostic() {
     results.push("Spreadsheet Name: " + ss.getName());
     
     // 3. Get the sheet
-    var sheet = ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log");
+    var sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : (ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log"));
     if (!sheet) {
-      results.push("❌ FATAL: Sheet 'Package_Log' NOT FOUND!");
+      results.push("❌ FATAL: Sheet '" + SHEET_NAMES.PACKAGE_LOG + "' NOT FOUND!");
       results.push("Available sheets: " + ss.getSheets().map(s => s.getName()).join(", "));
       Logger.log(results.join("\n"));
       return results.join("\n");

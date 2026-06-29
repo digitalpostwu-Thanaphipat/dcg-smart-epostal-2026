@@ -24,8 +24,8 @@ function test_schemaEnforcement() {
   try {
     const ssId = getActiveDatabaseId();
     const ss = SpreadsheetApp.openById(ssId);
-    const sheet = ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
-    if (!sheet) return { name: testName, success: false, message: "Package_Log sheet not found" };
+    const sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+    if (!sheet) return { name: testName, success: false, message: SHEET_NAMES.PACKAGE_LOG + " sheet not found" };
 
     // 1. Arrange: Add a 17th column (Phantom)
     const originalColCount = sheet.getLastColumn();
@@ -44,7 +44,7 @@ function test_schemaEnforcement() {
     // Direct validation test
     var mockSheet = {
       getLastColumn: function() { return 17; },
-      getName: function() { return "Package_Log"; },
+      getName: function() { return SHEET_NAMES.PACKAGE_LOG; },
       getRange: function() { 
         return { 
           getValues: function() { 

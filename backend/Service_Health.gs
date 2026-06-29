@@ -175,7 +175,7 @@ var Service_Health = {
     // Check Local DB
     const localSS = SpreadsheetApp.openById(SPREADSHEET_ID);
     for (let sheetName in localSchemas) {
-      const sheet = localSS.getSheetByName(sheetName);
+      const sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(localSS, sheetName) : localSS.getSheetByName(sheetName);
       if (!sheet) {
         errors.push(`ไม่พบชีท: ${sheetName}`);
         continue;
@@ -196,8 +196,8 @@ var Service_Health = {
     }
 
     // Central DB Check (Just verify existence since Service_DB has auto-headers for data)
-    const centralSS = SpreadsheetApp.openById(CENTRAL_SPREADSHEET_ID);
-    const requiredCentralSheets = [SHEET_NAMES.PERSONNEL, SHEET_NAMES.DEPTS, SHEET_NAMES.USERS];
+    const centralSS = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
+    const requiredCentralSheets = [SHEET_NAMES.PERSONNEL, SHEET_NAMES.DEPTS, SHEET_NAMES.POSITIONS, SHEET_NAMES.REPS];
     requiredCentralSheets.forEach(sheetName => {
       // Allow fallback names
       let sheet = centralSS.getSheetByName(sheetName);

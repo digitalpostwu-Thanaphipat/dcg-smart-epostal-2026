@@ -54,11 +54,11 @@ export const Login = () => {
         toast.success('เข้าสู่ระบบสำเร็จ');
       } else {
         haptics.error();
-        toast.error(response?.error || 'ไม่พบข้อมูลผู้ใช้งานในระบบส่วนกลาง (DCG Central DB)');
+        toast.error(response?.error || 'ไม่พบข้อมูลผู้ใช้งานในไฟล์โปรเจกต์ ePostal_2026');
       }
     } catch (error: any) {
       haptics.error();
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบส่วนกลาง');
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อไฟล์โปรเจกต์ ePostal_2026');
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export const Login = () => {
            <form onSubmit={handleLogin} aria-label="แบบฟอร์มเข้าสู่ระบบ" className="space-y-12 relative z-10">
               <div className="space-y-4">
                  <label htmlFor="email-input" className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 px-2 transition-colors ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    <Mail className="w-4 h-4 text-emerald-500" /> ข้อมูลผู้ใช้งานในระบบส่วนกลาง (DCG Central DB)
+                    <Mail className="w-4 h-4 text-emerald-500" /> ข้อมูลผู้ใช้งานในไฟล์โปรเจกต์ ePostal_2026
                  </label>
                   <div className="relative">
                     <input

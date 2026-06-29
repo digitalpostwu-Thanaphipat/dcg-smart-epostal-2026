@@ -93,13 +93,22 @@ var SHEET_NAMES = {
   CONFIG: "\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e23\u0e30\u0e1a\u0e1a",
   POSITIONS: "\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e1a\u0e23\u0e34\u0e2b\u0e32\u0e23",
   REPS: "\u0e15\u0e31\u0e27\u0e41\u0e17\u0e19\u0e23\u0e31\u0e1a\u0e1e\u0e31\u0e2a\u0e14\u0e38", // ตัวแทนรับพัสดุ
-  PACKAGE_LOG: "Package_Log",
-  LOGS_AUDIT: "Audit_Log",
+  PACKAGE_LOG: "\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e1e\u0e31\u0e2a\u0e14\u0e38",
+  LOGS_AUDIT: "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e01\u0e32\u0e23\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19",
   LOGS_ERROR: "Error_Log",
-  FEEDBACK_LOG: "Feedback_Log",
+  FEEDBACK_LOG: "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e02\u0e49\u0e2d\u0e40\u0e2a\u0e19\u0e2d\u0e41\u0e19\u0e30",
   ANNOUNCEMENTS: "\u0e1b\u0e23\u0e30\u0e01\u0e32\u0e28\u0e08\u0e32\u0e01\u0e23\u0e30\u0e1a\u0e1a",
   SYSTEM_CONFIGS: "System_Configs",
-  SYSTEM_STATS: "System_Stats"
+  SYSTEM_STATS: "\u0e2a\u0e16\u0e34\u0e15\u0e34\u0e23\u0e30\u0e1a\u0e1a",
+  ARCHIVE_INDEX: "\u0e14\u0e31\u0e0a\u0e19\u0e35\u0e41\u0e1f\u0e49\u0e21\u0e22\u0e49\u0e2d\u0e19\u0e2b\u0e25\u0e31\u0e07"
+};
+
+var LEGACY_SHEET_NAMES = {
+  PACKAGE_LOG: "Package_Log",
+  LOGS_AUDIT: "Audit_Log",
+  FEEDBACK_LOG: "Feedback_Log",
+  SYSTEM_STATS: "System_Stats",
+  ARCHIVE_INDEX: "Archive_Index"
 };
 
 
@@ -160,7 +169,7 @@ function getActiveDatabaseId(targetDate) {
 function maintainDatabaseShards() {
   var activeYear = _getCurrentFiscalYear();
   var registry = _getShardRegistry();
-  var mainSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+  var mainSheet = _getSheetByCanonicalName(SpreadsheetApp.openById(SPREADSHEET_ID), SHEET_NAMES.PACKAGE_LOG);
   if (!mainSheet) return;
 
   var data = mainSheet.getDataRange().getValues();
@@ -201,13 +210,13 @@ function maintainDatabaseShards() {
       
       // Clean the new shard's data (keep only headers)
       var newSs = SpreadsheetApp.openById(targetId);
-      var newSheet = newSs.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+      var newSheet = _getSheetByCanonicalName(newSs, SHEET_NAMES.PACKAGE_LOG);
       if (newSheet.getLastRow() > 1) {
         newSheet.deleteRows(2, newSheet.getLastRow() - 1);
       }
     }
 
-    var targetSheet = SpreadsheetApp.openById(targetId).getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+    var targetSheet = _getSheetByCanonicalName(SpreadsheetApp.openById(targetId), SHEET_NAMES.PACKAGE_LOG);
     var lock = LockService.getScriptLock();
     try {
       lock.waitLock(30000);
@@ -272,7 +281,7 @@ function _getCurrentFiscalYear(date) {
 function _syncArchiveIndexSheet() {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName("Archive_Index");
+    var sheet = _getSheetByCanonicalName(ss, SHEET_NAMES.ARCHIVE_INDEX);
     if (!sheet) return;
 
     var registry = _getShardRegistry();
@@ -290,7 +299,7 @@ function _syncArchiveIndexSheet() {
         fileName = shardFile.getName();
 
         // Calculate Stats for YoY Cache
-        var shardSheet = SpreadsheetApp.openById(fileId).getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+        var shardSheet = _getSheetByCanonicalName(SpreadsheetApp.openById(fileId), SHEET_NAMES.PACKAGE_LOG);
         if (shardSheet && shardSheet.getLastRow() > 1) {
            var shardData = shardSheet.getDataRange().getValues();
            totalPackages = shardData.length - 1; // Exclude Header
@@ -362,7 +371,7 @@ function initializeSystemSheets() {
   _setupSheet(ss, SHEET_NAMES.ANNOUNCEMENTS, ["เธฅเธณเธ”เธฑเธš", "เธงเธฑเธ™เธ—เธตเนˆ", "เธซเธฑเธงเธ‚เน‰เธญเธ›เธฃเธฐเธ เธฒเธจ", "เน€เธ™เธทเน‰เธญเธซเธฒ", "เธชเธ–เธฒเธ™เธฐ (เน เธชเธ”เธ‡/เธ‹เนˆเธญเธ™)"]);
   
   // T-005: Archive Index Materialization (Extended YoY Schema)
-  _setupSheet(ss, "Archive_Index", ["เธ›เธตเธ‡เธšเธ›เธฃเธฐเธกเธฒเธ“", "Spreadsheet ID", "เธŠเธทเนˆเธญเน„เธŸเธฅเนŒ", "เธงเธฑเธ™เธ—เธตเนˆเธขเน‰เธฒเธขเธฅเนˆเธฒเธชเธธเธ”", "เธˆเธณเธ™เธงเธ™เน เธ–เธงเธ—เธตเนˆเน€เธ เน‡เธš", "เธขเธญเธ”เธฃเธงเธกเธžเธฑเธชเธ”เธธ", "เธขเธญเธ”เธชเธณเน€เธฃเน‡เธˆ"]);
+  _setupSheet(ss, SHEET_NAMES.ARCHIVE_INDEX, ["เธ›เธตเธ‡เธšเธ›เธฃเธฐเธกเธฒเธ“", "Spreadsheet ID", "เธŠเธทเนˆเธญเน„เธŸเธฅเนŒ", "เธงเธฑเธ™เธ—เธตเนˆเธขเน‰เธฒเธขเธฅเนˆเธฒเธชเธธเธ”", "เธˆเธณเธ™เธงเธ™เน เธ–เธงเธ—เธตเนˆเน€เธ เน‡เธš", "เธขเธญเธ”เธฃเธงเธกเธžเธฑเธชเธ”เธธ", "เธขเธญเธ”เธชเธณเน€เธฃเน‡เธˆ"]);
   // T-Dashboard: Materialized Stats Snapshot
   _setupSheet(ss, SHEET_NAMES.SYSTEM_STATS, ["หมวดหมู่", "ตัวชี้วัด", "ค่าตัวเลข", "อัปเดตล่าสุด"]);
 
@@ -378,7 +387,7 @@ function initializeSystemSheets() {
   const configSheet = ss.getSheetByName(SHEET_NAMES.CONFIG);
   if (configSheet) {
     const data = configSheet.getDataRange().getValues();
-    const key = "SCHEMA_" + SHEET_NAMES.PACKAGE_LOG;
+    const key = (typeof Service_Schema !== "undefined" && Service_Schema.PACKAGE_LOG_CONFIG_KEY) ? Service_Schema.PACKAGE_LOG_CONFIG_KEY : "SCHEMA_Package_Log";
     const exists = data.some(row => row[0] === key);
     if (!exists) {
       configSheet.appendRow([
@@ -397,7 +406,7 @@ function initializeSystemSheets() {
   
   // เธชเธฃเนเธฒเธ/เธ•เธฃเธงเธเธชเธญเธเธเธตเธ—เธเธนเนเนเธเนเธเธฒเธเนเธ Central DB
   if (centralSs) {
-    _setupSheet(centralSs, SHEET_NAMES.USERS, ["เธฃเธซเธฑเธชเธเธเธฑเธเธเธฒเธ", "เธญเธตเน€เธกเธฅ (Google)", "เธเธทเนเธญ-เธเธฒเธกเธชเธเธธเธฅ", "เธชเธดเธ—เธเธดเน (Admin/User/Postal)", "เธซเธเนเธงเธขเธเธฒเธ"]);
+    _setupSheet(ss, SHEET_NAMES.USERS, ["เธฃเธซเธฑเธชเธเธเธฑเธเธเธฒเธ", "เธญเธตเน€เธกเธฅ (Google)", "เธเธทเนเธญ-เธเธฒเธกเธชเธเธธเธฅ", "เธชเธดเธ—เธเธดเน (Admin/User/Postal)", "เธซเธเนเธงเธขเธเธฒเธ"]);
   }
 
   // 2. เธ•เธฑเนเธเธเนเธฒเน€เธฃเธดเนเธกเธ•เนเธเธชเธณเธซเธฃเธฑเธ GEMINI_API_KEY เนเธเธเธตเธ—เธเธฒเธฃเธ•เธฑเนเธเธเนเธฒเธฃเธฐเธเธ (เนเธเนเธ•เธฑเธงเนเธเธฃเน€เธ”เธดเธก)
@@ -406,7 +415,7 @@ function initializeSystemSheets() {
   }
 
   // 3. เธ•เธฑเนเธเธเนเธฒ Conditional Formatting เธชเธณเธซเธฃเธฑเธ Package_Log (เธชเธตเธเนเธเธเธญเธเธชเธ–เธฒเธเธฐ)
-  _setupStatusColors(ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG));
+  _setupStatusColors(_getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG));
 
   // 4. เธฅเนเธญเธเธซเธฑเธงเธเธญเธฅเธฑเธกเธเน (เนเธ–เธงเธ—เธตเน 1) เธ—เธธเธเธเธตเธ— เธซเนเธฒเธกเนเธเนเนเธเน€เธ”เนเธ”เธเธฒเธ”
   _protectHeaders(ss);
@@ -540,6 +549,25 @@ function _findSheetRobust(ss, exactName, fallbackKeywords) {
       return sheets[i];
     }
   }
+  return null;
+}
+
+function _getLegacySheetName(sheetName) {
+  for (var key in SHEET_NAMES) {
+    if (SHEET_NAMES[key] === sheetName && LEGACY_SHEET_NAMES[key]) {
+      return LEGACY_SHEET_NAMES[key];
+    }
+  }
+  return null;
+}
+
+function _getSheetByCanonicalName(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (sheet) return sheet;
+
+  var legacyName = _getLegacySheetName(sheetName);
+  if (legacyName) return ss.getSheetByName(legacyName);
+
   return null;
 }
 
@@ -800,7 +828,7 @@ function getSheet(sheetName, targetDate, options) {
     }
     
     var ss = SpreadsheetApp.openById(ssId);
-    var sheet = ss.getSheetByName(sheetName);
+    var sheet = _getSheetByCanonicalName(ss, sheetName);
     
     // Safety Fallback for Users sheet naming variations
     if (!sheet && isCentralSheet(sheetName)) {
@@ -828,13 +856,12 @@ function getSheet(sheetName, targetDate, options) {
     if (sheetName === SHEET_NAMES.PACKAGE_LOG && String(e.message).indexOf("Package_Log schema mismatch") > -1) {
       throw e;
     }
-    return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    return _getSheetByCanonicalName(SpreadsheetApp.getActiveSpreadsheet(), sheetName);
   }
 }
 
 function isCentralSheet(name) {
   var centralNames = [
-    SHEET_NAMES.USERS, 
     SHEET_NAMES.PERSONNEL, 
     SHEET_NAMES.DEPTS, 
     SHEET_NAMES.POSITIONS,

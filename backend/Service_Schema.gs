@@ -2,7 +2,7 @@
  * Service_Schema.gs
  * Single source of truth for runtime schema reads.
  *
- * Package_Log schema is owned by System_Configs key SCHEMA_Package_Log.
+ * รายการพัสดุ schema is owned by System_Configs key SCHEMA_Package_Log.
  * Runtime validation must not delete or insert columns automatically.
  */
 
@@ -46,7 +46,7 @@ var Service_Schema = {
   },
 
   validatePackageLogSheet: function(sheet) {
-    if (!sheet) return { valid: false, error: "ไม่พบชีท Package_Log" };
+    if (!sheet) return { valid: false, error: "ไม่พบชีท " + SHEET_NAMES.PACKAGE_LOG };
 
     var schema = this.getPackageLogSchema();
     var lastCol = Math.max(1, sheet.getLastColumn());
@@ -91,14 +91,14 @@ var Service_Schema = {
       var ss = SpreadsheetApp.openById(ssId);
       
       // 1. Repair Package_Log
-      var sheet = ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+      var sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
       if (sheet) {
         var schema = this.getPackageLogSchema();
         this._forceSchemaAndDimensions(sheet, schema);
       }
 
       // 2. Repair System_Stats
-      var statsSheet = ss.getSheetByName(SHEET_NAMES.SYSTEM_STATS);
+      var statsSheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.SYSTEM_STATS) : ss.getSheetByName(SHEET_NAMES.SYSTEM_STATS);
       if (statsSheet) {
         this._forceSchemaAndDimensions(statsSheet, this.DEFAULT_SYSTEM_STATS_SCHEMA);
       }
@@ -108,7 +108,7 @@ var Service_Schema = {
 
       return {
         success: true,
-        message: "ปรับปรุงหัวตารางและขนาดชีทสำเร็จ (Package_Log: 18, System_Stats: 4)",
+        message: "ปรับปรุงหัวตารางและขนาดชีทสำเร็จ (รายการพัสดุ: 18, สถิติระบบ: 4)",
         timestamp: new Date().toISOString()
       };
     } catch (e) {
@@ -207,8 +207,8 @@ var Service_Schema = {
   setupStatusConditionalFormatting: function() {
     var ssId = typeof getActiveDatabaseId === "function" ? getActiveDatabaseId() : SPREADSHEET_ID;
     var ss = SpreadsheetApp.openById(ssId);
-    var sheet = ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
-    if (!sheet) return { success: false, error: "ไม่พบชีท Package_Log" };
+    var sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+    if (!sheet) return { success: false, error: "ไม่พบชีท " + SHEET_NAMES.PACKAGE_LOG };
 
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     var statusIdx = getHeaderIndex(headers, "สถานะ");
