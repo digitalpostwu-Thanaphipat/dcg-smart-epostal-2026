@@ -574,7 +574,7 @@ function recalculateStatsWrapper() {
       SpreadsheetApp.getUi().alert(
         "✅ คำนวณสถิติเรียบร้อยแล้ว!\n\nทั้งหมด: " +
           result.stats.total +
-          " รายการ\nรอจ่าย: " +
+          " รายการ\nรอนำจ่าย: " +
           result.stats.pending +
           " รายการ",
       );

@@ -23,8 +23,8 @@ export const MOCK_PERSONNEL = [
 ];
 
 export const MOCK_PACKAGES = [
-  { id: 'PKG001', packageId: 'PKG001', trackingNo: 'TH123456', type: 'EMS', department: 'สำนักงานคณบดี', status: 'รอจ่าย' },
-  { id: 'PKG002', packageId: 'PKG002', trackingNo: 'TH789012', type: 'ลงทะเบียน', department: 'สำนักงานคณบดี', status: 'จ่ายแล้ว' },
+  { id: 'PKG001', packageId: 'PKG001', trackingNo: 'TH123456', type: 'EMS', department: 'สำนักงานคณบดี', status: 'รอนำจ่าย' },
+  { id: 'PKG002', packageId: 'PKG002', trackingNo: 'TH789012', type: 'ลงทะเบียน', department: 'สำนักงานคณบดี', status: 'ส่งมอบแล้ว' },
 ];
 
 export const MOCK_RESPONSES = {

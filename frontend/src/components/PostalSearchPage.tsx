@@ -137,7 +137,7 @@ export const PostalSearchPage = () => {
       'เลขพัสดุ': pkg.trackingNumber,
       'ชื่อผู้รับ': pkg.recipientName || pkg.receiverName || '-',
       'หน่วยงาน': pkg.departmentName || '-',
-      'สถานะ': pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' ? 'ส่งมอบสำเร็จ' : (pkg.status === 'Pending' ? 'รอนำจ่าย' : pkg.status),
+      'สถานะ': pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' || pkg.status === 'จ่ายสำเร็จ' ? 'ส่งมอบแล้ว' : (pkg.status === 'Pending' || pkg.status === 'รอจ่าย' ? 'รอนำจ่าย' : pkg.status),
       'ประเภท': pkg.type || pkg.itemประเภท || 'พัสดุ',
       'วันที่บันทึก': formatThaiDate(pkg.timestamp || pkg.created_at),
       'วันที่นำจ่าย': formatThaiDate(pkg.delivered_at)
@@ -281,7 +281,7 @@ export const PostalSearchPage = () => {
             {results.map((pkg, idx) => {
               const buildingColor = getBuildingColorClass(pkg.building || '', 'bg');
               const buildingLightBg = getBuildingColorClass(pkg.building || '', 'lightBg');
-              const isDelivered = pkg.status === 'ส่งมอบแล้ว' || pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว';
+              const isDelivered = pkg.status === 'ส่งมอบแล้ว' || pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' || pkg.status === 'จ่ายสำเร็จ';
 
               return (
                 <div 
@@ -323,7 +323,7 @@ export const PostalSearchPage = () => {
                         (pkg.status === 'รอจ่าย' || pkg.status === 'รอนำจ่าย' || pkg.status === 'Pending') ? "bg-warning/10 text-warning border-warning/10" :
                         "bg-error/10 text-error border-error/10"
                       )}>
-                        {isDelivered ? 'ส่งมอบสำเร็จ' : 
+                        {isDelivered ? 'ส่งมอบแล้ว' : 
                          (pkg.status === 'Pending' || pkg.status === 'รอจ่าย' || pkg.status === 'รอนำจ่าย') ? 'รอนำจ่าย' : (pkg.status || 'รอนำจ่าย')}
                       </span>
                     </div>
@@ -444,7 +444,7 @@ export const PostalSearchPage = () => {
                       { id: 'all', label: 'ทั้งหมด' },
                       { id: 'Pending', label: 'รอนำจ่าย' },
                       { id: 'Delivered', label: 'ส่งมอบแล้ว' },
-                      { id: 'มีปัญหา/ตีกลับ', label: 'มีปัญหา' }
+                      { id: 'มีปัญหา/ตีกลับ', label: 'มีปัญหา/ตีกลับ' }
                     ].map((s) => (
                       <button 
                         key={s.id}
@@ -565,9 +565,9 @@ export const PostalSearchPage = () => {
                     <div className="flex items-center gap-2">
                        <span className={cn(
                           "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                          (selectedPackage.status === 'ส่งมอบแล้ว' || selectedPackage.status === 'Delivered' || selectedPackage.status === 'จ่ายแล้ว') ? "bg-success text-white" : "bg-warning text-white"
+                          (selectedPackage.status === 'ส่งมอบแล้ว' || selectedPackage.status === 'Delivered' || selectedPackage.status === 'จ่ายแล้ว' || selectedPackage.status === 'จ่ายสำเร็จ') ? "bg-success text-white" : "bg-warning text-white"
                        )}>
-                          {selectedPackage.status}
+                          {(selectedPackage.status === 'Delivered' || selectedPackage.status === 'จ่ายแล้ว' || selectedPackage.status === 'จ่ายสำเร็จ') ? 'ส่งมอบแล้ว' : (selectedPackage.status === 'Pending' || selectedPackage.status === 'รอจ่าย') ? 'รอนำจ่าย' : selectedPackage.status}
                        </span>
                        <span className="px-3 py-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-[10px] font-black uppercase tracking-widest">
                           {selectedPackage.type || selectedPackage.itemType}

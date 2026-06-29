@@ -73,7 +73,7 @@ const PackageItem = React.memo(({
                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/10"
                    : "bg-rose-500/10 text-rose-500 border border-rose-500/10"
              )}>
-                {pkg.status === 'Pending' ? 'รอนำจ่าย' : (pkg.status || 'รอนำจ่าย')}
+                {(pkg.status === 'Pending' || pkg.status === 'รอจ่าย') ? 'รอนำจ่าย' : (pkg.status || 'รอนำจ่าย')}
              </div>
              
              {canManageDept && (
@@ -203,7 +203,7 @@ export const PostalPendingList = () => {
           trackingNumber: p.trackingNumber || p.trackingNo || '-',
           departmentName: p.department,
           recipientName: p.recipientName || p.receiverName || '',
-          status: 'รอจ่าย',
+          status: 'รอนำจ่าย',
           version: p.version || 1,
           building: p.building,
           receivedAt: p.receivedAt || p.createdAt || ''
@@ -546,8 +546,8 @@ export const PostalPendingList = () => {
         ) : Object.keys(groupedItems).length === 0 ? (
           <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/20 rounded-[2.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-800">
              <Package className="w-16 h-16 mx-auto text-zinc-200 dark:text-zinc-800 mb-4" />
-             <h3 className="text-lg font-black text-zinc-400 uppercase tracking-widest">ไม่มีไปรษณีย์ภัณฑ์คงค้าง</h3>
-             <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest mt-2">นำจ่ายสำเร็จทุกรายการ</p>
+            <h3 className="text-lg font-black text-zinc-400 uppercase tracking-widest">ไม่มีไปรษณีย์ภัณฑ์คงค้าง</h3>
+             <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest mt-2">ส่งมอบแล้วทุกรายการ</p>
           </div>
         ) : (
           Object.entries(groupedItems).map(([building, departments]) => {
@@ -685,7 +685,7 @@ export const PostalPendingList = () => {
               updatedBy: activeConflict.payload.conflict.currentData.updatedBy
             },
             clientData: {
-              status: activeConflict.payload.signatureName ? 'จ่ายแล้ว' : 'กำลังรอนำจ่าย',
+              status: activeConflict.payload.signatureName ? 'ส่งมอบแล้ว' : 'รอนำจ่าย',
               updatedBy: activeConflict.payload.staffEmail
             }
           }}

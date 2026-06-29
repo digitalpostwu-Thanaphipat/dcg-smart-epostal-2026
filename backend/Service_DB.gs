@@ -298,7 +298,7 @@ function _syncArchiveIndexSheet() {
            if (statIdx > -1) {
              for (var r = 1; r < shardData.length; r++) {
                var sText = String(shardData[r][statIdx]).trim();
-               if (sText === "จ่ายแล้ว" || sText === "สำเร็จ" || sText === "ส่งมอบแล้ว") {
+               if (sText === "ส่งมอบแล้ว" || sText === "จ่ายแล้ว" || sText === "จ่ายสำเร็จ" || sText === "สำเร็จ") {
                  completedPackages++;
                }
              }
@@ -447,6 +447,10 @@ function _setupSheet(ss, name, headers) {
 
 function _setupStatusColors(sheet) {
   if (!sheet) return;
+  if (typeof Service_Schema !== "undefined" && Service_Schema.setupStatusConditionalFormatting) {
+    Service_Schema.setupStatusConditionalFormatting();
+    return;
+  }
   var lastRow = sheet.getMaxRows();
   if (lastRow < 2) return;
 

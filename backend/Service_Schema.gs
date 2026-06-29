@@ -201,9 +201,8 @@ var Service_Schema = {
 
   /**
    * [Visual] Apply conditional formatting rules for the สถานะ (Status) column.
-   * Covers all status values used by the system:
-   *   รอนำจ่าย → Amber | จ่ายสำเร็จ → Green | จ่ายแล้ว → Green
-   *   รอจ่าย → Amber | ส่งมอบแล้ว → Green | มีปัญหา/ตีกลับ → Red
+   * Covers the three canonical status values used by the system:
+   *   รอนำจ่าย → Amber | ส่งมอบแล้ว → Green | มีปัญหา/ตีกลับ → Red
    */
   setupStatusConditionalFormatting: function() {
     var ssId = typeof getActiveDatabaseId === "function" ? getActiveDatabaseId() : SPREADSHEET_ID;
@@ -231,9 +230,6 @@ var Service_Schema = {
     // Define status → color mapping
     var statusColors = [
       { text: "รอนำจ่าย", bg: "#FEF3C7", fg: "#92400E" },
-      { text: "รอจ่าย",   bg: "#FEF3C7", fg: "#92400E" },
-      { text: "จ่ายสำเร็จ", bg: "#DCFCE7", fg: "#166534" },
-      { text: "จ่ายแล้ว",   bg: "#DCFCE7", fg: "#166534" },
       { text: "ส่งมอบแล้ว", bg: "#DCFCE7", fg: "#166534" },
       { text: "มีปัญหา/ตีกลับ", bg: "#FEE2E2", fg: "#991B1B" }
     ];

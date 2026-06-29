@@ -119,7 +119,7 @@ export const BentoStats = () => {
             </div>
             <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
                <span className="font-black text-sm uppercase tracking-wider">แจ้งเตือนสถานะนำจ่ายค้าง:</span>
-               <span className="text-sm font-medium opacity-80">มีทั้งหมด <span className="font-black underline">{stats.pendingDepts} หน่วยงาน</span> ที่ยังมีพัสดุรอจ่าย</span>
+               <span className="text-sm font-medium opacity-80">มีทั้งหมด <span className="font-black underline">{stats.pendingDepts} หน่วยงาน</span> ที่ยังมีพัสดุรอนำจ่าย</span>
             </div>
           </div>
           <Building2 className="w-5 h-5 opacity-20 hidden md:block" />
@@ -271,7 +271,7 @@ export const BentoStats = () => {
                         <div className="text-3xl font-heading font-black text-zinc-700 dark:text-zinc-300">{stats.yoy![year].total.toLocaleString()}</div>
                       </div>
                       <div className="space-y-1 text-right">
-                        <div className="text-[10px] font-black text-emerald-500/70 uppercase tracking-widest">จ่ายสำเร็จ</div>
+                        <div className="text-[10px] font-black text-emerald-500/70 uppercase tracking-widest">ส่งมอบแล้ว</div>
                         <div className="text-3xl font-heading font-black text-emerald-600 dark:text-emerald-400">
                            {stats.yoy![year].total > 0 ? ((stats.yoy![year].completed / stats.yoy![year].total) * 100).toFixed(1) : 0}%
                         </div>

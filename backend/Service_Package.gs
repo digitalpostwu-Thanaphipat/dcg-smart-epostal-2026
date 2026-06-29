@@ -131,7 +131,7 @@ var Service_Package = {
     // Add Overall Metrics
     rows.push(["ภาพรวม", "ทั้งหมด", overall.total, now]);
     rows.push(["ภาพรวม", "รอนำจ่าย", overall.pending, now]);
-    rows.push(["ภาพรวม", "จ่ายสำเร็จ", overall.delivered, now]);
+    rows.push(["ภาพรวม", "ส่งมอบแล้ว", overall.delivered, now]);
     rows.push(["ภาพรวม", "ส่วนตัว", overall.personal, now]);
     rows.push(["ภาพรวม", "ลงทะเบียน/EMS", overall.reg, now]);
     rows.push(["ภาพรวม", "ธรรมดา", overall.ord, now]);
@@ -160,7 +160,7 @@ var Service_Package = {
       var ds = deptStats[dept];
       rows.push(["หน่วยงาน: " + dept, "ทั้งหมด", ds.total, now]);
       rows.push(["หน่วยงาน: " + dept, "รอนำจ่าย", ds.pending, now]);
-      rows.push(["หน่วยงาน: " + dept, "จ่ายสำเร็จ", ds.delivered, now]);
+      rows.push(["หน่วยงาน: " + dept, "ส่งมอบแล้ว", ds.delivered, now]);
       rows.push(["หน่วยงาน: " + dept, "ส่วนตัว", ds.personal, now]);
       rows.push(["หน่วยงาน: " + dept, "ลงทะเบียน/EMS", ds.reg, now]);
       rows.push(["หน่วยงาน: " + dept, "ธรรมดา", ds.ord, now]);
@@ -488,7 +488,7 @@ var Service_Package = {
           var row = i + 1;
           var pDept = String(pData[i][deptIdx] || "ไม่ระบุหน่วยงาน").trim();
           
-          sheet.getRange(row, statusIdx + 1).setValue("จ่ายสำเร็จ");
+          sheet.getRange(row, statusIdx + 1).setValue("ส่งมอบแล้ว");
           sheet.getRange(row, timeOutIdx + 1).setValue(nowStr);
           sheet.getRange(row, receiverIdx + 1).setValue(data.signatureName || "เซ็นรับผ่านระบบ");
           sheet.getRange(row, methodIdx + 1).setValue(data.deliveryMethod || "เซ็นรับผ่านระบบ");
@@ -500,8 +500,8 @@ var Service_Package = {
           if (updaterIdx !== -1 && staffName) sheet.getRange(row, updaterIdx + 1).setValue(staffName);
           
           // Real-time Stats Updates (Batch)
-          this._updateStatsSnapshot({ "รอนำจ่าย": -1, "จ่ายสำเร็จ": 1 }, "ภาพรวม");
-          this._updateStatsSnapshot({ "รอนำจ่าย": -1, "จ่ายสำเร็จ": 1 }, "หน่วยงาน: " + pDept);
+          this._updateStatsSnapshot({ "รอนำจ่าย": -1, "ส่งมอบแล้ว": 1 }, "ภาพรวม");
+          this._updateStatsSnapshot({ "รอนำจ่าย": -1, "ส่งมอบแล้ว": 1 }, "หน่วยงาน: " + pDept);
 
           count++;
         }
@@ -547,7 +547,7 @@ var Service_Package = {
           if (cat === categoryToFind) {
             if (metric === "ทั้งหมด") { stats.todayReceived = val; foundAny = true; }
             if (metric === "รอนำจ่าย") { stats.pendingDelivery = val; foundAny = true; }
-            if (metric === "จ่ายสำเร็จ") { stats.deliveredToday = val; foundAny = true; }
+            if (metric === "ส่งมอบแล้ว" || metric === "จ่ายสำเร็จ") { stats.deliveredToday = val; foundAny = true; }
             if (metric === "ส่วนตัว") { stats.personalCount = val; foundAny = true; }
             if (metric === "ลงทะเบียน/EMS") { stats.regCount = val; foundAny = true; }
             if (metric === "ธรรมดา") { stats.ordCount = val; foundAny = true; }
