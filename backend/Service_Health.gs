@@ -51,14 +51,13 @@ var Service_Health = {
 
     // 3. Script Properties Config Check
     try {
-      const props = PropertiesService.getScriptProperties().getProperties();
-      checks.push({
-        name: "config",
-        status: Object.keys(props).length > 0 ? "pass" : "warn",
-        detail: "พบการตั้งค่าระบบ " + Object.keys(props).length + " รายการ",
-      });
+      const configResult = this._checkProductionConfig();
+      checks.push(configResult);
+      if (configResult.status === "fail") overallStatus = "down";
+      if (configResult.status === "warn" && overallStatus === "healthy") overallStatus = "warn";
     } catch (e) {
       checks.push({ name: "config", status: "fail", detail: e.message });
+      overallStatus = "down";
     }
 
     // 4. Backup Status Check [Hardening Phase]
@@ -87,7 +86,20 @@ var Service_Health = {
       checks.push({ name: "trigger", status: "fail", detail: e.message });
     }
 
-    // 6. Sharding Status Check [Phase 5]
+    // 6. Monitoring Trigger Status Check
+    try {
+      const monitorResult = this._checkMonitoringTrigger();
+      checks.push({
+        name: "monitor",
+        status: monitorResult.status,
+        detail: monitorResult.detail
+      });
+      if (monitorResult.status === "fail" && overallStatus === "healthy") overallStatus = "warn";
+    } catch (e) {
+      checks.push({ name: "monitor", status: "fail", detail: e.message });
+    }
+
+    // 7. Sharding Status Check [Phase 5]
     try {
       const shardResult = this._checkShardingStatus();
       checks.push({
@@ -103,8 +115,45 @@ var Service_Health = {
     return {
       status: overallStatus,
       checks: checks,
-      version: "1.0.0 (ePostal Native)",
+      version: typeof SYSTEM_VERSION !== "undefined" ? SYSTEM_VERSION : "unknown",
       timestamp: Service_Utils.formatThaiDateTime(new Date()),
+    };
+  },
+
+  /**
+   * _checkProductionConfig - verifies auth-sensitive ScriptProperties without exposing secrets.
+   * @private
+   */
+  _checkProductionConfig: function() {
+    const props = PropertiesService.getScriptProperties();
+    const allProps = props.getProperties();
+    const env = String(props.getProperty("ENV") || "PROD").toUpperCase();
+    const missing = [];
+
+    if (!props.getProperty("AUTH_TOKEN_SECRET")) missing.push("AUTH_TOKEN_SECRET");
+    if (!props.getProperty("ROOT_ADMIN_EMAIL")) missing.push("ROOT_ADMIN_EMAIL");
+    if (!props.getProperty("BACKUP_FOLDER_ID")) missing.push("BACKUP_FOLDER_ID");
+
+    if (env === "DEV") {
+      return {
+        name: "config",
+        status: "fail",
+        detail: "ENV=DEV: production must disable mock-token bypass before go-live",
+      };
+    }
+
+    if (missing.length > 0) {
+      return {
+        name: "config",
+        status: "fail",
+        detail: "ขาด ScriptProperties สำคัญ: " + missing.join(", "),
+      };
+    }
+
+    return {
+      name: "config",
+      status: Object.keys(allProps).length > 0 ? "pass" : "warn",
+      detail: "Production config พร้อมใช้งาน (" + Object.keys(allProps).length + " รายการ, ENV=" + env + ")",
     };
   },
 
@@ -172,13 +221,20 @@ var Service_Health = {
    * @private
    */
   _checkBackupStatus: function() {
-    const folderName = "ePostal_Backups";
-    const folders = DriveApp.getFoldersByName(folderName);
-    if (!folders.hasNext()) {
-      return { status: "fail", detail: "ไม่พบโฟลเดอร์สำรองข้อมูล (ePostal_Backups)" };
+    const backupFolderId = PropertiesService.getScriptProperties().getProperty("BACKUP_FOLDER_ID");
+    let folder = null;
+
+    if (backupFolderId) {
+      folder = DriveApp.getFolderById(backupFolderId);
+    } else {
+      const folders = DriveApp.getFoldersByName("ePostal_Backups");
+      if (folders.hasNext()) folder = folders.next();
+    }
+
+    if (!folder) {
+      return { status: "fail", detail: "ไม่พบโฟลเดอร์สำรองข้อมูล (BACKUP_FOLDER_ID/ePostal_Backups)" };
     }
     
-    const folder = folders.next();
     const files = folder.getFiles();
     if (!files.hasNext()) {
       return { status: "fail", detail: "ไม่พบไฟล์สำรองข้อมูลในโฟลเดอร์" };
@@ -208,6 +264,21 @@ var Service_Health = {
     }
     
     return { status: "pass", detail: "ติดตั้ง Trigger สำรองข้อมูลรายวันเรียบร้อย" };
+  },
+
+  /**
+   * _checkMonitoringTrigger - verifies uptime monitor trigger is active.
+   * @private
+   */
+  _checkMonitoringTrigger: function() {
+    const triggers = ScriptApp.getProjectTriggers();
+    const hasMonitor = triggers.some(t => t.getHandlerFunction() === "checkSystemUptime");
+
+    if (!hasMonitor) {
+      return { status: "fail", detail: "ไม่พบ Trigger สำหรับติดตาม Uptime" };
+    }
+
+    return { status: "pass", detail: "ติดตั้ง Trigger ติดตาม Uptime เรียบร้อย" };
   },
 
   /**

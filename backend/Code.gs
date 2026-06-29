@@ -34,6 +34,7 @@ const ROLE_PERMISSIONS = {
     "runMaintenance",
     "getSystemConfigs",
     "updateSystemConfig",
+    "setupUptimeMonitor",
     "validatePackageLogSchema",
     "repairPackageLogHeaders",
   ],
@@ -101,6 +102,7 @@ var ROUTE_MAP = {
   getInitialData: () => AdminService.getInitialData(),
   updateSystemConfig: (data) =>
     AdminService.updateSystemConfig(data.key, data.value),
+  setupUptimeMonitor: () => AdminService.setupUptimeMonitor(),
 
   // Package Services
   savePackageEntry: (data) => Service_Package.savePackageEntry(data),

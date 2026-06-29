@@ -9,7 +9,7 @@ function runAutoBackup() {
   
   if (!backupFolderId) {
     console.warn("BACKUP_FOLDER_ID not set. Skipping auto-backup.");
-    return;
+    return { success: false, error: "BACKUP_FOLDER_ID is not set" };
   }
 
   try {
@@ -39,9 +39,11 @@ function runAutoBackup() {
       }
     }
     console.log(`Retention policy applied: Deleted ${deletedCount} old backups.`);
+    return { success: true, backupName: backupName, deletedCount: deletedCount };
     
   } catch (e) {
     console.error("Backup Error: " + e.message);
+    return { success: false, error: e.message };
   }
 }
 

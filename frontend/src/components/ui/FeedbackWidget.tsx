@@ -5,10 +5,12 @@ import { ApiClient } from '../../api/client';
 import toast from 'react-hot-toast';
 import { haptics } from '../../utils/haptics';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export const FeedbackWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const user = useAuthStore((state) => state.user);
   const [formData, setFormData] = useState({
     category: 'Bug',
     rating: 0,
@@ -39,8 +41,7 @@ export const FeedbackWidget = () => {
     setLoading(true);
     try {
       // Default to guest if no user is found, as Service_Feedback requires userEmail
-      const userStr = localStorage.getItem('epostal_user');
-      const email = userStr ? JSON.parse(userStr).email : 'guest@epostal.app';
+      const email = user?.email || 'guest@epostal.app';
 
       const res = await ApiClient.feedback.submit({
         category: formData.category,

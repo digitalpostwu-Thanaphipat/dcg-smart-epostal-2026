@@ -355,6 +355,7 @@ var AdminService = {
       lock.waitLock(10000);
       var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
       var sheet = ss.getSheetByName(SHEET_NAMES.SYSTEM_CONFIGS) || this._initSystemConfigSheet(ss);
+      var data = sheet.getDataRange().getValues();
       var headers = data[0];
       var keyIdx = getHeaderIndex(headers, ["Key", "หัวข้อ"]);
       var valIdx = getHeaderIndex(headers, ["Value", "ค่า"]);
