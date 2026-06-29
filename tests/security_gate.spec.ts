@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Loki Security Gate', () => {
   test('should block unauthorized email addresses from saving entries', async ({ page }) => {
     // Mock the backend API to simulate Security Gate
-    await page.route('**/api', async route => {
+    await page.route(/\/api(?:\?|$)/, async route => {
       const req = route.request();
       if (req.method() === 'POST') {
         const body = req.postDataJSON() || {};
@@ -20,7 +20,7 @@ test.describe('Loki Security Gate', () => {
       }
       return route.fulfill({ status: 200, json: { success: true, data: [] } });
     });
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     // รอจน ApiClient พร้อม
     await page.waitForFunction(() => typeof (window as any).ApiClient !== 'undefined', { timeout: 5000 });
 
@@ -45,7 +45,7 @@ test.describe('Loki Security Gate', () => {
   });
 
   test('should verify role caching persistence (Loki Hardened)', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     
     // [Loki] Ensure ApiClient is loaded before checking
     await page.waitForFunction(() => typeof (window as any).ApiClient !== 'undefined', { timeout: 10000 });

@@ -1,18 +1,37 @@
 import { test, expect } from '@playwright/test';
 
-test('has title', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+test.describe('ePostal app shell', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(/\/api(?:\?|$)/, async route => {
+      await route.fulfill({
+        status: 200,
+        json: {
+          success: true,
+          data: {
+            departments: [],
+            personnel: [],
+            positions: [],
+            representatives: [],
+            announcements: [],
+            stats: {},
+            systemInfo: { version: '4.0.2' },
+          },
+        },
+      });
+    });
+  });
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Playwright/);
-});
+  test('shows the login screen without external network access', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-test('get started link', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+    await expect(page.locator('h1')).toContainText('DCG Smart');
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+  });
 
-  // Click the get started link.
-  await page.getByRole('link', { name: 'Get started' }).click();
+  test('exposes the local test helpers in development mode', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-  // Expects page to have a heading with the name of Installation.
-  await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
+    await page.waitForFunction(() => typeof (window as any).ApiClient !== 'undefined', { timeout: 5000 });
+    await expect(page.locator('#root')).toBeVisible();
+  });
 });

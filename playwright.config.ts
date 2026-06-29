@@ -43,7 +43,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev --prefix frontend',
+    command: process.platform === 'win32' ? 'npm.cmd run dev --prefix frontend -- --mode test' : 'npm run dev --prefix frontend -- --mode test',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 180000,

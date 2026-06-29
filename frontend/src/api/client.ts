@@ -17,9 +17,29 @@ if (!PROD_GAS_URL && typeof window !== 'undefined' && window.location.hostname !
 const DEV_PROXY_URL = '/api';
 
 const isLocal = typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port !== '');
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '[::1]');
 
 const API_URL = isLocal ? DEV_PROXY_URL : PROD_GAS_URL;
+
+function getStoredSessionToken() {
+  try {
+    const persistedAuth = localStorage.getItem('epostal-auth-storage');
+    if (persistedAuth) {
+      const parsed = JSON.parse(persistedAuth);
+      const token = parsed?.state?.user?.sessionToken;
+      if (token) return token;
+    }
+
+    const legacyUser = localStorage.getItem('epostal_user');
+    if (legacyUser) {
+      const parsed = JSON.parse(legacyUser);
+      if (parsed?.sessionToken) return parsed.sessionToken;
+    }
+  } catch (e) {
+    console.warn('[Auth] Failed to read stored session token', e);
+  }
+  return '';
+}
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = 30000): Promise<Response> {
   const controller = new AbortController()
@@ -63,10 +83,9 @@ export async function request(action: string, data: any = {}, method: 'GET' | 'P
   };
 
   try {
-    const userStr = localStorage.getItem('epostal_user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      if (user.sessionToken) payload.authToken = payload.authToken || user.sessionToken;
+    const sessionToken = getStoredSessionToken();
+    if (sessionToken) {
+      payload.authToken = payload.authToken || sessionToken;
     } else if (isLocal) {
       // Automatic development bypass
       payload.authToken = 'mock-token';
@@ -121,6 +140,10 @@ export async function request(action: string, data: any = {}, method: 'GET' | 'P
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      if (!API_URL) {
+        return { success: false, error: 'API_URL_MISSING' };
+      }
+
       const url = method === 'GET' ? `${API_URL}?action=${action}` : API_URL;
       const options: RequestInit = {
         method: method,

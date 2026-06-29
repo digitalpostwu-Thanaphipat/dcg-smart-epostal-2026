@@ -15,10 +15,19 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all envs regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '')
   
-  // Default fallback ID (the one we had before)
-  const DEPLOY_ID = env.VITE_GAS_DEPLOY_ID || 'AKfycbxyEL4AQIOP2XezApaGyhYWdnBgP7MawvqfX6qGZtOKcQ3PCfRQFKlw8eTmmakpk8V-Gw'
+  const DEPLOY_ID = env.VITE_GAS_DEPLOY_ID
+  const proxy = mode !== 'test' && DEPLOY_ID
+    ? {
+        '/api': {
+          target: 'https://script.google.com',
+          changeOrigin: true,
+          rewrite: (requestPath: string) => requestPath.replace(/^\/api/, `/macros/s/${DEPLOY_ID}/exec`),
+        }
+      }
+    : undefined
 
   return {
+    cacheDir: path.resolve(__dirname, '../.vite-cache/frontend'),
     plugins: [
       react(),
       tailwindcss(),
@@ -72,13 +81,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       strictPort: false,
-      proxy: {
-        '/api': {
-          target: 'https://script.google.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, `/macros/s/${DEPLOY_ID}/exec`),
-        }
-      }
+      proxy,
     },
     build: {
       target: 'esnext',
