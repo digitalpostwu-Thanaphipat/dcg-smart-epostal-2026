@@ -65,6 +65,11 @@ if (-not $buildSuccess) {
 
 # 5. Verification: Smoke Tests (Playwright)
 Log-Message "[TEST] Running Smoke Tests (Playwright)..."
+$testRunId = Get-Date -Format "yyyyMMdd_HHmmss"
+$pwOutputDir = "tmp/playwright-results-$testRunId"
+$env:PLAYWRIGHT_HTML_REPORT = "tmp/playwright-report-$testRunId"
+if (!(Test-Path "tmp")) { New-Item -ItemType Directory -Path "tmp" -Force | Out-Null }
+Log-Message "[TEST] Playwright output: $pwOutputDir"
 $headed = $false
 if ($args -contains "-Headed") {
     $headed = $true
@@ -74,15 +79,15 @@ if ($args -contains "-Headed") {
 try {
     # Using direct npx command for better output visibility in PowerShell
     if ($headed) {
-        npx playwright test --project=chromium --headed
+        npx playwright test --project=chromium --output $pwOutputDir --headed
     } else {
-        npx playwright test --project=chromium
+        npx playwright test --project=chromium --output $pwOutputDir
     }
     
     if ($LASTEXITCODE -ne 0) { throw "Tests failed with exit code $LASTEXITCODE" }
     Log-Message "[SUCCESS] Smoke Tests Passed!" "Green"
 } catch {
-    Log-Message "[ERROR] Smoke Tests Failed or Interrupted! Check 'playwright-report/index.html' for details." "Red"
+    Log-Message "[ERROR] Smoke Tests Failed or Interrupted! Check '$env:PLAYWRIGHT_HTML_REPORT/index.html' for details." "Red"
     Log-Message "[DEBUG] If this is a first-run, you may need to run: npx playwright install chromium" "Yellow"
     exit 1
 }
