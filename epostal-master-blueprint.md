@@ -339,6 +339,9 @@ DCG-Skill Mapping is described in Section 13.1. This section links Module Regist
 |  13   | `code-refactoring-refactor-clean` | Maintenance           | ลด Tech Debt, restructure code                |
 |  14   | `verification-before-completion`  | DoD (Sec 10)          | Enforce Definition of Done checklist          |
 |  15   | `multi-agent-brainstorming`       | Architecture (Sec 5)  | วิจารณ์และตรวจสอบข้อจำกัดของสถาปัตยกรรมระบบ       |
+|  16   | `impeccable`                      | UI/UX Design (Sec 2)  | ออกแบบและเก็บรายละเอียดความหรูหราของอินเตอร์เฟซ (อ้างอิง `.agents/rules/impeccable.md`) |
+|  17   | `google-skills`                   | DB & APIs (Sec 12)    | เชื่อมต่อกับตาราง Google Sheets & Drive (อ้างอิง `.agents/rules/google-skills.md`) |
+|  18   | `mattpocock-skills`               | Clean Code (Sec 14)   | การจำกัดความซับซ้อน ป้องกัน AI Over-engineering (อ้างอิง `.agents/rules/mattpocock-skills.md`) |
 
 ---
 
