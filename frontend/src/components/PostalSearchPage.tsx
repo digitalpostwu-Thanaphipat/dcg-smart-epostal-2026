@@ -95,7 +95,7 @@ export const PostalSearchPage = () => {
       handleSearch();
     }, 600); // ดีเลย์ 600ms เพื่อประหยัด API call
     return () => clearTimeout(timer);
-  }, [query, filters.status, filters.type]);
+  }, [query, filters.status, filters.type, filters.department, filters.dateFrom, filters.dateTo, filters.fiscalYear]);
 
   const handleRevert = async (pkg: PostalPackage) => {
     haptics.medium();
@@ -189,7 +189,9 @@ export const PostalSearchPage = () => {
              <div className="absolute inset-x-0 inset-y-0 bg-primary/20 blur-2xl group-focus-within:bg-primary/40 transition-all rounded-3xl" />
              <div className="relative flex items-center bg-zinc-100/50 dark:bg-zinc-950/50 backdrop-blur-3xl border-2 border-zinc-100 dark:border-zinc-800 p-2 sm:p-3 rounded-5xl shadow-2xl transition-all group-focus-within:border-primary group-focus-within:bg-white/15">
                 <Search className="w-6 h-6 sm:w-8 sm:h-8 ml-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
+                <label htmlFor="admin-search-query" className="sr-only">ค้นหาพัสดุ</label>
                 <input
+                  id="admin-search-query"
                   type="text"
                   placeholder="ค้นหาด้วย เลขที่พัสดุ, ชื่อผู้รับ, หน่วยงาน..."
                   className="flex-1 bg-transparent border-none focus:ring-0 text-lg sm:text-xl font-medium px-4 sm:px-6 py-4 text-zinc-900 dark:text-white placeholder:text-zinc-500"
@@ -254,6 +256,11 @@ export const PostalSearchPage = () => {
             {filters.status !== 'all' && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-warning/10 text-warning border border-warning/20 text-[10px] font-black whitespace-nowrap">
                 <Tag className="w-3.5 h-3.5" /> {filters.status}
+              </div>
+            )}
+            {filters.type !== 'all' && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-black whitespace-nowrap">
+                <Package className="w-3.5 h-3.5" /> {filters.type}
               </div>
             )}
             {(filters.dateFrom || filters.dateTo) && (
@@ -460,6 +467,35 @@ export const PostalSearchPage = () => {
                         )}
                       >
                         {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Item Type Group */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-400 tracking-[0.3em] uppercase ml-1 block">ประเภทพัสดุ</label>
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { id: 'all', label: 'ทั้งหมด' },
+                      { id: 'EMS', label: 'EMS' },
+                      { id: 'ลงทะเบียน', label: 'ลงทะเบียน' },
+                      { id: 'ธรรมดา', label: 'ธรรมดา' }
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          haptics.light();
+                          setFilters(prev => ({ ...prev, type: t.id }));
+                        }}
+                        className={cn(
+                          "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
+                          filters.type === t.id
+                          ? "bg-primary text-white border-primary shadow-success/50 scale-105"
+                          : "bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-100 dark:border-zinc-800 hover:border-zinc-300"
+                        )}
+                      >
+                        {t.label}
                       </button>
                     ))}
                   </div>

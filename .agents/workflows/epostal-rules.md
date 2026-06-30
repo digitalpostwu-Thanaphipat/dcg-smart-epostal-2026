@@ -12,12 +12,12 @@ description: กฎป้องกันระบบ ePostal — อ่านก
 
 ## ❌ ห้ามทำ (DO NOT)
 
-### 1. ห้ามเปลี่ยน Schema 16 คอลัมน์
+### 1. ห้ามเปลี่ยน Schema 18 คอลัมน์
 
 ```
 0:รหัสพัสดุ, 1:เลขพัสดุ, 2:ประเภท, 3:ชื่อหน่วยงาน, 4:ชื่อผู้รับ,
 5:สถานะ, 6:เวลาบันทึก, 7:เวลาจ่าย, 8:จนท.นำจ่าย, 9:ผู้รับจริง,
-10:ลายเซ็น, 11:รูปภาพ, 12:GPS, 13:วิธีส่งมอบ, 14:ประเภทการใช้, 15:หมายเหตุ/Line
+10:ลายเซ็น, 11:รูปภาพ, 12:GPS, 13:วิธีส่งมอบ, 14:ประเภทการใช้, 15:หมายเหตุ/Line, 16:ผู้บันทึก, 17:ผู้อัปเดตล่าสุด
 ```
 
 - ❌ ห้ามเพิ่ม/ลบ/เปลี่ยนลำดับคอลัมน์โดยไม่ได้รับอนุมัติ
@@ -60,7 +60,7 @@ searchPackages, getPendingDeliveries, checkDuplicate, getRepresentatives
 
 - [ ] TypeScript build ผ่าน (`npx tsc --noEmit --skipLibCheck`)
 - [ ] บันทึกรับพัสดุ (ทั้งไปรษณีย์ธรรมดาและ EMS) ทำงานได้
-- [ ] รายการรอจ่าย แสดงข้อมูลถูกต้อง (grouping อาคาร/หน่วยงาน)
+- [ ] รายการรอนำจ่าย แสดงข้อมูลถูกต้อง (grouping อาคาร/หน่วยงาน)
 - [ ] ยืนยันนำจ่าย → จนท.ผู้นำจ่าย ไม่ว่าง
 - [ ] ค้นหาประวัติ → ค้นหาได้ทั้ง 5 ฟิลด์ + filter สถานะ
 - [ ] วันที่แสดงเป็น Thai format ไม่ใช่ ISO
@@ -83,7 +83,7 @@ searchPackages, getPendingDeliveries, checkDuplicate, getRepresentatives
 ```
 ePostal Module Scope:
 ├── Backend
-│   └── Service_Package.gs       ← แก้ไขได้ (ระวัง Schema 16 คอลัมน์)
+│   └── Service_Package.gs       ← แก้ไขได้ (ระวัง Schema 18 คอลัมน์)
 ├── Frontend
 │   ├── pages/PostalPage.tsx     ← แก้ไขได้ (3 tabs)
 │   └── components/postal/

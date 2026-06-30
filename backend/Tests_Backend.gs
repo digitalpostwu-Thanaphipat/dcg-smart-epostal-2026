@@ -27,23 +27,24 @@ function test_schemaEnforcement() {
     const sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
     if (!sheet) return { name: testName, success: false, message: SHEET_NAMES.PACKAGE_LOG + " sheet not found" };
 
-    // 1. Arrange: Add a 17th column (Phantom)
+    // 1. Arrange: Add phantom column check
+    const expectedLength = Service_Schema.PACKAGE_LOG_EXPECTED_LENGTH;
     const originalColCount = sheet.getLastColumn();
-    if (originalColCount > 16) {
+    if (originalColCount > expectedLength) {
        // Already has phantom columns, try to repair first
        Service_Schema.repairPackageLogHeaders();
     }
     
-    // Ensure we are at 16
-    sheet.getRange(1, 1, 1, 16).setValues([Service_Schema.DEFAULT_PACKAGE_LOG_SCHEMA]);
-    if (sheet.getMaxColumns() > 16) {
+    // Ensure we are at expected standard length
+    sheet.getRange(1, 1, 1, expectedLength).setValues([Service_Schema.DEFAULT_PACKAGE_LOG_SCHEMA]);
+    if (sheet.getMaxColumns() > expectedLength) {
       // We can't easily delete columns in a test without affecting production 
       // but we can test the validation logic directly.
     }
 
     // Direct validation test
     var mockSheet = {
-      getLastColumn: function() { return 17; },
+      getLastColumn: function() { return expectedLength + 1; },
       getName: function() { return SHEET_NAMES.PACKAGE_LOG; },
       getRange: function() { 
         return { 

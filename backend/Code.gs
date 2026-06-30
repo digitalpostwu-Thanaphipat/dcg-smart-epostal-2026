@@ -35,6 +35,7 @@ const ROLE_PERMISSIONS = {
     "getSystemConfigs",
     "updateSystemConfig",
     "setupUptimeMonitor",
+    "getPublicTrackingLinks",
     "validatePackageLogSchema",
     "repairPackageLogHeaders",
     "repairProjectSheetHeaders",
@@ -90,6 +91,8 @@ const PUBLIC_ACTIONS = [
   "verifySession",
   "systemHealthCheck",
   "getSystemInfo",
+  "publicSearchPackages",
+  "getPublicTrackingDepartments",
 ];
 
 var ROUTE_MAP = {
@@ -118,6 +121,9 @@ var ROUTE_MAP = {
     Service_Package.searchPackages
       ? Service_Package.searchPackages(data)
       : executeSearchPackages(data),
+  publicSearchPackages: (data) => publicSearchPackages(data),
+  getPublicTrackingLinks: () => getPublicTrackingLinks(),
+  getPublicTrackingDepartments: () => getPublicTrackingDepartments(),
 
   // System Diagnostics & Feedback
   submitFeedback: (data) => Service_Feedback.submitFeedback(data),

@@ -1,6 +1,6 @@
 # 📦 ePostal Data Dictionary (Database Schema)
 
-> **Source of Truth:** v4.1.0
+> **Source of Truth:** v4.1.1
 > **Database:** Google Sheets (`ePostal_2026` and Fiscal Year Shards)
 > **Schema Strictness:** 18 Fixed Columns. Managed by `Service_Schema.gs`.
 > **Write Pattern:** Header-mapped via `buildRow()` + `getHeaderIndex()`
@@ -14,7 +14,7 @@
 | 2 | ประเภท | `itemType` | Enum | `ไปรษณีย์ด่วนพิเศษ (EMS)`, `ไปรษณีย์ลงทะเบียน`, `ไปรษณีย์ธรรมดา` |
 | 3 | ชื่อหน่วยงาน | `deptName` | String | Destination Department (from Central DB) |
 | 4 | ชื่อผู้รับ | `recipientName` | String | Intended recipient name on label |
-| 5 | สถานะ | `status` | Enum | `รอนำจ่าย` (Pending), `จ่ายสำเร็จ` (Delivered), `จ่ายแล้ว` (Legacy), `มีปัญหา/ตีกลับ` (Issue) |
+| 5 | สถานะ | `status` | Enum | `รอนำจ่าย` (Pending), `ส่งมอบแล้ว` (Delivered), `มีปัญหา/ตีกลับ` (Issue) |
 | 6 | เวลาที่บันทึก | `createdAt` | DateTime | Timestamp of entry (Thai BE format) |
 | 7 | เวลาที่จ่าย | `deliveredAt` | DateTime | Timestamp of delivery confirmation |
 | 8 | จนท.ผู้นำจ่าย | `delivererName` | String | **FullName** of staff who delivered (resolved from email @216) |
@@ -41,7 +41,7 @@
 
 ---
 
-## 👤 Table: ผู้ใช้งานระบบ (DCG_Central_DB)
+## 👤 Table: ผู้ใช้งานระบบ (`ePostal_2026`)
 
 | Index | Column Name (Thai) | AI Descriptor | Description |
 |-------|-------------------|---------------|-------------|
@@ -54,6 +54,22 @@
 
 ---
 
+## 🏢 Table: ตัวแทนรับไปรษณีย์ภัณฑ์ (`ePostal_2026`)
+
+| Index | Column Name (Thai) | AI Descriptor | Description |
+|-------|-------------------|---------------|-------------|
+| 0 | อีเมล | `email` | Google email ของตัวแทน |
+| 1 | ชื่อ-นามสกุล | `fullName` | ชื่อเต็มของตัวแทน |
+| 2 | รหัสหน่วยงาน | `deptId` | ใช้ผูกตัวแทนกับหน่วยงาน |
+| 3 | ชื่อหน่วยงาน | `department` | ชื่อหน่วยงานแบบอ่านง่าย |
+| 4 | สถานะ | `status` | ใช้ `ใช้งาน` หรือ `ระงับ` |
+| 5 | เบอร์โทร | `phone` | ช่องทางติดต่อ |
+| 6 | Line ID | `lineId` | ช่องทางติดต่อเพิ่มเติม |
+| 7 | หมายเหตุ | `note` | เช่น ตัวแทนหลัก/สำรอง |
+| 8 | อัปเดตล่าสุด | `lastUpdated` | วันที่แก้ไขข้อมูลล่าสุด |
+
+---
+
 ## 🎨 Conditional Formatting (สถานะสี)
 
 Managed by `Service_Schema.setupStatusConditionalFormatting()`:
@@ -61,10 +77,7 @@ Managed by `Service_Schema.setupStatusConditionalFormatting()`:
 | สถานะ | Background | Font Color | หมายเหตุ |
 |-------|-----------|-----------|---------|
 | `รอนำจ่าย` | #FEF3C7 (Amber) | #92400E | สถานะเริ่มต้นเมื่อบันทึก |
-| `รอจ่าย` | #FEF3C7 (Amber) | #92400E | Legacy status |
-| `จ่ายสำเร็จ` | #DCFCE7 (Green) | #166534 | สถานะหลังยืนยันนำจ่าย |
-| `จ่ายแล้ว` | #DCFCE7 (Green) | #166534 | Legacy status |
-| `ส่งมอบแล้ว` | #DCFCE7 (Green) | #166534 | Legacy status |
+| `ส่งมอบแล้ว` | #DCFCE7 (Green) | #166534 | สถานะหลังยืนยันนำจ่าย |
 | `มีปัญหา/ตีกลับ` | #FEE2E2 (Red) | #991B1B | มีปัญหาในการนำจ่าย |
 
 ---
@@ -76,4 +89,5 @@ Managed by `Service_Schema.setupStatusConditionalFormatting()`:
 - **Buddhist Era (BE):** Dates displayed to users should be in BE format (+543 years).
 - **Primary Key:** `packageId` must be unique across all shards.
 - **Email→Name:** Columns `จนท.ผู้นำจ่าย`, `ผู้บันทึก`, `ผู้อัปเดตล่าสุด` store FullName (resolved via `AdminService.getUsers()` userMap).
-- **Auth Sync:** User roles are cached in the frontend but validated against `DCG_Central_DB` on app load.
+- **Auth Sync:** User roles are cached in the frontend but validated against `ePostal_2026 > ผู้ใช้งานระบบ` on app load.
+- **Representative Source:** Postal representatives are read from `ePostal_2026 > ตัวแทนรับไปรษณีย์ภัณฑ์`; `ตัวแทนรับพัสดุ` is only a temporary fallback name.

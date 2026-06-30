@@ -137,3 +137,14 @@ function listAllRelevantSheets() {
   }
   return results;
 }
+
+/**
+ * repairSchemaConfig
+ * ซ่อมแซมโครงสร้าง JSON Schema ในการตั้งค่าระบบให้เป็น 18 คอลัมน์
+ */
+function repairSchemaConfig() {
+  const schema = Service_Schema.DEFAULT_PACKAGE_LOG_SCHEMA;
+  const success = Service_Schema.syncSchemaToConfig(schema);
+  console.log(success ? "✅ Sync success!" : "❌ Sync failed");
+  return success ? "✅ อัปเดตโครงสร้างฟิลด์ในตารางตั้งค่าเป็น 18 คอลัมน์สำเร็จ!" : "❌ เกิดข้อผิดพลาด";
+}

@@ -225,7 +225,8 @@ export const ApiClient = {
     getSystemInfo: () => request("getSystemInfo", null, "POST"),
     getSystemConfigs: () => request("getSystemConfigs", null, "POST"),
     updateSystemConfig: (key: string, value: string) => request("updateSystemConfig", { key, value }, "POST"),
-    setupUptimeMonitor: () => request("setupUptimeMonitor", null, "POST")
+    setupUptimeMonitor: () => request("setupUptimeMonitor", null, "POST"),
+    getPublicTrackingLinks: () => request("getPublicTrackingLinks", null, "POST")
   },
   postal: {
     saveEntry: (data: any) => request("savePackageEntry", data, "POST"),
@@ -244,6 +245,19 @@ export const ApiClient = {
     revert: (data: { packageId: string; reason: string }) => request("revertDelivery", data, "POST"),
     reportIssue: (packageId: string, reason: string) => request("reportDeliveryIssue", { packageId, reason }, "POST"),
     checkDuplicate: (trackingNumber: string) => request("checkDuplicate", { trackingNumber }, "POST"),
+  },
+  tracking: {
+    getDepartments: () => request("getPublicTrackingDepartments", null, "POST"),
+    publicSearch: (filters: {
+      deptId?: string;
+      token?: string;
+      keyword?: string;
+      status?: string;
+      type?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      fiscalYear?: string;
+    }) => request("publicSearchPackages", filters, "POST"),
   },
   feedback: {
     submit: (payload: any) => request("submitFeedback", payload, "POST"),

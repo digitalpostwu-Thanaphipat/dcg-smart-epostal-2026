@@ -92,7 +92,7 @@ var SHEET_NAMES = {
   DEPTS: "\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19",
   CONFIG: "\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e23\u0e30\u0e1a\u0e1a",
   POSITIONS: "\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e1a\u0e23\u0e34\u0e2b\u0e32\u0e23",
-  REPS: "\u0e15\u0e31\u0e27\u0e41\u0e17\u0e19\u0e23\u0e31\u0e1a\u0e1e\u0e31\u0e2a\u0e14\u0e38", // ตัวแทนรับพัสดุ
+  REPS: "\u0e15\u0e31\u0e27\u0e41\u0e17\u0e19\u0e23\u0e31\u0e1a\u0e44\u0e1b\u0e23\u0e29\u0e13\u0e35\u0e22\u0e4c\u0e20\u0e31\u0e13\u0e11\u0e4c", // ตัวแทนรับไปรษณีย์ภัณฑ์
   PACKAGE_LOG: "\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e1e\u0e31\u0e2a\u0e14\u0e38",
   LOGS_AUDIT: "\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e01\u0e32\u0e23\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19",
   LOGS_ERROR: "Error_Log",
@@ -121,6 +121,17 @@ var PROJECT_SHEET_HEADERS = (function() {
   ];
   headers[SHEET_NAMES.SYSTEM_STATS] = ["หมวดหมู่", "ตัวชี้วัด", "ค่าตัวเลข", "อัปเดตล่าสุด"];
   headers[SHEET_NAMES.USERS] = ["รหัสพนักงาน", "อีเมล (Google)", "ชื่อ-นามสกุล", "สิทธิ์ (Admin/User/Postal)", "หน่วยงาน/แผนก", "ตำแหน่ง"];
+  headers[SHEET_NAMES.REPS] = [
+    "\u0e2d\u0e35\u0e40\u0e21\u0e25",
+    "\u0e0a\u0e37\u0e48\u0e2d-\u0e19\u0e32\u0e21\u0e2a\u0e01\u0e38\u0e25",
+    "\u0e23\u0e2b\u0e31\u0e2a\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19",
+    "\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19",
+    "\u0e2a\u0e16\u0e32\u0e19\u0e30",
+    "\u0e40\u0e1a\u0e2d\u0e23\u0e4c\u0e42\u0e17\u0e23",
+    "Line ID",
+    "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38",
+    "\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14"
+  ];
   headers[SHEET_NAMES.ARCHIVE_INDEX] = ["ปีงบประมาณ", "Spreadsheet ID", "ชื่อไฟล์", "วันที่ย้ายล่าสุด", "จำนวนแถวที่เก็บ", "ยอดรวมพัสดุ", "ยอดส่งมอบแล้ว"];
   headers[SHEET_NAMES.ANNOUNCEMENTS] = ["ลำดับ", "วันที่", "หัวข้อประกาศ", "เนื้อหา", "สถานะ (แสดง/ซ่อน)"];
   headers[SHEET_NAMES.LOGS_AUDIT] = ["วัน-เวลา", "ผู้ดำเนินการ", "การกระทำ", "รายละเอียด", "หมายเหตุ"];
@@ -159,6 +170,8 @@ function repairProjectSheetHeaders() {
     _setupStatusColors(_getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG));
     if (typeof Service_Cache !== "undefined") {
       Service_Cache.remove("PROJECT_SYSTEM_USERS_V1");
+      Service_Cache.remove("PROJECT_REPS_V1");
+      Service_Cache.remove("CACHE_REPS_V6_DYNAMIC");
       Service_Cache.remove("SYSTEM_USERS");
       Service_Cache.remove("SCHEMA_PACKAGE_LOG_V4");
     }
@@ -807,12 +820,12 @@ function getCentralPositions() {
 }
 
 function getCentralReps() {
-  var cacheKey = "CACHE_REPS_V6_DYNAMIC";
+  var cacheKey = "PROJECT_REPS_V1";
   var cached = Service_Cache.get(cacheKey);
   if (cached) return cached;
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
-    const sheet = _findSheetRobust(ss, SHEET_NAMES.REPS, ["ตัวแทนรับพัสดุ", "ตัวแทน", "Representatives", "Reps"]);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL || SPREADSHEET_ID);
+    const sheet = _findSheetRobust(ss, SHEET_NAMES.REPS, ["ตัวแทนรับไปรษณีย์ภัณฑ์", "ตัวแทนรับพัสดุ", "ตัวแทน", "Representatives", "Reps"]);
     if (!sheet) return [];
 
     const data = sheet.getDataRange().getValues();
@@ -822,6 +835,11 @@ function getCentralReps() {
     const emailIdx = getHeaderIndex(headers, ["อีเมล", "Email", "Gmail"]);
     const nameIdx = getHeaderIndex(headers, ["ชื่อ-นามสกุล", "ชื่อนามสกุล", "Name", "Full Name", "ตัวแทน"]);
     const deptIdx = getHeaderIndex(headers, ["รหัสหน่วยงาน", "DeptID", "DepartmentID", "รหัสแผนก", "หน่วยงาน"]);
+    const deptNameIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department", "DeptName"]);
+    const statusIdx = getHeaderIndex(headers, ["สถานะ", "Status", "Active"]);
+    const phoneIdx = getHeaderIndex(headers, ["เบอร์โทร", "โทรศัพท์", "Phone", "Tel"]);
+    const lineIdx = getHeaderIndex(headers, ["Line ID", "LINE", "ไลน์"]);
+    const noteIdx = getHeaderIndex(headers, ["หมายเหตุ", "Note"]);
 
     const finalEmailIdx = emailIdx > -1 ? emailIdx : 0;
     const finalNameIdx = nameIdx > -1 ? nameIdx : 1;
@@ -833,9 +851,16 @@ function getCentralReps() {
       return {
         Email: String(row[finalEmailIdx] || "").trim(),
         FullName: fullName,
-        DeptID: String(row[finalDeptIdx] || "").trim()
+        DeptID: String(row[finalDeptIdx] || "").trim(),
+        Department: deptNameIdx > -1 ? String(row[deptNameIdx] || "").trim() : "",
+        Status: statusIdx > -1 ? String(row[statusIdx] || "").trim() : "ใช้งาน",
+        Phone: phoneIdx > -1 ? String(row[phoneIdx] || "").trim() : "",
+        LineID: lineIdx > -1 ? String(row[lineIdx] || "").trim() : "",
+        Note: noteIdx > -1 ? String(row[noteIdx] || "").trim() : ""
       };
-    }).filter(i => i !== null);
+    }).filter(function(i) {
+      return i !== null && (!i.Status || i.Status === "ใช้งาน" || String(i.Status).toLowerCase() === "active");
+    });
     
     Service_Cache.put(cacheKey, result, 21600);
     return result;
@@ -955,8 +980,7 @@ function isCentralSheet(name) {
   var centralNames = [
     SHEET_NAMES.PERSONNEL, 
     SHEET_NAMES.DEPTS, 
-    SHEET_NAMES.POSITIONS,
-    SHEET_NAMES.REPS
+    SHEET_NAMES.POSITIONS
   ];
   return centralNames.indexOf(name) !== -1;
 }

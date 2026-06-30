@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, ShieldCheck, Download, RefreshCcw, History, AlertTriangle, FileJson, Loader2, Zap, Cpu, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Database, ShieldCheck, Download, RefreshCcw, History, AlertTriangle, FileJson, Loader2, Zap, Cpu, Sparkles, CheckCircle2, Link2, Copy } from 'lucide-react';
 import { ApiClient } from '@/api/client';
 import { toast } from 'react-hot-toast';
 import { haptics } from '@/utils/haptics';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 export const SystemSettingsPage = () => {
   const [loading, setLoading] = useState(false);
   const [restoreFileId, setRestoreFileId] = useState('');
+  const [trackingLinks, setTrackingLinks] = useState<any[]>([]);
 
   const [activeAiModel, setActiveAiModel] = useState('gemini-1.5-flash');
   const [configs, setConfigs] = useState<any>({});
@@ -146,6 +147,34 @@ export const SystemSettingsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLoadTrackingLinks = async () => {
+    setLoading(true);
+    haptics.medium();
+    const t = toast.loading('กำลังสร้างลิงก์กลางสำหรับติดตามพัสดุ...');
+    try {
+      const res: any = await ApiClient.admin.getPublicTrackingLinks();
+      if (!res.success) throw new Error(res.error);
+      setTrackingLinks(Array.isArray(res.data) ? res.data : []);
+      haptics.success();
+      toast.success('พร้อมคัดลอกลิงก์กลางไปแปะบนเว็บแล้ว', { id: t });
+    } catch (error: any) {
+      haptics.error();
+      toast.error(error.message || 'สร้างลิงก์ไม่สำเร็จ', { id: t });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyTrackingLink = async (url: string) => {
+    if (!url) {
+      toast.error('ยังไม่มี URL จาก Web App หลัง deploy');
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    haptics.success();
+    toast.success('คัดลอกลิงก์แล้ว');
   };
 
   const updateConfig = async (key: string, value: string) => {
@@ -333,6 +362,47 @@ export const SystemSettingsPage = () => {
                     <Zap className="w-5 h-5 text-amber-500 group-hover:scale-125 transition-transform" />
                  </button>
               </div>
+           </div>
+
+           <div className="clay-card p-8 shadow-xl space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <Link2 className="w-6 h-6" />
+                   </div>
+                   <div>
+                      <h3 className="font-heading font-black text-zinc-900 dark:text-white uppercase text-sm">ลิงก์กลางติดตามพัสดุ</h3>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">ใช้ลิงก์เดียว แปะบนเว็บหลักหรือเว็บหน่วยงานได้</p>
+                   </div>
+                </div>
+                <button
+                  onClick={handleLoadTrackingLinks}
+                  disabled={loading}
+                  className="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-heading font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all"
+                >
+                  {loading ? 'กำลังโหลด' : 'โหลดลิงก์'}
+                </button>
+              </div>
+
+              {trackingLinks.length > 0 && (
+                <div className="max-h-72 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                  {trackingLinks.map((item) => (
+                    <div key={item.deptId || item.department} className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/40 p-4 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-zinc-900 dark:text-white truncate">{item.department}</p>
+                        <p className="text-[10px] font-mono font-bold text-zinc-400 truncate">{item.url || 'ต้อง deploy Web App ก่อนจึงจะมี URL'}</p>
+                      </div>
+                      <button
+                        onClick={() => copyTrackingLink(item.url)}
+                        className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-emerald-600 transition-colors"
+                        aria-label="คัดลอกลิงก์กลางติดตามพัสดุ"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
            </div>
         </div>
 

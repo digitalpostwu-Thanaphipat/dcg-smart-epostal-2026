@@ -738,30 +738,194 @@ var Service_Package = {
   }
 };
 
+function _normalizeSearchValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function _parseSearchDate(value) {
+  if (!value) return null;
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
+  var text = String(value).trim();
+  var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+
+  var parts = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (parts) {
+    var year = Number(parts[3]);
+    if (year > 2400) year -= 543;
+    return new Date(year, Number(parts[2]) - 1, Number(parts[1]));
+  }
+
+  var parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  return null;
+}
+
+function _statusMatchesFilter(rowStatus, filterStatus) {
+  var status = _normalizeSearchValue(rowStatus);
+  var filter = String(filterStatus || "").trim();
+  if (!filter || filter === "all") return true;
+  if (filter === "Pending") {
+    return status.indexOf("pending") > -1 || status.indexOf("รอนำจ่าย") > -1 || status.indexOf("รอจ่าย") > -1;
+  }
+  if (filter === "Delivered") {
+    return status.indexOf("delivered") > -1 || status.indexOf("ส่งมอบแล้ว") > -1 || status.indexOf("จ่ายแล้ว") > -1 || status.indexOf("จ่ายสำเร็จ") > -1;
+  }
+  return status === filter.toLowerCase();
+}
+
+function _searchSourcesForFiscalYear(filters) {
+  var registry = typeof _getShardRegistry === "function" ? _getShardRegistry() : {};
+  var ssList = [SpreadsheetApp.openById(SPREADSHEET_ID)];
+  if (!filters || !filters.fiscalYear || filters.fiscalYear === "all") {
+    var years = Object.keys(registry).sort(function(a, b) { return Number(b) - Number(a); });
+    years.forEach(function(y) {
+      if (registry[y] !== SPREADSHEET_ID) {
+        try { ssList.push(SpreadsheetApp.openById(registry[y])); } catch (e) {}
+      }
+    });
+  } else if (registry[filters.fiscalYear] && registry[filters.fiscalYear] !== SPREADSHEET_ID) {
+    try { ssList.push(SpreadsheetApp.openById(registry[filters.fiscalYear])); } catch (e) {}
+  }
+  return ssList;
+}
+
+function _publicTrackingSecret() {
+  var props = PropertiesService.getScriptProperties();
+  var secret = props.getProperty("PUBLIC_TRACKING_SECRET");
+  if (!secret) {
+    secret = Utilities.getUuid();
+    props.setProperty("PUBLIC_TRACKING_SECRET", secret);
+  }
+  return secret;
+}
+
+function _publicTrackingTokenForDept(deptId, deptName) {
+  var props = PropertiesService.getScriptProperties();
+  var overrides = {};
+  try { overrides = JSON.parse(props.getProperty("PUBLIC_TRACKING_TOKENS") || "{}"); } catch (e) { overrides = {}; }
+  if (overrides[deptId]) return String(overrides[deptId]);
+  if (overrides[deptName]) return String(overrides[deptName]);
+  var bytes = Utilities.computeHmacSha256Signature(String(deptId || deptName), _publicTrackingSecret());
+  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/g, "").slice(0, 28);
+}
+
+function _resolvePublicTrackingDept(deptId, token) {
+  if (!deptId || !token) throw new Error("Missing public tracking link data");
+  var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
+  var wanted = String(deptId).trim();
+  var found = null;
+  departments.forEach(function(dept) {
+    var currentId = String(dept.DeptID || dept.id || "").trim();
+    var currentName = String(dept.DeptName || dept.name || "").trim();
+    if (!found && (currentId === wanted || currentName === wanted)) found = dept;
+  });
+  if (!found) throw new Error("Department not found");
+  var resolvedId = String(found.DeptID || found.id || found.DeptName || found.name || "").trim();
+  var resolvedName = String(found.DeptName || found.name || found.DeptID || found.id || "").trim();
+  var expected = _publicTrackingTokenForDept(resolvedId, resolvedName);
+  if (String(token).trim() !== expected) throw new Error("Invalid public tracking link");
+  return { id: resolvedId, name: resolvedName };
+}
+
+function _resolvePublicTrackingDeptName(deptId) {
+  if (!deptId) return "";
+  var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
+  var wanted = String(deptId).trim();
+  var foundName = "";
+  departments.forEach(function(dept) {
+    var currentId = String(dept.DeptID || dept.id || "").trim();
+    var currentName = String(dept.DeptName || dept.name || "").trim();
+    if (!foundName && (currentId === wanted || currentName === wanted)) foundName = currentName || currentId;
+  });
+  return foundName;
+}
+
+function getPublicTrackingDepartments() {
+  var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
+  return departments.map(function(dept) {
+    var deptId = String(dept.DeptID || dept.id || dept.DeptName || dept.name || "").trim();
+    var deptName = String(dept.DeptName || dept.name || deptId).trim();
+    return { deptId: deptId, department: deptName };
+  }).filter(function(dept) {
+    return dept.deptId && dept.department;
+  });
+}
+
+function getPublicTrackingLinks() {
+  var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
+  var baseUrl = "";
+  try { baseUrl = ScriptApp.getService().getUrl(); } catch (e) {}
+  var centralLink = {
+    deptId: "ALL",
+    department: "ลิงก์กลางสำหรับทุกหน่วยงาน",
+    token: "",
+    url: baseUrl ? baseUrl + "?publicTrack=1" : ""
+  };
+  departments.map(function(dept) {
+    var deptId = String(dept.DeptID || dept.id || dept.DeptName || dept.name || "").trim();
+    var deptName = String(dept.DeptName || dept.name || deptId).trim();
+    _publicTrackingTokenForDept(deptId, deptName);
+  });
+  return [centralLink];
+}
+
+function publicSearchPackages(filters) {
+  filters = filters || {};
+  var keyword = String(filters.keyword || "").trim();
+  var dept = { id: "", name: "" };
+  var hasDeptToken = filters.deptId && filters.token;
+
+  if (hasDeptToken) {
+    dept = _resolvePublicTrackingDept(filters.deptId, filters.token);
+  } else {
+    if (keyword.length < 4) {
+      throw new Error("กรุณาค้นด้วยเลขพัสดุหรือชื่อผู้รับอย่างน้อย 4 ตัวอักษร");
+    }
+    dept = {
+      id: filters.deptId || "",
+      name: _resolvePublicTrackingDeptName(filters.deptId)
+    };
+  }
+
+  var result = executeSearchPackages({
+    keyword: keyword,
+    status: filters.status || "",
+    type: filters.type || "",
+    department: dept.name,
+    dateFrom: filters.dateFrom || "",
+    dateTo: filters.dateTo || "",
+    fiscalYear: filters.fiscalYear || "all",
+    publicMode: true
+  });
+  if (result && result.success) result.department = dept.name;
+  return result;
+}
+
 /**
  * Global Search Function for Waterfall API
  */
 function executeSearchPackages(filters) {
   try {
-    var registry = typeof _getShardRegistry === "function" ? _getShardRegistry() : {};
-    var ssList = [SpreadsheetApp.openById(SPREADSHEET_ID)];
-    
-    if (!filters.fiscalYear || filters.fiscalYear === "all") {
-      var years = Object.keys(registry).sort((a,b) => b-a);
-      years.forEach(y => { if(registry[y] !== SPREADSHEET_ID) { try { ssList.push(SpreadsheetApp.openById(registry[y])); } catch(e){} } });
-    } else if (registry[filters.fiscalYear]) {
-      if(registry[filters.fiscalYear] !== SPREADSHEET_ID) { try { ssList.push(SpreadsheetApp.openById(registry[filters.fiscalYear])); } catch(e){} }
-    }
-
+    filters = filters || {};
+    var ssList = _searchSourcesForFiscalYear(filters);
     var results = [];
     var maxResults = 100;
+    var dateFrom = _parseSearchDate(filters.dateFrom);
+    var dateTo = _parseSearchDate(filters.dateTo);
+    if (dateTo) dateTo = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999);
+    var typeFilter = _normalizeSearchValue(filters.type);
+    var deptFilter = _normalizeSearchValue(filters.department);
 
     // Fetch users for email-to-name mapping
     var users = typeof AdminService !== "undefined" ? AdminService.getUsers() : [];
     var userMap = {};
     users.forEach(function(u) { userMap[String(u.Email).toLowerCase()] = u.FullName; });
 
-    ssList.forEach(ss => {
+    ssList.forEach(function(ss) {
       if (results.length >= maxResults) return;
       var sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : (ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log"));
       if (!sheet) return;
@@ -806,6 +970,15 @@ function executeSearchPackages(filters) {
           }
         }
         
+        if (match && typeFilter && typeFilter !== "all" && _normalizeSearchValue(row[typeIdx]).indexOf(typeFilter) === -1) match = false;
+        if (match && deptFilter && deptFilter !== "all" && _normalizeSearchValue(row[deptIdx]) !== deptFilter) match = false;
+        if (match && (dateFrom || dateTo)) {
+          var rowDate = _parseSearchDate(row[dateIdx]);
+          if (!rowDate) match = false;
+          if (match && dateFrom && rowDate < dateFrom) match = false;
+          if (match && dateTo && rowDate > dateTo) match = false;
+        }
+
         if (match) {
           var dateVal = row[dateIdx];
           var formattedDate = dateVal instanceof Date 
@@ -842,6 +1015,16 @@ function executeSearchPackages(filters) {
         }
       }
     });
+
+    if (filters.publicMode) {
+      results = results.map(function(item) {
+        item.signature = "";
+        item.photo = "";
+        item.signerName = "";
+        item.deliverer = "";
+        return item;
+      });
+    }
 
     return { success: true, data: results };
   } catch (e) {

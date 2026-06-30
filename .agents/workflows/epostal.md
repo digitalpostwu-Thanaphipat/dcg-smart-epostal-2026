@@ -4,7 +4,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 
 # ePostal (ระบบบันทึกรับ-จ่ายไปรษณีย์ภัณฑ์)
 
-> **Last Updated:** 27 กุมภาพันธ์ 2569
+> **Last Updated:** 30 มิถุนายน 2569
 > **Status:** ✅ ใช้งานได้ครบ workflow
 
 ## 1. ภาพรวม (Overview)
@@ -26,8 +26,9 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 
 ### ฐานข้อมูล
 
-- **Spreadsheet**: `DCG Smart ePostal`
-- **Sheet**: `รายการพัสดุ` (16 Columns)
+- **Project Spreadsheet**: `ePostal_2026`
+- **Main Sheet**: `รายการพัสดุ` (18 Columns)
+- **Representative Sheet**: `ตัวแทนรับไปรษณีย์ภัณฑ์`
 
 ---
 
@@ -45,7 +46,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 | ----------------------------------------- | ------------------------------------------- | ------ |
 | `pages/PostalPage.tsx`                    | Main page (3 tabs)                          | ~76    |
 | `components/postal/PostalEntryForm.tsx`   | ฟอร์มบันทึกรับพัสดุ + Duplicate Check UX    | ~356   |
-| `components/postal/PostalPendingList.tsx` | รายการพัสดุรอจ่าย + grouping อาคาร/หน่วยงาน | ~306   |
+| `components/postal/PostalPendingList.tsx` | รายการพัสดุรอนำจ่าย + grouping อาคาร/หน่วยงาน | ~306   |
 | `components/postal/PostalSearchTab.tsx`   | ค้นหาประวัติพัสดุ + filter สถานะ            | ~197   |
 | `components/postal/DeliveryModal.tsx`     | Modal ยืนยันนำจ่าย + ลายเซ็น                | ~228   |
 | `components/postal/EditPackageModal.tsx`  | Modal แก้ไขพัสดุ                            | ~110   |
@@ -56,18 +57,18 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 | Method                     | Endpoint               | หน้าที่                  |
 | -------------------------- | ---------------------- | ------------------------ |
 | `postal.saveEntry`         | `savePackageEntry`     | บันทึกรับพัสดุเข้า       |
-| `postal.getPending`        | `getPendingDeliveries` | ดึงรายการพัสดุรอจ่าย     |
+| `postal.getPending`        | `getPendingDeliveries` | ดึงรายการพัสดุรอนำจ่าย     |
 | `postal.updateEntry`       | `updatePackageEntry`   | แก้ไขข้อมูลพัสดุ         |
 | `postal.confirmDelivery`   | `confirmDelivery`      | ยืนยันการนำจ่าย          |
 | `postal.searchPackages`    | `searchPackages`       | ค้นหาประวัติพัสดุ        |
 | `postal.checkDuplicate`    | `checkDuplicate`       | ตรวจสอบเลข Tracking ซ้ำ  |
-| `admin.getRepresentatives` | `getRepresentatives`   | ดึงรายชื่อตัวแทนรับพัสดุ |
+| `admin.getRepresentatives` | `getRepresentatives`   | ดึงรายชื่อตัวแทนรับไปรษณีย์ภัณฑ์ |
 
 ---
 
 ## 3. Database Schema
 
-### Sheet: `รายการพัสดุ` (16 Columns)
+### Sheet: `รายการพัสดุ` (18 Columns)
 
 | Index | Column | ชื่อฟิลด์       | ประเภท | คำอธิบาย                                               |
 | ----- | ------ | --------------- | ------ | ------------------------------------------------------ |
@@ -76,9 +77,9 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 | 2     | C      | `ประเภท`        | String | ไปรษณีย์ธรรมดา, ไปรษณีย์ลงทะเบียน, EMS                 |
 | 3     | D      | `ชื่อหน่วยงาน`   | String | ชื่อหน่วยงานปลายทาง (ภาษาไทย)                           |
 | 4     | E      | `ชื่อผู้รับ`    | String | ชื่อผู้รับพัสดุ (หน้ากล่อง)                            |
-| 5     | F      | `สถานะ`         | String | รอจ่าย / จ่ายแล้ว                                      |
+| 5     | F      | `สถานะ`         | String | รอนำจ่าย / ส่งมอบแล้ว / มีปัญหา/ตีกลับ                                      |
 | 6     | G      | `เวลาที่บันทึก` | String | วัน-เวลาที่บันทึกรับ (พ.ศ.)                            |
-| 7     | H      | `เวลาที่จ่าย`   | String | วัน-เวลาที่จ่ายสำเร็จ                                  |
+| 7     | H      | `เวลาที่จ่าย`   | String | วัน-เวลาที่ส่งมอบแล้ว                                  |
 | 8     | I      | `จนท.ผู้นำจ่าย` | String | ชื่อเจ้าหน้าที่ที่นำจ่าย (resolve จาก staffEmail)      |
 | 9     | J      | `ผู้รับจริง`    | String | ชื่อผู้ที่รับพัสดุ (เซ็นรับ)                           |
 | 10    | K      | `ลายเซ็น`       | String | URL ลายเซ็นดิจิทัล (Google Drive)                      |
@@ -87,6 +88,8 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 | 13    | N      | `วิธีการส่งมอบ` | String | Digital Signature                                      |
 | 14    | O      | `ประเภทการใช้`  | String | งานมหาวิทยาลัย / ธุระส่วนตัว                           |
 | 15    | P      | `หมายเหตุ / Line` | String | หมายเหตุเพิ่มเติม + สถานะ Line                        |
+| 16    | Q      | `ผู้บันทึก` | String | ชื่อผู้บันทึกรายการ |
+| 17    | R      | `ผู้อัปเดตล่าสุด` | String | ชื่อผู้แก้ไขรายการล่าสุด |
 
 ---
 
@@ -94,7 +97,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌───────────┐
-│ บันทึกรับ   │ ──▶ │ รอจ่าย       │ ──▶ │ จ่ายแล้ว  │
+│ บันทึกรับ   │ ──▶ │ รอนำจ่าย     │ ──▶ │ ส่งมอบแล้ว │
 │ (Inbound)   │     │ (Pending)    │     │ (Delivered)│
 └─────────────┘     └──────────────┘     └───────────┘
 ```
@@ -110,20 +113,20 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
   - `emsList`: รายการ EMS/ลงทะเบียน
     - `trackingNumber`: เลขพัสดุ
     - `itemType`: ประเภท (ลงทะเบียน/EMS)
-    - `recipientName`: ชื่อผู้รับ (SearchableSelect — รวม Personnel + ตัวแทนรับพัสดุ)
+    - `recipientName`: ชื่อผู้รับ (SearchableSelect — รวม Personnel + ตัวแทนรับไปรษณีย์ภัณฑ์)
     - `notes`: หมายเหตุ
   - `staffEmail`: อีเมลเจ้าหน้าที่
 - **UI Enhancements**:
   - แสดง 🏢 อาคาร / 📍 ชั้น อัตโนมัติเมื่อเลือกหน่วยงาน
-  - รายชื่อผู้รับรวมจาก Personnel + ตัวแทนรับพัสดุ (Representatives)
+  - รายชื่อผู้รับรวมจาก Personnel + ตัวแทนรับไปรษณีย์ภัณฑ์ (Representatives)
   - ตรวจสอบเลข Tracking ซ้ำอัตโนมัติ
 - **Backend** (`savePackageEntry`):
   - สร้าง ID อัตโนมัติผ่าน `generateReadableId()`
   - ตรวจสอบเลขซ้ำผ่าน `checkDuplicate()`
-  - บันทึกข้อมูล 16 คอลัมน์
+  - บันทึกข้อมูล 18 คอลัมน์
   - **Log Workload**: บันทึกลง `Service_Workload`
 
-#### ขั้นที่ 2: จัดกลุ่มและรอจ่าย (Pending)
+#### ขั้นที่ 2: จัดกลุ่มและรอนำจ่าย (Pending)
 
 - **ระบบ**: จัดกลุ่มพัสดุตาม **อาคาร → หน่วยงาน** (2-Level Grouping)
 - **UI**: แสดงใน `PostalPendingList.tsx`
@@ -139,7 +142,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 - **UI Enhancements**:
   - แสดง banner ชื่อหน่วยงานที่นำจ่าย
   - รายชื่อผู้รับกรองตามหน่วยงาน (ใช้ DeptID→DeptName map)
-  - รวม Personnel + ตัวแทนรับพัสดุ
+  - รวม Personnel + ตัวแทนรับไปรษณีย์ภัณฑ์
   - Fallback แสดงทั้งหมดถ้าไม่เจอบุคลากร + warning
 - **ข้อมูลที่ส่ง**:
   - `packageIds`: รหัสพัสดุที่เลือก
@@ -148,7 +151,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
   - `staffEmail`: อีเมลเจ้าหน้าที่นำจ่าย (จาก Auth Store)
   - `userEmail`: อีเมลผู้ใช้ (จาก Auth Store)
 - **Backend** (`confirmDelivery`):
-  - อัปเดต สถานะ → "จ่ายแล้ว"
+  - อัปเดต สถานะ → "ส่งมอบแล้ว"
   - บันทึก เวลาที่จ่าย (Thai datetime)
   - บันทึก จนท.ผู้นำจ่าย (resolve ชื่อจาก staffEmail ผ่าน Users DB)
   - บันทึก ผู้รับจริง
@@ -159,7 +162,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 
 - **ทุกผู้ใช้**: ค้นหาด้วย `PostalSearchTab.tsx`
 - **ค้นหาได้ 5 ฟิลด์**: Tracking Number, ชื่อผู้รับ, รหัสพัสดุ, ชื่อหน่วยงาน, ชื่ออาคาร
-- **กรองสถานะ**: ทั้งหมด / รอจ่าย / จ่ายแล้ว (pills auto-search)
+- **กรองสถานะ**: ทั้งหมด / รอนำจ่าย / ส่งมอบแล้ว / มีปัญหา/ตีกลับ
 - **วันที่**: แสดง Thai format (เช่น 26 ก.พ. 2569 10:35)
 - จำกัดผลลัพธ์ 50 รายการ
 
@@ -176,7 +179,7 @@ type Tab = "entry" | "pending" | "search";
 
 const tabs = [
   { id: "entry", label: "บันทึกรับพัสดุ", icon: Package },
-  { id: "pending", label: "รายการรอจ่าย", icon: Truck },
+  { id: "pending", label: "รายการรอนำจ่าย", icon: Truck },
   { id: "search", label: "ค้นหาประวัติ", icon: Search },
 ];
 ```
@@ -190,7 +193,7 @@ const tabs = [
 | **EMS/ลงทะเบียน**   | Dynamic list: เลขพัสดุ, ประเภท, ชื่อผู้รับ (SearchableSelect + ตัวแทน), สแกนบาร์โค้ด |
 | **สรุป**            | รวมจำนวนก่อนบันทึก                                                                   |
 
-### 5.3 PostalPendingList.tsx (รายการรอจ่าย)
+### 5.3 PostalPendingList.tsx (รายการรอนำจ่าย)
 
 - **แสดง**: 2-Level Grouping (อาคาร → หน่วยงาน)
 - **Column Headers**: เลข Tracking / ผู้รับ / ประเภท / เวลารับเข้า
@@ -204,7 +207,7 @@ const tabs = [
 ### 5.4 PostalSearchTab.tsx (ค้นหาประวัติ)
 
 - **Search Input**: ค้นหาด้วย Tracking/ชื่อ/หน่วยงาน/อาคาร + 🔍 icon
-- **Filter Pills**: สถานะ (ทั้งหมด/รอจ่าย/จ่ายแล้ว) — auto-search เมื่อคลิก
+- **Filter Pills**: สถานะ (ทั้งหมด/รอนำจ่าย/ส่งมอบแล้ว/มีปัญหา/ตีกลับ) — auto-search เมื่อคลิก
 - **Results Table**: แสดง 50 รายการล่าสุด + result count
 - **วันที่**: แปลง ISO → Thai format อัตโนมัติ
 - **Loading**: แสดง spinner ขณะค้นหา
@@ -213,7 +216,7 @@ const tabs = [
 
 - **Banner**: แสดงชื่อหน่วยงานที่นำจ่าย (teal)
 - **ผู้รับ**: SearchableSelect (กรองตามหน่วยงาน ด้วย DeptID→DeptName map)
-  - รวม Personnel + ตัวแทนรับพัสดุ (Representatives)
+  - รวม Personnel + ตัวแทนรับไปรษณีย์ภัณฑ์ (Representatives)
   - Fallback + warning ถ้าไม่เจอบุคลากร
 - **ลายเซ็น**: SignatureCanvas (ลายเซ็นดิจิทัล)
 - **สรุป**: จำนวนไปรษณีย์ธรรมดา / ไปรษณีย์ลงทะเบียน-EMS

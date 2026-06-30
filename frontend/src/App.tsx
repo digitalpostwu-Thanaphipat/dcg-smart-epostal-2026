@@ -3,6 +3,7 @@ import { Layout } from './components/layout/Layout'
 import { PostalEntryForm } from './components/PostalEntryForm'
 import { PostalPendingList } from './components/PostalPendingList'
 import { PostalSearchPage } from './components/PostalSearchPage'
+import { PublicTrackingPage } from './components/PublicTrackingPage'
 import { UserManagementPage } from './components/admin/UserManagementPage'
 import { SystemSettingsPage } from './components/admin/SystemSettingsPage'
 import { useMasterDataStore } from './store/useMasterDataStore'
@@ -17,6 +18,7 @@ import * as Sentry from "@sentry/react"
 import { ReloadPrompt } from './components/common/ReloadPrompt'
 
 function App() {
+  const isPublicTracking = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('publicTrack') === '1'
   const [activeTab, setActiveTab] = useState('home')
   const [adminSubTab, setAdminSubTab] = useState('users')
   const [isLoading, setIsLoading] = useState(true)
@@ -84,6 +86,15 @@ function App() {
       </div>
     );
   };
+
+  if (isPublicTracking) {
+    return (
+      <>
+        <Toaster position="top-right" />
+        <PublicTrackingPage />
+      </>
+    )
+  }
 
   if (isLoading) {
     return (

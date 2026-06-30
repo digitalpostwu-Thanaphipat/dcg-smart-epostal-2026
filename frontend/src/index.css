@@ -16,7 +16,8 @@
   --color-zinc-100: #f4f4f5;
   --color-zinc-200: #e4e4e7;
   --color-zinc-300: #d4d4d8;
-  --color-zinc-400: #a1a1aa;
+  --color-zinc-400: #52525b; /* Zinc 600 - High Contrast A11y on Light mode */
+  --color-emerald-600: #047857; /* Emerald 700 - High Contrast A11y on Light mode */
   --color-zinc-500: #71717a;
   --color-zinc-600: #52525b;
   --color-zinc-700: #3f3f46;
@@ -64,6 +65,8 @@
 .dark {
   --color-primary: #10b981; /* Emerald 500 - slightly brighter for dark backgrounds */
   --color-primary-hover: #34d399;
+  --color-zinc-400: #a1a1aa; /* Restore original zinc-400 for dark mode */
+  --color-emerald-600: #10b981; /* Restore original emerald for dark mode */
   --color-app-bg: var(--color-zinc-950);
   --color-card-bg: var(--color-zinc-900);
   --color-nav-bg: var(--color-zinc-950);
