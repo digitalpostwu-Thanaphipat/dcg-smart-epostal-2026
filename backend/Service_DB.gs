@@ -111,6 +111,96 @@ var LEGACY_SHEET_NAMES = {
   ARCHIVE_INDEX: "Archive_Index"
 };
 
+var PROJECT_SHEET_HEADERS = (function() {
+  var headers = {};
+  headers[SHEET_NAMES.PACKAGE_LOG] = [
+    "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับ", "สถานะ",
+    "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับจริง", "ลายเซ็น",
+    "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line",
+    "ผู้บันทึก", "ผู้อัปเดตล่าสุด"
+  ];
+  headers[SHEET_NAMES.SYSTEM_STATS] = ["หมวดหมู่", "ตัวชี้วัด", "ค่าตัวเลข", "อัปเดตล่าสุด"];
+  headers[SHEET_NAMES.USERS] = ["รหัสพนักงาน", "อีเมล (Google)", "ชื่อ-นามสกุล", "สิทธิ์ (Admin/User/Postal)", "หน่วยงาน/แผนก", "ตำแหน่ง"];
+  headers[SHEET_NAMES.ARCHIVE_INDEX] = ["ปีงบประมาณ", "Spreadsheet ID", "ชื่อไฟล์", "วันที่ย้ายล่าสุด", "จำนวนแถวที่เก็บ", "ยอดรวมพัสดุ", "ยอดส่งมอบแล้ว"];
+  headers[SHEET_NAMES.ANNOUNCEMENTS] = ["ลำดับ", "วันที่", "หัวข้อประกาศ", "เนื้อหา", "สถานะ (แสดง/ซ่อน)"];
+  headers[SHEET_NAMES.LOGS_AUDIT] = ["วัน-เวลา", "ผู้ดำเนินการ", "การกระทำ", "รายละเอียด", "หมายเหตุ"];
+  headers[SHEET_NAMES.CONFIG] = ["ชื่อการตั้งค่า (Key)", "ค่าที่ตั้งไว้ (Value)", "คำอธิบาย"];
+  headers[SHEET_NAMES.FEEDBACK_LOG] = ["Timestamp", "วันที่และเวลา (ไทย)", "ผู้ใช้งาน", "หมวดหมู่", "ระดับความพอใจ (1-5)", "รายละเอียด/ข้อเสนอแนะ", "หน้า URL", "ข้อมูลเบราว์เซอร์", "สถานะ"];
+  return headers;
+})();
+
+function repairProjectSheetHeaders() {
+  var lock = LockService.getScriptLock();
+  var updated = [];
+  var warnings = [];
+  try {
+    lock.waitLock(20000);
+    var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL || SPREADSHEET_ID);
+    Object.keys(PROJECT_SHEET_HEADERS).forEach(function(sheetName) {
+      var sheet = _getSheetByCanonicalName(ss, sheetName) || ss.getSheetByName(sheetName);
+      if (!sheet) sheet = ss.insertSheet(sheetName);
+      var headers = PROJECT_SHEET_HEADERS[sheetName];
+
+      _removeHeaderProtections(sheet, warnings);
+      sheet.getRange(1, 1, 1, headers.length)
+        .setValues([headers])
+        .setBackground("#0f766e")
+        .setFontColor("#ffffff")
+        .setFontWeight("bold")
+        .setHorizontalAlignment("center")
+        .setVerticalAlignment("middle");
+      sheet.setFrozenRows(1);
+      try { sheet.autoResizeColumns(1, headers.length); } catch (resizeErr) {}
+
+      _lockHeaderRange(sheet, headers.length, warnings);
+      updated.push({ sheet: sheetName, columns: headers.length });
+    });
+
+    _setupStatusColors(_getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG));
+    if (typeof Service_Cache !== "undefined") {
+      Service_Cache.remove("PROJECT_SYSTEM_USERS_V1");
+      Service_Cache.remove("SYSTEM_USERS");
+      Service_Cache.remove("SCHEMA_PACKAGE_LOG_V4");
+    }
+    return {
+      success: true,
+      message: "ซ่อมหัวตารางไฟล์โปรเจกต์เรียบร้อยแล้ว",
+      columnCount: PROJECT_SHEET_HEADERS[SHEET_NAMES.PACKAGE_LOG].length,
+      updated: updated,
+      warnings: warnings
+    };
+  } catch (e) {
+    return { success: false, error: e.message, updated: updated, warnings: warnings };
+  } finally {
+    try { lock.releaseLock(); } catch (releaseErr) {}
+  }
+}
+
+function _removeHeaderProtections(sheet, warnings) {
+  var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+  protections.forEach(function(p) {
+    try {
+      var range = p.getRange();
+      var isHeaderProtection = p.getDescription() === "LOCK_HEADER" || range.getRow() === 1;
+      if (isHeaderProtection && p.canEdit()) p.remove();
+    } catch (e) {
+      warnings.push(sheet.getName() + ": remove protection failed - " + e.message);
+    }
+  });
+}
+
+function _lockHeaderRange(sheet, headerColumnCount, warnings) {
+  try {
+    var me = Session.getEffectiveUser().getEmail();
+    var protection = sheet.getRange(1, 1, 1, Math.max(1, headerColumnCount)).protect().setDescription("LOCK_HEADER");
+    protection.removeEditors(protection.getEditors());
+    protection.addEditor(me);
+    if (protection.canDomainEdit()) protection.setDomainEdit(false);
+  } catch (e) {
+    warnings.push(sheet.getName() + ": lock header failed - " + e.message);
+  }
+}
+
 
 
 /**
@@ -352,6 +442,7 @@ function _syncArchiveIndexSheet() {
 
 
 function initializeSystemSheets() {
+  repairProjectSheetHeaders();
   var ss = SpreadsheetApp.getActiveSpreadsheet(); // เนเธเนเนเธเธฅเนเธ—เธตเนเธเธณเธฅเธฑเธเน€เธเธดเธ”เธญเธขเธนเนเน€เธเนเธเธซเธฅเธฑเธ
   var centralSs;
   try {

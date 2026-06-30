@@ -84,6 +84,9 @@ var Service_Schema = {
   },
 
   repairPackageLogHeaders: function() {
+    if (typeof repairProjectSheetHeaders === "function") {
+      return repairProjectSheetHeaders();
+    }
     var lock = LockService.getScriptLock();
     try {
       lock.waitLock(10000);

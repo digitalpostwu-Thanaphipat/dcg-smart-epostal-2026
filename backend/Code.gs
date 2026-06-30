@@ -37,6 +37,7 @@ const ROLE_PERMISSIONS = {
     "setupUptimeMonitor",
     "validatePackageLogSchema",
     "repairPackageLogHeaders",
+    "repairProjectSheetHeaders",
   ],
   Postal: [
     "getInitialData",
@@ -151,6 +152,7 @@ var ROUTE_MAP = {
       getSheet(SHEET_NAMES.PACKAGE_LOG, null, { skipSchemaValidation: true }),
     ),
   repairPackageLogHeaders: () => Service_Schema.repairPackageLogHeaders(),
+  repairProjectSheetHeaders: () => repairProjectSheetHeaders(),
 
   // AI Services
   performOCR: (data) => Service_AI.performOCR(data.image),
