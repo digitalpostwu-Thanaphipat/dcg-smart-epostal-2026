@@ -196,12 +196,13 @@
 | Frontend      |      | Entry Form, Pending List, Search Page (Intelligence Archive)                                                                                            |
 | API Client    |      | postal.saveEntry, postal.getPending, postal.confirm, postal.searchPackages, postal.checkDuplicate, postal.revert, postal.reportIssue |
 
-**Sheet: รายการพัสดุ (16 cols)**
+**Sheet: รายการพัสดุ (18 cols)**
 
 ```
 0:รหัสพัสดุ, 1:เลขพัสดุ, 2:ประเภท, 3:ชื่อหน่วยงาน, 4:ชื่อผู้รับ, 5:สถานะ,
-6:เวลาบันทึก, 7:เวลาจ่าย, 8:จนท.นำจ่าย, 9:ผู้รับจริง, 10:ลายเซ็น,
-11:รูปภาพ, 12:GPS, 13:วิธีส่งมอบ, 14:ประเภทการใช้, 15:หมายเหตุ / สถานะ Line
+6:เวลาที่บันทึก, 7:เวลาที่จ่าย, 8:จนท.ผู้นำจ่าย, 9:ผู้รับจริง, 10:ลายเซ็น,
+11:รูปภาพ, 12:พิกัด GPS, 13:วิธีการส่งมอบ, 14:ประเภทการใช้, 15:หมายเหตุ / Line,
+16:ผู้บันทึก, 17:ผู้อัปเดตล่าสุด
 ```
 
 #### 2.2 📝 Feedback (ระบบรับฟีดแบ็ก)
@@ -254,9 +255,9 @@ DCG-Skill Mapping is described in Section 13.1. This section links Module Regist
 6. **ฐานข้อมูลฟังก์ชันงาน (KPI):** `[รหัสงาน, กลุ่มภารกิจ, ชื่องาน, ผลลัพธ์ที่คาดหวัง, เป้าหมาย]`
 7. **ภาระงานมาตรฐาน:** `[เวลา/ความถี่, ผู้บันทึก, หมวดหมู่, รายการงาน, หน่วยนับ, รายละเอียด, รหัสงานอ้างอิง, เวลามาตรฐาน]`
 
-### 11.2 📦 DCG Smart ePostal (ระบบไปรษณีย์ - 16 Cols)
+### 11.2 📦 DCG Smart ePostal (ระบบไปรษณีย์ - 18 Cols)
 
-`0:รหัสพัสดุ, 1:เลขพัสดุ, 2:ประเภท, 3:หน่วยงานต้นทาง, 4:ชื่อผู้รับ, 5:สถานะปัจจุบัน, 6:เวลาบันทึกรายการ, 7:เวลาจ่ายจริง, 8:จนท.ผู้นำจ่าย, 9:ผู้รับมอบจริง, 10:หลักฐานลายเซ็น, 11:รูปภาพแนบ, 12:พิกัด GPS, 13:วิธีการส่งมอบ, 14:ประเภทการใช้งาน, 15:หมายเหตุ / แจ้งเตือน Line`
+`0:รหัสพัสดุ, 1:เลขพัสดุ, 2:ประเภท, 3:ชื่อหน่วยงาน, 4:ชื่อผู้รับ, 5:สถานะ, 6:เวลาที่บันทึก, 7:เวลาที่จ่าย, 8:จนท.ผู้นำจ่าย, 9:ผู้รับจริง, 10:ลายเซ็น, 11:รูปภาพ, 12:พิกัด GPS, 13:วิธีการส่งมอบ, 14:ประเภทการใช้, 15:หมายเหตุ / Line, 16:ผู้บันทึก, 17:ผู้อัปเดตล่าสุด`
 
 ### 11.3 📊 System_Stats (ตารางสรุปสถิติ) ✅ [เพิ่มใหม่]
 
@@ -622,6 +623,7 @@ ApiClient = {
 | T-012   | Production Hardening | Vite 8 build fix (oxc), RBAC Staff/Postal, SPREADSHEET_ID cache, E2E 7/7 pass | ✅ |
 | T-013   | Stats & L10n Hardening | Materialized Dept Stats, Robust Date Parsing, Dept Fallback Fix, Deployed @190 | ✅ |
 | T-014   | Tech Debt Cleanup | Centralized `cn()`, `formatThaiDate()`, Fixed L6/L7 | ✅ |
+| T-015   | A11y & Backend Schema | WCAG 2.1 AA Contrast, Public tracking ARIA, v4.0.2 18-col repair, 3/3 tests | ✅ |
 
 ---
 
