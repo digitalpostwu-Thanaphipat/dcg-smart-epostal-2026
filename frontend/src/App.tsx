@@ -17,8 +17,30 @@ import { AlertCircle, Megaphone, Loader2 } from 'lucide-react'
 import * as Sentry from "@sentry/react"
 import { ReloadPrompt } from './components/common/ReloadPrompt'
 
+const hasPublicTrackParam = (params?: Record<string, any> | URLSearchParams | null) => {
+  if (!params) return false
+  if (params instanceof URLSearchParams) {
+    return params.get('publicTrack') === '1'
+  }
+  const value = params.publicTrack
+  return value === '1' || (Array.isArray(value) && value.includes('1'))
+}
+
+const detectPublicTrackingFromBrowser = () => {
+  if (typeof window === 'undefined') return false
+  if (hasPublicTrackParam(new URLSearchParams(window.location.search))) return true
+
+  try {
+    return typeof document !== 'undefined'
+      && !!document.referrer
+      && hasPublicTrackParam(new URL(document.referrer).searchParams)
+  } catch (e) {
+    return false
+  }
+}
+
 function App() {
-  const isPublicTracking = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('publicTrack') === '1'
+  const [isPublicTracking, setIsPublicTracking] = useState(detectPublicTrackingFromBrowser)
   const [activeTab, setActiveTab] = useState('home')
   const [adminSubTab, setAdminSubTab] = useState('users')
   const [isLoading, setIsLoading] = useState(true)
@@ -26,6 +48,18 @@ function App() {
   const APP_VERSION = "4.0.2"
   const { fetchMasterData, announcements, systemInfo } = useMasterDataStore()
   const { isAuthenticated, user } = useAuthStore()
+
+  useEffect(() => {
+    if (isPublicTracking || typeof window === 'undefined') return
+    const gasUrl = (window as any).google?.script?.url
+    if (!gasUrl?.getLocation) return
+
+    gasUrl.getLocation((location: any) => {
+      if (hasPublicTrackParam(location?.parameter)) {
+        setIsPublicTracking(true)
+      }
+    })
+  }, [isPublicTracking])
 
   useEffect(() => {
     const init = async () => {

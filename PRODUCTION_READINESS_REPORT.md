@@ -1,41 +1,53 @@
 # รายงานความพร้อมโปรเจกต์ ePostal
 
-วันที่ตรวจ: 30 มิถุนายน 2026  
-สถานะรวม: พร้อมใช้งานจริง 100% (Production Ready)  
+วันที่ตรวจ: 1 กรกฎาคม 2026  
+สถานะรวม: **Pilot Production (Limited)** — พร้อมใช้งานจริงแบบจำกัดวง/ทีมจริงแบบเฝ้าดู
 
 ## สรุปสั้น
 
-โปรเจกต์ผ่านเกณฑ์ทดสอบทุกระบบและผ่านขั้นตอนการซ่อมแซมโครงสร้างตาราง (Database Schema) ให้ตรงตามมาตรฐานเวอร์ชันล่าสุด (v4.0.2 - 18 คอลัมน์) เรียบร้อยแล้ว นอกจากนี้ หน้าอินเตอร์เฟสผู้ใช้ (UI/UX) ได้รับการปรับปรุงให้รองรับเกณฑ์ความเข้าถึงระดับมาตรฐานสากล (WCAG 2.1 AA) ครบทุกจุดสำคัญ ตัวระบบเว็บหน้าบ้านบิลด์ผลิต (Production Build) ได้สมบูรณ์และทดสอบการรันแบบออฟไลน์ผ่าน PWA ได้ราบรื่น
+ระบบผ่านการทดสอบหลักทั้งหมด (Unit tests 22/22, Playwright E2E 11/11, Build สำเร็จ) และ deployment @248 ใช้งานได้จริง (login, admin, read, search) แต่ยังมีจุดที่ต้องแก้ก่อนประกาศใช้งานเต็มระบบ ได้แก่: ยังไม่ได้ทำ full write test, เอกสารสถานะขัดกัน
 
-## ผลตรวจล่าสุด
+## ผลทดสอบล่าสุด
 
 | รายการตรวจ | ผลลัพธ์ | รายละเอียด |
 | --- | --- | --- |
-| บิลด์เว็บ Frontend | ผ่าน | คอมไพล์และบิลด์ผ่าน Vite สำเร็จ (ได้ไฟล์เดี่ยวและ sw.js สำหรับ PWA) |
-| ทดสอบฝั่งหลังบ้าน (Backend tests) | ผ่าน 3/3 | รันฟังก์ชัน `runBackendTests` สำเร็จ ไร้ข้อผิดพลาด |
-| ความต้านทาน Phantom Columns | ผ่าน | ระบบสามารถตรวจสอบและปัดเศษคอลัมน์ส่วนเกินที่เข้ามาขัดขวางได้ถูกต้อง |
-| สคีมาตาราง (18 คอลัมน์) | ผ่าน | เชื่อมโยงและปรับปรุงตารางจริงให้ครบ 18 คอลัมน์ผ่าน `repairProjectSheetHeaders` แล้ว |
-| ความเข้ากันได้ของระบบตั้งค่า (Config Sync) | ผ่าน | ซิงค์โครงสร้างฟิลด์ลงในตารางตั้งค่าระบบผ่าน `repairSchemaConfig` คำเตือน Mismatch หายหมด 100% |
-| การแก้ไขการเข้าถึง (A11y/Contrast) | ผ่าน | ปรับแก้สีข้อความ Contrast ต่ำ และผูก ARIA Label ให้กับช่องค้นหาตามเกณฑ์ WCAG 2.1 AA |
-| ความสะอาดของ Workspace | ผ่าน | ลบไฟล์ขยะและ Log ชั่วคราวของ Agent (เช่น debug.log, screenshot, test-results) เรียบร้อย |
+| `npm run test:unit` | PASS 22/22 | Vitest unit tests ผ่านทั้งหมด |
+| `npx playwright test` | PASS 11/11 | Playwright E2E ผ่านทั้งหมด |
+| `npm run build --prefix frontend` | PASS | TypeScript check + Vite build สำเร็จ |
+| `npm audit --audit-level=high` | PASS | 0 vulnerabilities (แก้ไขแล้ว 12 → 0) |
+| Live deployment @248 | PASS | ใช้งานจริงได้ |
+| OTP login | PASS | ยืนยัน OTP สำเร็จ |
+| Admin permission | PASS | `digitalpost.wu@gmail.com` ได้สิทธิ์ Admin |
+| Read/Search | PASS | อ่านข้อมูล 15 users, 62 departments, 17 packages |
+| Service Account key cleanup | PASS | ลบ `epostal-mcp-key.json/` แล้ว |
+| Mock-token bypass removal | PASS | ลบ dev-mode bypass แล้ว |
+| Hardcoded Sheet IDs removal | PASS | ย้ายไป Script Properties ทั้งหมด |
+| VITE_GAS_URL warning fix | PASS | แก้ไขแล้ว ไม่เตือนเมื่อรันบน GAS |
 
-## สิ่งที่แก้ไขและอัปเดตในรอบนี้
+## สิ่งที่แก้ไขล่าสุด (1 กรกฎาคม 2026)
 
-1. **แก้ไขความเปรียบต่างสี (Color Contrast Re-styling)**:
-   - ปรับแต่งสีพื้นฐานของ Tailwind ในไฟล์ `index.css` (สี Emerald และสี Zinc) ในโหมดสว่างให้มีสัดส่วนความคมชัดมากกว่า 4.5:1 บนพื้นหลังสีขาว โดยยังคงรักษารูปลักษณ์โมเดิร์นสวยงามเอาไว้
-2. **ปรับปรุงการเข้าถึงช่องค้นหา (A11y Search Controls)**:
-   - เพิ่ม `aria-label` และกำหนด `id` เชื่อมโยงกับป้ายชื่อแสดงผลอย่างถูกต้องในหน้า [PublicTrackingPage.tsx](file:///D:/Dcg%20Smart/Epostal/frontend/src/components/PublicTrackingPage.tsx) และ [PostalSearchPage.tsx](file:///D:/Dcg%20Smart/Epostal/frontend/src/components/PostalSearchPage.tsx)
-3. **ปรับแก้สคริปต์ซ่อมแซมฐานข้อมูลและ Config (Database & Config Repair)**:
-   - อัปเดตชุดทดสอบ `Tests_Backend.gs` ให้ตรวจสอบสคีมาแบบ 18 คอลัมน์ แทนโครงสร้าง 16 คอลัมน์แบบเก่า
-   - เพิ่มฟังก์ชัน `repairSchemaConfig` ในไฟล์ `Debug_Repair.gs` เพื่ออัปเดต JSON สคีมาในตารางตั้งค่าระบบของ Google Sheets ช่วยแก้ไขข้อผิดพลาดเตือน Mismatch ของคอลัมน์ได้อย่างยั่งยืน
-4. **ล้างไฟล์ส่วนเกิน (Junk Cleanup)**:
-   - กำจัดภาพหน้าจอบันทึกชั่วคราว, ไดเรกทอรีรายงาน Playwright, ผลลัพธ์ทดสอบเดิม และไฟล์บันทึกข้อบกพร่องออกทั้งหมดเพื่อความสะอาดในการ Commit
+1. **npm audit fix**: แก้ไข vulnerabilities ทั้งหมด 12 รายการ (1 critical, 5 high) เหลือ 0
+2. **ลบ Service Account key**: ลบ `epostal-mcp-key.json/` ที่มี private key บน disk
+3. **ลบ mock-token bypass**: ลบ dev-mode bypass ใน `Service_Auth.gs` ที่อาจเป็นช่องโหว่
+4. **ลบ hardcoded Sheet IDs**: ย้ายไป Script Properties ทั้งหมดใน `Service_DB.gs`
+5. **แก้ VITE_GAS_URL warning**: ไม่เตือนเมื่อรันบน GAS (ใช้ `google.script.run` แทน)
+6. **อัปเดตเอกสาร**: แก้ PRODUCTION_READINESS_REPORT ให้ตรงกับสถานะจริง
 
-## แผนการ Deploy และความเสี่ยงที่หมดไป
+## จุดที่ยังต้องทำก่อน Full Rollout
 
-- **ความเสี่ยงเรื่อง Backend Config**: ได้ทดสอบรันสคริปต์จริงเชื่อมต่อไปยัง Google Sheets เรียบร้อยแล้ว (ไอดีชีทปลายทาง: `1cJsSEs5wXof4jORuaonNn0mA9AfENzQoSw5s9D7J8SQ`) โครงสร้างตารางและหัวข้อหลักได้รับการรีเซ็ตเป็นแถบสีเขียวเข้มสไตล์ระบบเรียบร้อย
-- **ความพร้อมเรื่อง Service Worker**: บิลด์ทดสอบพบว่ามีการสร้างไฟล์ `sw.js` และ `workbox-*.js` สำหรับเก็บแคชทำงานออฟไลน์ของ PWA ตรงตามข้อกำหนด
+| # | รายการ | ความรุนแรง |
+|---|--------|-----------|
+| 1 | Full write test: เพิ่มพัสดุ + เปลี่ยนสถานะ + verify ใน Sheets จริง | CRITICAL |
+| 2 | แก้ SW MIME type issue (ถ้ายังมีปัญหา) | HIGH |
+| 3 | Commit + push ไฟล์ที่ค้าง | HIGH |
 
-## ข้อสรุป
+## สถานะไฟล์
 
-ระบบผ่านการรัน Quality Gates ครบถ้วน (รวมถึง Build Verification และ Backend TDD) โค้ดเสถียร ไม่มีอาการบั๊กตกค้างใดๆ สามารถนำไปดีพลอยเพื่ออัปเกรดระบบ ePostal Admin ขึ้นสู่ Production ได้ทันที
+- แก้ไขแล้ว: `backend/Service_Auth.gs`, `backend/Service_DB.gs`, `frontend/src/api/client.ts`
+- ลบแล้ว: `epostal-mcp-key.json/`
+
+## เอกสารที่เกี่ยวข้อง
+
+- `PRODUCTION_LIVE_TEST_REPORT_2026-06-30.md` — ผลทดสอบระบบจริง
+- `QUALITY_GATES.md` — Quality gate checklist
+- `DECISION_LOG.md` — บันทึกการตัดสินใจ

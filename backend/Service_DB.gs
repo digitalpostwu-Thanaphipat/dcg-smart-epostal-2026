@@ -11,7 +11,11 @@ function _findSpreadsheetIdByName(name) {
 // [Loki Mode] Use script properties to avoid hardcoding (Sec 11 Compliance)
 function _getCentralDbId() {
   const props = PropertiesService.getScriptProperties();
-  return props.getProperty("CENTRAL_DB_ID") || "1OEb6X2xKykfrBixIPpiNayyzixcKoM3iOT6xzDJ0II0";
+  const id = props.getProperty("CENTRAL_DB_ID");
+  if (!id) {
+    throw new Error("CENTRAL_DB_ID not configured in Script Properties. Please set it via Admin > System Settings.");
+  }
+  return id;
 }
 
 var SPREADSHEET_ID = (function() {
@@ -34,10 +38,14 @@ var SPREADSHEET_ID = (function() {
     console.error("Discovery failed: " + e.message);
   }
 
-  // 3. Final Fallback (Validated v4.0.2 ID)
+  // 3. Final Fallback - require explicit configuration
   const finalId = (discoveredId && discoveredId.length > 40) 
     ? discoveredId 
-    : "1cJsSEs5wXof4jORuaonNn0mA9AfENzQoSw5s9D7J8SQ";
+    : null;
+
+  if (!finalId) {
+    throw new Error("LOCAL_DB_ID not configured. Please set LOCAL_DB_ID in Script Properties or ensure spreadsheet 'ePostal_2026' exists.");
+  }
 
   // Persistence: Save to properties to avoid future misses
   if (finalId.length > 40) {

@@ -8,10 +8,14 @@ declare const google: any;
 
 // Target GAS Web App URL
 // Target GAS Web App URL [Hardened]
-const PROD_GAS_URL = import.meta.env?.VITE_GAS_URL;
+// When running inside GAS, google.script.run is used instead of HTTP fetch.
+// VITE_GAS_URL is only needed for standalone deployment outside GAS.
+const PROD_GAS_URL = import.meta.env?.VITE_GAS_URL || '';
 
-if (!PROD_GAS_URL && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-  console.error("❌ CRITICAL: VITE_GAS_URL is missing in Production! API calls will fail.");
+// Only warn if not running inside GAS (google.script.run available)
+const isInsideGAS = typeof google !== 'undefined' && google?.script?.run;
+if (!PROD_GAS_URL && typeof window !== 'undefined' && window.location.hostname !== 'localhost' && !isInsideGAS) {
+  console.warn("⚠️ VITE_GAS_URL not set. If deploying outside GAS, API calls will fail.");
 }
 
 const DEV_PROXY_URL = '/api';
@@ -86,12 +90,10 @@ export async function request(action: string, data: any = {}, method: 'GET' | 'P
     const sessionToken = getStoredSessionToken();
     if (sessionToken) {
       payload.authToken = payload.authToken || sessionToken;
-    } else if (isLocal) {
-      // Automatic development bypass
-      payload.authToken = 'mock-token';
     }
+    // [SECURITY] mock-token bypass removed - all auth must go through OTP flow
   } catch(e) {
-    if (isLocal) payload.authToken = 'mock-token';
+    // Silent fail - auth token will be missing, server will reject
   }
 
   const maxRetries = 3;

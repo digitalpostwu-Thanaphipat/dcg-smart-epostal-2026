@@ -62,6 +62,25 @@
 
 ---
 
+## Live Production Check - 2026-06-30
+
+- [x] Unit test: `npm run test:unit` ผ่าน 22/22
+- [x] Frontend build: `npm run build --prefix frontend` ผ่าน
+- [x] Backend deploy: `clasp push` และ `clasp redeploy` สำเร็จ
+- [x] Production version: `@248`
+- [x] Public tracking: เปิดลิงก์ `?publicTrack=1` แล้วเข้าหน้าติดตามไปรษณีย์ภัณฑ์ได้
+- [x] Admin OTP login: `digitalpost.wu@gmail.com` ยืนยัน OTP ได้สำเร็จ
+- [x] Admin permission: ระบบคืนสิทธิ์ `Admin`
+- [x] Project users sheet: อ่านผู้ใช้งานได้ 15 คน
+- [x] Departments: อ่านหน่วยงานได้ 62 หน่วยงาน
+- [x] Package search: ค้นหารายการจริงได้ 17 รายการ
+- [ ] Full write test: ยังไม่ได้ทดสอบเพิ่มพัสดุ/เปลี่ยนสถานะบนข้อมูลจริง
+- [ ] Warning cleanup: ยังมี warning เรื่อง `VITE_GAS_URL` และ service worker MIME
+
+รายละเอียดเต็มอยู่ใน `PRODUCTION_LIVE_TEST_REPORT_2026-06-30.md`
+
+---
+
 ## Final Approval
 - [ ] **Lead Agent Sign-off:** `@loki-mode` ตรวจสอบความสอดคล้องกับ Blueprint
 - [ ] **Decision Log Update:** บันทึกการเปลี่ยนแปลงและเหตุผลลงใน `DECISION_LOG.md` เรียบร้อยแล้ว

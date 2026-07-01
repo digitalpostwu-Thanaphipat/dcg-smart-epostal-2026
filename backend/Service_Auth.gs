@@ -114,17 +114,9 @@ var Service_Auth = {
   },
 
   verifySessionToken: function(token) {
-    // [DEV MODE] Support mock-token for local testing
-    const env = PropertiesService.getScriptProperties().getProperty("ENV");
-    if (env === "DEV" && token === "mock-token") {
-      console.log("[Auth] Using mock-token bypass");
-      const rootAdmin = PropertiesService.getScriptProperties().getProperty("ROOT_ADMIN_EMAIL") || "admin@university.ac.th";
-      return { 
-        email: rootAdmin, 
-        iat: Math.floor(Date.now() / 1000), 
-        exp: Math.floor(Date.now() / 1000) + 86400 
-      };
-    }
+    // [SECURITY] mock-token bypass REMOVED for production safety (2026-07-01)
+    // DEV bypass was: if ENV=DEV && token=mock-token, auto-authenticate as ROOT_ADMIN
+    // This was dangerous because ENV=DEV leaking to production would grant ROOT_ADMIN to anyone
 
     if (!token || typeof token !== "string") throw new Error("ต้องเข้าสู่ระบบก่อนใช้งาน");
 
