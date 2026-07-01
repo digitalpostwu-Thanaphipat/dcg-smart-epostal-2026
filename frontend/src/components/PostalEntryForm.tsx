@@ -139,7 +139,7 @@ export const PostalEntryForm = () => {
                         "px-3 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase transition-all whitespace-nowrap text-center",
                         isGlobalPersonal ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-400"
                       )}
-                    >ไปรษณีย์ภัณฑ์ส่วนตัว</button>
+                    >ไปรษณีย์ภัณฑ์ส่วนบุคคล</button>
                     <button 
                       onClick={() => {
                         const newPersonal = false;
@@ -235,7 +235,7 @@ export const PostalEntryForm = () => {
                    <div className="space-y-6">
                       <div className="space-y-3">
                         <label htmlFor="recipient-select" className="flex flex-col mb-1 relative z-20 cursor-pointer">
-                           <span className="text-sm font-heading font-black text-zinc-500 uppercase tracking-widest">ชื่อผู้รับ</span>
+                           <span className="text-sm font-heading font-black text-zinc-500 uppercase tracking-widest">ชื่อผู้รับไปรษณีย์ภัณฑ์</span>
                            <span className="text-[10px] font-heading font-bold text-zinc-400 uppercase tracking-widest leading-relaxed">
                               (ตำแหน่ง / บุคลากร / ตัวแทน / พิมพ์เอง)
                            </span>
@@ -296,7 +296,7 @@ export const PostalEntryForm = () => {
                               <div>
                                  <div className="text-base font-black text-zinc-900 dark:text-white flex items-center gap-3">
                                     {item.trackingNumber}
-                                    {item.isPersonal && <span className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-black italic">ไปรษณีย์ภัณฑ์ส่วนตัว</span>}
+                                    {item.isPersonal && <span className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-black italic">ไปรษณีย์ภัณฑ์ส่วนบุคคล</span>}
                                  </div>
                                  <div className="text-sm font-bold text-zinc-500 mt-0.5">
                                     ผู้รับ: {item.recipientName || '-'}
@@ -354,18 +354,18 @@ export const PostalEntryForm = () => {
                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none transition-transform group-hover:scale-110">
                        <User className="w-16 h-16" />
                     </div>
-                    <label id="personal-qty-label" className="text-xs font-black text-zinc-400 uppercase mb-4 block tracking-widest">จำนวนส่วนตัว (ธรรมดา)</label>
+                    <label id="personal-qty-label" className="text-xs font-black text-zinc-400 uppercase mb-4 block tracking-widest">จำนวนส่วนบุคคล (ธรรมดา)</label>
                     <div className="flex items-center justify-center gap-8 relative z-10">
                        <button 
                          onClick={() => setBatchData(p => ({ ...p, personalQty: Math.max(0, p.personalQty - 1) }))} 
-                         aria-label="ลดจำนวนจดหมายส่วนตัว"
+                         aria-label="ลดจำนวนจดหมายส่วนบุคคล"
                          aria-controls="personal-qty-value"
                          className="w-14 h-14 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-2xl font-black shadow-sm hover:bg-zinc-50 transition-colors active:scale-90 focus:outline-none focus:ring-2 focus:ring-primary"
                        >-</button>
                        <span id="personal-qty-value" aria-labelledby="personal-qty-label" className="text-5xl font-heading font-black w-20 text-center">{batchData.personalQty}</span>
                        <button 
                          onClick={() => setBatchData(p => ({ ...p, personalQty: p.personalQty + 1 }))} 
-                         aria-label="เพิ่มจำนวนจดหมายส่วนตัว"
+                         aria-label="เพิ่มจำนวนจดหมายส่วนบุคคล"
                          aria-controls="personal-qty-value"
                          className="w-14 h-14 rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center text-2xl font-black shadow-xl hover:scale-105 transition-colors active:scale-90 focus:outline-none focus:ring-2 focus:ring-primary"
                        >+</button>
@@ -394,7 +394,7 @@ export const PostalEntryForm = () => {
                        <span className="font-black text-sm">{batchData.emsList.filter(i => !i.isPersonal).length}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold">
-                       <span className="opacity-70">ส่วนตัว (EMS / ลงทะเบียน)</span>
+                       <span className="opacity-70">ส่วนบุคคล (EMS / ลงทะเบียน)</span>
                        <span className="font-black text-sm">{batchData.emsList.filter(i => i.isPersonal).length}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold">
@@ -402,7 +402,7 @@ export const PostalEntryForm = () => {
                        <span className="font-black text-sm">{batchData.workQty}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold">
-                       <span className="opacity-70">ส่วนตัว (ธรรมดา)</span>
+                       <span className="opacity-70">ส่วนบุคคล (ธรรมดา)</span>
                        <span className="font-black text-sm">{batchData.personalQty}</span>
                     </div>
                  </div>

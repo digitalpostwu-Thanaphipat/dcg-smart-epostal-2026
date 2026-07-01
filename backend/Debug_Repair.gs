@@ -108,11 +108,16 @@ function repairWrapper() {
  */
 function repairHeadersWrapper() {
   const ui = SpreadsheetApp.getUi();
-  const response = ui.alert('ยืนยันการจัดระเบียบหัวตาราง?', 'ระบบจะลบหัวตารางที่เกินมาออกและจัดเรียง 16 คอลัมน์มาตรฐานใหม่ (ข้อมูลแถวที่ 2 เป็นต้นไปจะไม่ถูกลบ)', ui.ButtonSet.YES_NO);
+  const response = ui.alert('ยืนยันการจัดระเบียบหัวตาราง?', 'ระบบจะจัดเรียงหัวตาราง 18 คอลัมน์มาตรฐาน และแปลงอีเมลในคอลัมน์เจ้าหน้าที่เป็นชื่อ (ข้อมูลแถวที่ 2 เป็นต้นไปจะไม่ถูกลบ)', ui.ButtonSet.YES_NO);
   
   if (response == ui.Button.YES) {
     const result = Service_Schema.repairPackageLogHeaders();
-    ui.alert('ผลการดำเนินการ', result, ui.ButtonSet.OK);
+    const staff = result && result.staffNameNormalization ? result.staffNameNormalization : { updatedCells: 0 };
+    const legacy = result && result.legacyValueNormalization ? result.legacyValueNormalization : { updatedCells: 0, signatureImages: 0 };
+    const message = result && result.success
+      ? 'ซ่อมหัวตารางเรียบร้อยแล้ว\nจำนวนคอลัมน์: ' + result.columnCount + '\nแปลงอีเมลเจ้าหน้าที่เป็นชื่อ: ' + staff.updatedCells + ' เซลล์\nปรับค่าคอลัมน์เดิม: ' + legacy.updatedCells + ' เซลล์\nแปลงลายเซ็นเป็นรูป: ' + legacy.signatureImages + ' เซลล์'
+      : 'เกิดข้อผิดพลาด: ' + (result && result.error ? result.error : JSON.stringify(result));
+    ui.alert('ผลการดำเนินการ', message, ui.ButtonSet.OK);
   }
 }
 

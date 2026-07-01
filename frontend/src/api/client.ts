@@ -251,6 +251,7 @@ export const ApiClient = {
   tracking: {
     getDepartments: () => request("getPublicTrackingDepartments", null, "POST"),
     publicSearch: (filters: {
+      authToken?: string;
       deptId?: string;
       token?: string;
       keyword?: string;

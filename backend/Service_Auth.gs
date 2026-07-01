@@ -10,7 +10,7 @@
 
 var Service_Auth = {
   OTP_TTL_SECONDS: 600,
-  SESSION_TTL_SECONDS: 604800, // 7 days
+  SESSION_TTL_SECONDS: 86400, // 1 day
 
   requestLoginOtp: function(email) {
     try {

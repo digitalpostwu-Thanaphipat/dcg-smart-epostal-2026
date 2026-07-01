@@ -95,7 +95,7 @@ const PackageItem = React.memo(({
        <div className="space-y-4">
           <div className="space-y-1.5">
             <h4 className={cn("text-xl font-heading font-black tracking-tight leading-tight truncate", isSelected ? "text-white" : "text-zinc-900 dark:text-zinc-100")}>
-              {pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับ'}
+              {pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับไปรษณีย์ภัณฑ์'}
             </h4>
             <div className="flex flex-wrap items-center gap-2">
               <div className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-colors", isSelected ? "bg-white/20 text-white border border-white/20" : buildingLightBg)}>
@@ -189,7 +189,7 @@ export const PostalPendingList = () => {
           id: uniqueId,
           department: pkg.department || pkg.departmentName || pkg.deptName || 'ไม่ระบุหน่วยงาน',
           building: pkg.building || pkg.buildingName || 'อื่นๆ/ไม่ระบุอาคาร',
-          recipientName: pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับ'
+          recipientName: pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับไปรษณีย์ภัณฑ์'
         };
       });
       
@@ -338,7 +338,7 @@ export const PostalPendingList = () => {
         signatureImage: signatureData,
         signatureName: receiverName,
         receiverName: receiverName,
-        deliveryMethod: deliveryMethod || 'เซ็นรับที่เคาน์เตอร์',
+        deliveryMethod: deliveryMethod || 'ส่งมอบที่หน่วยงาน',
         expectedVersions: expectedVersions,
         staffEmail: currentUser?.email || 'system'
       });
@@ -367,7 +367,7 @@ export const PostalPendingList = () => {
                 packageIds: originalIds,
                 signatureImage: signatureData,
                 signatureName: receiverName,
-                deliveryMethod: deliveryMethod || 'เซ็นรับที่เคาน์เตอร์',
+                deliveryMethod: deliveryMethod || 'ส่งมอบที่หน่วยงาน',
                 staffEmail: currentUser?.email || 'system',
                 expectedVersions: expectedVersions
               },
@@ -477,7 +477,7 @@ export const PostalPendingList = () => {
             <Search className="absolute left-4 w-5 h-5 text-zinc-300" />
             <input
               type="text"
-              placeholder="ค้นหาชื่อผู้รับ / เลขพัสดุ / หน่วยงาน / อาคาร..."
+              placeholder="ค้นหาชื่อผู้รับไปรษณีย์ภัณฑ์ / เลขพัสดุ / หน่วยงาน / อาคาร..."
               className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-3.5 sm:py-4 pl-12 pr-12 outline-none text-sm font-heading font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

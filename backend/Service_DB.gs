@@ -9,11 +9,34 @@ function _findSpreadsheetIdByName(name) {
 
 // --- PROFESSIONAL CONFIGURATION: CENTRAL DB ID ---
 // [Loki Mode] Use script properties to avoid hardcoding (Sec 11 Compliance)
+
+/**
+ * setupDefaultConfig - Run this ONCE from Apps Script editor to configure Script Properties
+ * Go to: Apps Script → Functions dropdown → select setupDefaultConfig → Run
+ */
+function setupDefaultConfig() {
+  var props = PropertiesService.getScriptProperties();
+  var defaults = {
+    "CENTRAL_DB_ID": "1OEb6X2xKykfrBixIPpiNayyzixcKoM3iOT6xzDJ0II0",
+    "LOCAL_DB_ID": "1cJsSEs5wXof4jORuaonNn0mA9AfENzQoSw5s9D7J8SQ"
+  };
+  var results = [];
+  for (var key in defaults) {
+    if (!props.getProperty(key)) {
+      props.setProperty(key, defaults[key]);
+      results.push("Set " + key + " = " + defaults[key]);
+    } else {
+      results.push(key + " already configured: " + props.getProperty(key));
+    }
+  }
+  return results.join("\n");
+}
+
 function _getCentralDbId() {
-  const props = PropertiesService.getScriptProperties();
-  const id = props.getProperty("CENTRAL_DB_ID");
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty("CENTRAL_DB_ID");
   if (!id) {
-    throw new Error("CENTRAL_DB_ID not configured in Script Properties. Please set it via Admin > System Settings.");
+    throw new Error("CENTRAL_DB_ID not configured. Run setupDefaultConfig() from Apps Script editor first.");
   }
   return id;
 }
@@ -39,12 +62,16 @@ var SPREADSHEET_ID = (function() {
   }
 
   // 3. Final Fallback - require explicit configuration
-  const finalId = (discoveredId && discoveredId.length > 40) 
+  var finalId = (discoveredId && discoveredId.length > 40) 
     ? discoveredId 
     : null;
 
   if (!finalId) {
-    throw new Error("LOCAL_DB_ID not configured. Please set LOCAL_DB_ID in Script Properties or ensure spreadsheet 'ePostal_2026' exists.");
+    // Try to auto-configure from defaults
+    var defaultLocalId = "1cJsSEs5wXof4jORuaonNn0mA9AfENzQoSw5s9D7J8SQ";
+    props.setProperty("LOCAL_DB_ID", defaultLocalId);
+    console.log("Auto-configured LOCAL_DB_ID from defaults");
+    return defaultLocalId;
   }
 
   // Persistence: Save to properties to avoid future misses
@@ -122,8 +149,8 @@ var LEGACY_SHEET_NAMES = {
 var PROJECT_SHEET_HEADERS = (function() {
   var headers = {};
   headers[SHEET_NAMES.PACKAGE_LOG] = [
-    "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับ", "สถานะ",
-    "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับจริง", "ลายเซ็น",
+    "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับไปรษณีย์ภัณฑ์", "สถานะ",
+    "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับตามจ่าหน้า", "ลายเซ็น",
     "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line",
     "ผู้บันทึก", "ผู้อัปเดตล่าสุด"
   ];
@@ -175,18 +202,24 @@ function repairProjectSheetHeaders() {
       updated.push({ sheet: sheetName, columns: headers.length });
     });
 
-    _setupStatusColors(_getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG));
+    var packageLogSheet = _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG);
+    _setupStatusColors(packageLogSheet);
+    var staffNameNormalization = _normalizePackageLogStaffNameColumns(packageLogSheet, warnings);
+    var legacyValueNormalization = _normalizePackageLogLegacyValues(packageLogSheet, warnings);
     if (typeof Service_Cache !== "undefined") {
       Service_Cache.remove("PROJECT_SYSTEM_USERS_V1");
       Service_Cache.remove("PROJECT_REPS_V1");
       Service_Cache.remove("CACHE_REPS_V6_DYNAMIC");
       Service_Cache.remove("SYSTEM_USERS");
       Service_Cache.remove("SCHEMA_PACKAGE_LOG_V4");
+      Service_Cache.remove("SCHEMA_PACKAGE_LOG_V5");
     }
     return {
       success: true,
       message: "ซ่อมหัวตารางไฟล์โปรเจกต์เรียบร้อยแล้ว",
       columnCount: PROJECT_SHEET_HEADERS[SHEET_NAMES.PACKAGE_LOG].length,
+      staffNameNormalization: staffNameNormalization,
+      legacyValueNormalization: legacyValueNormalization,
       updated: updated,
       warnings: warnings
     };
@@ -208,6 +241,166 @@ function _removeHeaderProtections(sheet, warnings) {
       warnings.push(sheet.getName() + ": remove protection failed - " + e.message);
     }
   });
+}
+
+function _normalizePackageLogStaffNameColumns(sheet, warnings) {
+  var result = { updatedCells: 0, columns: [] };
+  if (!sheet || sheet.getLastRow() < 2) return result;
+
+  try {
+    var users = typeof AdminService !== "undefined" && AdminService.getUsers ? AdminService.getUsers() : [];
+    var userMap = {};
+    users.forEach(function(user) {
+      var email = String(user.Email || "").trim().toLowerCase();
+      var fullName = String(user.FullName || "").trim();
+      if (email && fullName && fullName.toLowerCase() !== email) userMap[email] = fullName;
+    });
+    if (Object.keys(userMap).length === 0) return result;
+
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var targets = [
+      { label: "จนท.ผู้นำจ่าย", keys: ["จนท.ผู้นำจ่าย", "Staff", "Deliverer"] },
+      { label: "ผู้บันทึก", keys: ["ผู้บันทึก", "จนท.ผู้บันทึก", "Created By", "Recorder"] },
+      { label: "ผู้อัปเดตล่าสุด", keys: ["ผู้อัปเดตล่าสุด", "Updated By", "Last Updated By"] }
+    ];
+
+    targets.forEach(function(target) {
+      var idx = getHeaderIndex(headers, target.keys);
+      if (idx === -1) return;
+      result.columns.push(target.label);
+      var values = sheet.getRange(2, idx + 1, lastRow - 1, 1).getValues();
+      values.forEach(function(row, offset) {
+        var current = String(row[0] || "").trim();
+        var normalized = current.toLowerCase();
+        if (userMap[normalized]) {
+          sheet.getRange(offset + 2, idx + 1).setValue(userMap[normalized]);
+          result.updatedCells++;
+        }
+      });
+    });
+  } catch (e) {
+    warnings.push("Package_Log: normalize staff names failed - " + e.message);
+  }
+  return result;
+}
+
+function normalizePackageLogStaffNames() {
+  var warnings = [];
+  var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL || SPREADSHEET_ID);
+  var sheet = _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+  return _normalizePackageLogStaffNameColumns(sheet, warnings);
+}
+
+function _canonicalPackageType(value) {
+  var text = String(value || "").trim();
+  if (!text) return text;
+  var lower = text.toLowerCase();
+  if (lower === "ems" || text.indexOf("ด่วนพิเศษ") > -1 || lower.indexOf("express") > -1) return "ไปรษณีย์ด่วนพิเศษ (EMS)";
+  if (lower === "reg" || lower.indexOf("registered") > -1 || text.indexOf("ลงทะเบียน") > -1) return "ไปรษณีย์ลงทะเบียน";
+  if (text.indexOf("ธรรมดา") > -1 || lower === "ord" || lower.indexOf("ordinary") > -1) return "ไปรษณีย์ธรรมดา";
+  return text;
+}
+
+function _canonicalDeliveryMethod(value) {
+  var text = String(value || "").trim();
+  if (!text || text === "-") return text;
+  if (text === "ส่งมอบที่หน่วยงาน") return text;
+  if (text.indexOf("หน่วยงาน") > -1 || text.indexOf("นำจ่าย") > -1 || text.indexOf("เคาน์เตอร์") > -1 || text.indexOf("เซ็นรับ") > -1) {
+    return "ส่งมอบที่หน่วยงาน";
+  }
+  return text;
+}
+
+function _canonicalUseType(value) {
+  var text = String(value || "").trim();
+  if (!text || text === "-") return text;
+  var lower = text.toLowerCase();
+  if (text === "ส่วนบุคคล" || text === "งานมหาวิทยาลัย") return text;
+  if (text.indexOf("ส่วนตัว") > -1 || text.indexOf("ส่วนบุคคล") > -1 || lower.indexOf("personal") > -1) return "ส่วนบุคคล";
+  if (text.indexOf("มหาวิทยาลัย") > -1 || text.indexOf("งาน") > -1 || lower.indexOf("work") > -1) return "งานมหาวิทยาลัย";
+  return text;
+}
+
+function _imageFormulaUrl(formula) {
+  var match = String(formula || "").match(/^=IMAGE\("([^"]+)"/i);
+  return match ? match[1] : "";
+}
+
+function _signatureFormulaForValue(value, rowNumber) {
+  var text = String(value || "").trim();
+  if (!text) return "";
+  if (text.indexOf("data:image") === 0 && typeof Service_Utils !== "undefined" && Service_Utils.saveBase64ToDrive) {
+    var url = Service_Utils.saveBase64ToDrive(text, "signature_migration_row_" + rowNumber);
+    return url ? '=IMAGE("' + url.replace(/"/g, '""') + '")' : "";
+  }
+  if (/^https?:\/\//i.test(text)) {
+    return '=IMAGE("' + text.replace(/"/g, '""') + '")';
+  }
+  return "";
+}
+
+function _normalizePackageLogLegacyValues(sheet, warnings) {
+  var result = { updatedCells: 0, signatureImages: 0 };
+  if (!sheet || sheet.getLastRow() < 2) return result;
+
+  try {
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    var range = sheet.getRange(1, 1, lastRow, lastCol);
+    var values = range.getValues();
+    var formulas = range.getFormulas();
+    var headers = values[0];
+    var typeIdx = getHeaderIndex(headers, ["ประเภท", "Item Type", "Type"]);
+    var methodIdx = getHeaderIndex(headers, ["วิธีการส่งมอบ", "Method"]);
+    var useTypeIdx = getHeaderIndex(headers, ["ประเภทการใช้", "Use Type"]);
+    var signIdx = getHeaderIndex(headers, ["ลายเซ็น", "Signature"]);
+
+    for (var r = 1; r < values.length; r++) {
+      if (typeIdx > -1) {
+        var nextType = _canonicalPackageType(values[r][typeIdx]);
+        if (nextType !== values[r][typeIdx]) {
+          sheet.getRange(r + 1, typeIdx + 1).setValue(nextType);
+          result.updatedCells++;
+        }
+      }
+      if (methodIdx > -1) {
+        var nextMethod = _canonicalDeliveryMethod(values[r][methodIdx]);
+        if (nextMethod !== values[r][methodIdx]) {
+          sheet.getRange(r + 1, methodIdx + 1).setValue(nextMethod);
+          result.updatedCells++;
+        }
+      }
+      if (useTypeIdx > -1) {
+        var nextUseType = _canonicalUseType(values[r][useTypeIdx]);
+        if (nextUseType !== values[r][useTypeIdx]) {
+          sheet.getRange(r + 1, useTypeIdx + 1).setValue(nextUseType);
+          result.updatedCells++;
+        }
+      }
+      if (signIdx > -1 && !_imageFormulaUrl(formulas[r][signIdx])) {
+        var signatureFormula = _signatureFormulaForValue(values[r][signIdx], r + 1);
+        if (signatureFormula) {
+          sheet.getRange(r + 1, signIdx + 1).setFormula(signatureFormula);
+          sheet.setRowHeight(r + 1, 96);
+          result.signatureImages++;
+        }
+      }
+    }
+
+    if (signIdx > -1) sheet.setColumnWidth(signIdx + 1, 180);
+  } catch (e) {
+    warnings.push("Package_Log: normalize legacy values failed - " + e.message);
+  }
+  return result;
+}
+
+function normalizePackageLogLegacyValues() {
+  var warnings = [];
+  var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL || SPREADSHEET_ID);
+  var sheet = _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+  return _normalizePackageLogLegacyValues(sheet, warnings);
 }
 
 function _lockHeaderRange(sheet, headerColumnCount, warnings) {

@@ -12,8 +12,8 @@ var Service_Schema = {
   CACHE_TTL_SECONDS: 3600, // Increase cache TTL for production
 
   DEFAULT_PACKAGE_LOG_SCHEMA: [
-    "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับ", "สถานะ",
-    "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับจริง", "ลายเซ็น",
+    "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับไปรษณีย์ภัณฑ์", "สถานะ",
+    "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับตามจ่าหน้า", "ลายเซ็น",
     "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line",
     "ผู้บันทึก", "ผู้อัปเดตล่าสุด"
   ],
@@ -23,7 +23,7 @@ var Service_Schema = {
   ],
 
   getPackageLogSchema: function() {
-    var cacheKey = "SCHEMA_PACKAGE_LOG_V4"; // Bump version
+    var cacheKey = "SCHEMA_PACKAGE_LOG_V5"; // Bump version
     var cached = Service_Cache.get(cacheKey);
     if (cached && Array.isArray(cached) && cached.length === this.PACKAGE_LOG_EXPECTED_LENGTH) {
       return cached;

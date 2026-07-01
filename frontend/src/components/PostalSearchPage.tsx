@@ -135,7 +135,7 @@ export const PostalSearchPage = () => {
     const exportData = results.map((pkg, idx) => ({
       'ลำดับ': idx + 1,
       'เลขพัสดุ': pkg.trackingNumber,
-      'ชื่อผู้รับ': pkg.recipientName || pkg.receiverName || '-',
+      'ชื่อผู้รับไปรษณีย์ภัณฑ์': pkg.recipientName || pkg.receiverName || '-',
       'หน่วยงาน': pkg.departmentName || '-',
       'สถานะ': pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' || pkg.status === 'จ่ายสำเร็จ' ? 'ส่งมอบแล้ว' : (pkg.status === 'Pending' || pkg.status === 'รอจ่าย' ? 'รอนำจ่าย' : pkg.status),
       'ประเภท': pkg.type || pkg.itemประเภท || 'พัสดุ',
@@ -193,7 +193,7 @@ export const PostalSearchPage = () => {
                 <input
                   id="admin-search-query"
                   type="text"
-                  placeholder="ค้นหาด้วย เลขที่พัสดุ, ชื่อผู้รับ, หน่วยงาน..."
+                  placeholder="ค้นหาด้วย เลขที่พัสดุ, ชื่อผู้รับไปรษณีย์ภัณฑ์, หน่วยงาน..."
                   className="flex-1 bg-transparent border-none focus:ring-0 text-lg sm:text-xl font-medium px-4 sm:px-6 py-4 text-zinc-900 dark:text-white placeholder:text-zinc-500"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -340,7 +340,7 @@ export const PostalSearchPage = () => {
                   <div className="space-y-4">
                     <div className="space-y-1.5">
                       <h3 className="text-xl font-heading font-black text-zinc-900 dark:text-white group-hover:text-primary transition-colors leading-tight truncate">
-                        {pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับ'}
+                        {pkg.recipientName || pkg.receiverName || 'ไม่ระบุชื่อผู้รับไปรษณีย์ภัณฑ์'}
                       </h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <div className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-colors", buildingLightBg)}>
@@ -670,7 +670,7 @@ export const PostalSearchPage = () => {
                              <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
                              
                              <div className="space-y-1">
-                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">ผู้รับจริง / ผู้ลงนาม</span>
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">ผู้รับตามจ่าหน้า / ผู้ลงนาม</span>
                                 <p className="text-base font-black text-zinc-900 dark:text-white">
                                    {selectedPackage.signerName || "-"}
                                 </p>

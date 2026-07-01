@@ -35,10 +35,12 @@ const ROLE_PERMISSIONS = {
     "getSystemConfigs",
     "updateSystemConfig",
     "setupUptimeMonitor",
-    "getPublicTrackingLinks",
-    "validatePackageLogSchema",
-    "repairPackageLogHeaders",
-    "repairProjectSheetHeaders",
+  "getPublicTrackingLinks",
+  "validatePackageLogSchema",
+  "repairPackageLogHeaders",
+  "repairProjectSheetHeaders",
+  "normalizePackageLogStaffNames",
+  "normalizePackageLogLegacyValues",
   ],
   Postal: [
     "getInitialData",
@@ -159,6 +161,8 @@ var ROUTE_MAP = {
     ),
   repairPackageLogHeaders: () => Service_Schema.repairPackageLogHeaders(),
   repairProjectSheetHeaders: () => repairProjectSheetHeaders(),
+  normalizePackageLogStaffNames: () => normalizePackageLogStaffNames(),
+  normalizePackageLogLegacyValues: () => normalizePackageLogLegacyValues(),
 
   // AI Services
   performOCR: (data) => Service_AI.performOCR(data.image),
@@ -409,6 +413,12 @@ function manualAuthCheck() {
     email +
     " พบหน่วยงานทั้งหมด: " +
     depts.length
+  );
+}
+
+function validatePackageLogSchema() {
+  return Service_Schema.validatePackageLogSheet(
+    getSheet(SHEET_NAMES.PACKAGE_LOG, null, { skipSchemaValidation: true }),
   );
 }
 

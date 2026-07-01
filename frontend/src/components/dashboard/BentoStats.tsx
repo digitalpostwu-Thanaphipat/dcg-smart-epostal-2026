@@ -227,7 +227,7 @@ export const BentoStats = () => {
           title={statsFilters.startDate ? `ประเภท: ส่วนบุคคล (${dateLabel})` : "ประเภท: ส่วนบุคคล (วันนี้)"}
           value={stats.personalCount}
           subValue={`งานมหาวิทยาลัย ${stats.todayReceived - stats.personalCount} รายการ`}
-          description="รายการที่เจ้าหน้าที่ระบุว่าเป็นเรื่องส่วนตัว"
+          description="รายการที่เจ้าหน้าที่ระบุว่าเป็นประเภทส่วนบุคคล"
           icon={User}
           color="amber"
           isLoading={isLoading}

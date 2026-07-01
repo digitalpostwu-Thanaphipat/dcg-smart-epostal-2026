@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { X, Check, Trash2, PenTool, Info, Loader2, User, Store, Truck } from 'lucide-react';
+import { X, Check, Trash2, PenTool, Info, Loader2, User, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SearchableSelect } from './SearchableSelect';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
@@ -18,7 +18,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
   const [isEmpty, setIsEmpty] = useState(true);
   const [receiverName, setReceiverName] = useState('');
   const [receiverSelectValue, setReceiverSelectValue] = useState<string | number>('');
-  const [deliveryMethod, setDeliveryMethod] = useState<'เซ็นรับที่เคาน์เตอร์' | 'นำจ่ายที่หน่วยงาน'>('เซ็นรับที่เคาน์เตอร์');
+  const [deliveryMethod, setDeliveryMethod] = useState<'ส่งมอบที่หน่วยงาน'>('ส่งมอบที่หน่วยงาน');
 
   const { personnel, positions, representatives, departments } = useMasterDataStore();
 
@@ -36,8 +36,8 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
   const originalRecipients = useMemo(() => {
     const names = new Set<string>();
     selectedItems.forEach(item => {
-      const n = item.recipientName || item.receiverName || item.ชื่อผู้รับ;
-      if (n && n !== 'ไม่ระบุชื่อผู้รับ') names.add(String(n).trim());
+      const n = item.recipientName || item.receiverName || item['ชื่อผู้รับไปรษณีย์ภัณฑ์'] || item.ชื่อผู้รับ;
+      if (n && n !== 'ไม่ระบุชื่อผู้รับไปรษณีย์ภัณฑ์') names.add(String(n).trim());
     });
     return Array.from(names);
   }, [selectedItems]);
@@ -72,7 +72,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
         id: `label-${name}`,
         label: `📋 ${name}`,
         cleanLabel: name,
-        group: '📋 ชื่อผู้รับตามจ่าหน้าซอง'
+        group: '📋 ผู้รับตามจ่าหน้า'
       });
     });
 
@@ -213,7 +213,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
           <SearchableSelect
             allowCustom
             onCustomChange={(val) => setReceiverName(val)}
-            groupOrder={['📋 ชื่อผู้รับตามจ่าหน้าซอง', '👤 บุคลากรในหน่วยงาน', '🏢 ตัวแทนรับพัสดุ', '📋 ตำแหน่ง']}
+            groupOrder={['📋 ผู้รับตามจ่าหน้า', '👤 บุคลากรในหน่วยงาน', '🏢 ตัวแทนรับพัสดุ', '📋 ตำแหน่ง']}
             options={signerOptions}
             value={receiverSelectValue}
             onChange={handleSignerChange}
@@ -230,10 +230,9 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
             <Info className="w-4 h-4 inline mr-1.5 text-primary" />
             วิธีการส่งมอบ
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {[
-              { id: 'เซ็นรับที่เคาน์เตอร์', label: 'รับที่เคาน์เตอร์', icon: Store },
-              { id: 'นำจ่ายที่หน่วยงาน', label: 'ส่งที่หน่วยงาน', icon: Truck }
+              { id: 'ส่งมอบที่หน่วยงาน', label: 'ส่งมอบที่หน่วยงาน', icon: Truck }
             ].map(method => (
               <button
                 key={method.id}

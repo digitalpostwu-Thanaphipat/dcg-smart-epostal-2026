@@ -43,7 +43,7 @@ function debugSearchDiagnostic() {
     var idIdx = getHeaderIndex(headers, ["รหัสพัสดุ", "Package ID", "ID"]);
     var trackIdx = getHeaderIndex(headers, ["เลขพัสดุ", "Tracking No", "Tracking Number"]);
     var typeIdx = getHeaderIndex(headers, ["ประเภท", "Item Type", "Type"]);
-    var recIdx = getHeaderIndex(headers, ["ชื่อผู้รับ", "Receiver Name", "Recipient Name"]);
+    var recIdx = getHeaderIndex(headers, ["ชื่อผู้รับไปรษณีย์ภัณฑ์", "ชื่อผู้รับ", "Receiver Name", "Recipient Name"]);
     var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department", "Dept Name"]);
     var statusIdx = getHeaderIndex(headers, ["สถานะ", "Status"]);
     var dateIdx = getHeaderIndex(headers, ["เวลาที่บันทึก", "Created At", "Received At"]);

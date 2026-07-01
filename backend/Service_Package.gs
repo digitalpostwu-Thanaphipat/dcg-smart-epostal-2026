@@ -25,12 +25,22 @@ var Service_Package = {
   },
 
   initSheet: function () {
-    var sheet = getSheet(SHEET_NAMES.PACKAGE_LOG);
-    if (!sheet) return;
+    var sheet = getSheet(SHEET_NAMES.PACKAGE_LOG, null, { skipSchemaValidation: true });
+    if (!sheet) {
+      // Sheet doesn't exist - create it in the local database
+      try {
+        var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL);
+        sheet = ss.insertSheet(SHEET_NAMES.PACKAGE_LOG);
+        console.log("Created missing PACKAGE_LOG sheet");
+      } catch (e) {
+        console.error("Failed to create PACKAGE_LOG sheet: " + e.message);
+        return null;
+      }
+    }
     if (sheet.getLastRow() === 0) {
       var headers = [
-        "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับ", "สถานะ",
-        "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับจริง", "ลายเซ็น",
+        "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับไปรษณีย์ภัณฑ์", "สถานะ",
+        "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับตามจ่าหน้า", "ลายเซ็น",
         "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line",
         "ผู้บันทึก", "ผู้อัปเดตล่าสุด"
       ];
@@ -94,7 +104,7 @@ var Service_Package = {
         if (isDelivered) { overall.delivered++; deptStats[d].delivered++; }
 
         // Use Type checks (Personal vs Work)
-        var isPersonal = u.indexOf("ส่วนตัว") > -1 || u.toLowerCase().includes("personal");
+        var isPersonal = u.indexOf("ส่วนบุคคล") > -1 || u.indexOf("ส่วนตัว") > -1 || u.toLowerCase().includes("personal");
         if (isPersonal) { overall.personal++; deptStats[d].personal++; }
 
         // Item Type checks (Reg/EMS vs Ord)
@@ -132,7 +142,7 @@ var Service_Package = {
     rows.push(["ภาพรวม", "ทั้งหมด", overall.total, now]);
     rows.push(["ภาพรวม", "รอนำจ่าย", overall.pending, now]);
     rows.push(["ภาพรวม", "ส่งมอบแล้ว", overall.delivered, now]);
-    rows.push(["ภาพรวม", "ส่วนตัว", overall.personal, now]);
+    rows.push(["ภาพรวม", "ส่วนบุคคล", overall.personal, now]);
     rows.push(["ภาพรวม", "ลงทะเบียน/EMS", overall.reg, now]);
     rows.push(["ภาพรวม", "ธรรมดา", overall.ord, now]);
     rows.push(["ภาพรวม", "หน่วยงานที่ส่งครบ", successDepts, now]);
@@ -161,7 +171,7 @@ var Service_Package = {
       rows.push(["หน่วยงาน: " + dept, "ทั้งหมด", ds.total, now]);
       rows.push(["หน่วยงาน: " + dept, "รอนำจ่าย", ds.pending, now]);
       rows.push(["หน่วยงาน: " + dept, "ส่งมอบแล้ว", ds.delivered, now]);
-      rows.push(["หน่วยงาน: " + dept, "ส่วนตัว", ds.personal, now]);
+      rows.push(["หน่วยงาน: " + dept, "ส่วนบุคคล", ds.personal, now]);
       rows.push(["หน่วยงาน: " + dept, "ลงทะเบียน/EMS", ds.reg, now]);
       rows.push(["หน่วยงาน: " + dept, "ธรรมดา", ds.ord, now]);
     });
@@ -200,9 +210,18 @@ var Service_Package = {
 
       Object.keys(updates).forEach(function(metric) {
         var increment = updates[metric];
-        if (metricsMap[metric]) {
-          var rowIdx = metricsMap[metric];
+        var metricAliases = metric === "ส่วนบุคคล" ? ["ส่วนบุคคล", "ส่วนตัว"] : [metric];
+        var rowIdx = 0;
+        metricAliases.some(function(alias) {
+          if (metricsMap[alias]) {
+            rowIdx = metricsMap[alias];
+            return true;
+          }
+          return false;
+        });
+        if (rowIdx) {
           var currentVal = Number(data[rowIdx - 1][2]) || 0;
+          sheet.getRange(rowIdx, 2).setValue(metric);
           sheet.getRange(rowIdx, 3).setValue(currentVal + increment);
           sheet.getRange(rowIdx, 4).setValue(now);
           changes = true;
@@ -228,7 +247,10 @@ var Service_Package = {
 
       lock.waitLock(30000);
       this.initSheet();
-      var sheet = getSheet(SHEET_NAMES.PACKAGE_LOG);
+      var sheet = getSheet(SHEET_NAMES.PACKAGE_LOG, null, { skipSchemaValidation: true });
+      if (!sheet) {
+        throw new Error("ไม่พบชีทรายการพัสดุ กรุณาติดต่อผู้ดูแลระบบ");
+      }
       var lastRow = sheet.getLastRow();
       var deptName = payload.departmentName || payload.deptName;
       if (!deptName) throw new Error("ไม่พบชื่อหน่วยงาน");
@@ -251,8 +273,11 @@ var Service_Package = {
       /** Build a row array mapped by header index */
       function buildRow(data) {
         var row = new Array(colCount).fill("");
+        var aliases = {
+          "ชื่อผู้รับไปรษณีย์ภัณฑ์": ["ชื่อผู้รับไปรษณีย์ภัณฑ์", "ชื่อผู้รับ"]
+        };
         Object.keys(data).forEach(function(key) {
-          var idx = getHeaderIndex(headers, key);
+          var idx = getHeaderIndex(headers, aliases[key] || key);
           if (idx > -1) row[idx] = data[key];
         });
         return row;
@@ -272,9 +297,9 @@ var Service_Package = {
           var id = `ORD-${ordInfo.dateStr}-${String(ordInfo.seq + offset++).padStart(4, "0")}`;
           rowsToAppend.push(buildRow({
             "รหัสพัสดุ": id, "เลขพัสดุ": "-", "ประเภท": "ไปรษณีย์ธรรมดา",
-            "ชื่อหน่วยงาน": deptName, "ชื่อผู้รับ": recipientName, "สถานะ": "รอนำจ่าย",
+            "ชื่อหน่วยงาน": deptName, "ชื่อผู้รับไปรษณีย์ภัณฑ์": recipientName, "สถานะ": "รอนำจ่าย",
             "เวลาที่บันทึก": fullDateTimeStr, "จนท.ผู้นำจ่าย": staffName,
-            "วิธีการส่งมอบ": "ส่งมอบที่หน่วยงาน", "ประเภทการใช้": "ส่วนตัว",
+            "วิธีการส่งมอบ": "ส่งมอบที่หน่วยงาน", "ประเภทการใช้": "ส่วนบุคคล",
             "หมายเหตุ / Line": "-", "ผู้บันทึก": staffName
           }));
           count++;
@@ -283,7 +308,7 @@ var Service_Package = {
           var id = `ORD-${ordInfo.dateStr}-${String(ordInfo.seq + offset++).padStart(4, "0")}`;
           rowsToAppend.push(buildRow({
             "รหัสพัสดุ": id, "เลขพัสดุ": "-", "ประเภท": "ไปรษณีย์ธรรมดา",
-            "ชื่อหน่วยงาน": deptName, "ชื่อผู้รับ": recipientName, "สถานะ": "รอนำจ่าย",
+            "ชื่อหน่วยงาน": deptName, "ชื่อผู้รับไปรษณีย์ภัณฑ์": recipientName, "สถานะ": "รอนำจ่าย",
             "เวลาที่บันทึก": fullDateTimeStr, "จนท.ผู้นำจ่าย": staffName,
             "วิธีการส่งมอบ": "ส่งมอบที่หน่วยงาน", "ประเภทการใช้": "งานมหาวิทยาลัย",
             "หมายเหตุ / Line": "-", "ผู้บันทึก": staffName
@@ -321,10 +346,10 @@ var Service_Package = {
           
           rowsToAppend.push(buildRow({
             "รหัสพัสดุ": id, "เลขพัสดุ": trackingNo, "ประเภท": thaiItemType,
-            "ชื่อหน่วยงาน": deptName, "ชื่อผู้รับ": recipientNameInRow, "สถานะ": "รอนำจ่าย",
+            "ชื่อหน่วยงาน": deptName, "ชื่อผู้รับไปรษณีย์ภัณฑ์": recipientNameInRow, "สถานะ": "รอนำจ่าย",
             "เวลาที่บันทึก": fullDateTimeStr, "จนท.ผู้นำจ่าย": staffName,
             "วิธีการส่งมอบ": "ส่งมอบที่หน่วยงาน",
-            "ประเภทการใช้": item.isPersonal ? "ส่วนตัว" : "งานมหาวิทยาลัย",
+            "ประเภทการใช้": item.isPersonal ? "ส่วนบุคคล" : "งานมหาวิทยาลัย",
             "หมายเหตุ / Line": item.notes || "-", "ผู้บันทึก": staffName
           }));
           count++;
@@ -346,16 +371,16 @@ var Service_Package = {
         rowsToAppend.forEach(function(r) {
           var type = r[getHeaderIndex(headers, "ประเภท")];
           var use = r[getHeaderIndex(headers, "ประเภทการใช้")];
-          if (use === "ส่วนตัว") pCount++;
+          if (use === "ส่วนบุคคล" || use === "ส่วนตัว" || use === "ธุระส่วนตัว (ส่วนบุคคล)") pCount++;
           if (type.indexOf("ลงทะเบียน") > -1 || type.indexOf("EMS") > -1) rCount++;
           else oCount++;
         });
 
-        overallUpdates["ส่วนตัว"] = pCount;
+        overallUpdates["ส่วนบุคคล"] = pCount;
         overallUpdates["ลงทะเบียน/EMS"] = rCount;
         overallUpdates["ธรรมดา"] = oCount;
         
-        deptUpdates["ส่วนตัว"] = pCount;
+        deptUpdates["ส่วนบุคคล"] = pCount;
         deptUpdates["ลงทะเบียน/EMS"] = rCount;
         deptUpdates["ธรรมดา"] = oCount;
 
@@ -386,7 +411,7 @@ var Service_Package = {
       var trackIdx = getHeaderIndex(headers, ["เลขพัสดุ", "Tracking No", "Tracking Number"]);
       var typeIdx = getHeaderIndex(headers, ["ประเภท", "Type", "Item Type"]);
       var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department", "Dept Name"]);
-      var recIdx = getHeaderIndex(headers, ["ชื่อผู้รับ", "Receiver Name", "Recipient Name"]);
+      var recIdx = getHeaderIndex(headers, ["ชื่อผู้รับไปรษณีย์ภัณฑ์", "ชื่อผู้รับ", "Receiver Name", "Recipient Name"]);
       var statusIdx = getHeaderIndex(headers, ["สถานะ", "Status"]);
       var dateIdx = getHeaderIndex(headers, ["เวลาที่บันทึก", "Created At", "Received At"]);
       var delivererIdx = getHeaderIndex(headers, ["จนท.ผู้นำจ่าย", "Staff", "Deliverer"]);
@@ -462,7 +487,7 @@ var Service_Package = {
       var idIdx = getHeaderIndex(headers, "รหัสพัสดุ");
       var statusIdx = getHeaderIndex(headers, "สถานะ");
       var timeOutIdx = getHeaderIndex(headers, "เวลาที่จ่าย");
-      var receiverIdx = getHeaderIndex(headers, "ผู้รับจริง");
+      var receiverIdx = getHeaderIndex(headers, ["ผู้รับตามจ่าหน้า", "ผู้รับจริง", "Signer", "Actual Receiver"]);
       var methodIdx = getHeaderIndex(headers, "วิธีการส่งมอบ");
       var staffIdx = getHeaderIndex(headers, "จนท.ผู้นำจ่าย");
       var signIdx = getHeaderIndex(headers, "ลายเซ็น");
@@ -479,6 +504,14 @@ var Service_Package = {
       var userMap = {};
       users.forEach(function(u) { userMap[String(u.Email).toLowerCase()] = u.FullName; });
       var staffName = data.staffEmail ? (userMap[String(data.staffEmail).toLowerCase()] || data.staffEmail) : "";
+      var signatureImage = String(data.signatureImage || "");
+      var signatureUrl = "";
+      if (signatureImage.indexOf("data:image") === 0 && typeof Service_Utils !== "undefined" && Service_Utils.saveBase64ToDrive) {
+        signatureUrl = Service_Utils.saveBase64ToDrive(signatureImage, "signature_" + nowStr.replace(/[^\dA-Za-zก-๙]+/g, "_"));
+      } else if (/^https?:\/\//i.test(signatureImage)) {
+        signatureUrl = signatureImage;
+      }
+      var signatureFormula = signatureUrl ? '=IMAGE("' + signatureUrl.replace(/"/g, '""') + '")' : "";
 
       var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department"]);
 
@@ -491,10 +524,13 @@ var Service_Package = {
           sheet.getRange(row, statusIdx + 1).setValue("ส่งมอบแล้ว");
           sheet.getRange(row, timeOutIdx + 1).setValue(nowStr);
           sheet.getRange(row, receiverIdx + 1).setValue(data.signatureName || "เซ็นรับผ่านระบบ");
-          sheet.getRange(row, methodIdx + 1).setValue(data.deliveryMethod || "เซ็นรับผ่านระบบ");
+          sheet.getRange(row, methodIdx + 1).setValue(data.deliveryMethod || "ส่งมอบที่หน่วยงาน");
           if (staffName) sheet.getRange(row, staffIdx + 1).setValue(staffName);
           
-          if (signIdx !== -1 && data.signatureImage) sheet.getRange(row, signIdx + 1).setValue(data.signatureImage);
+          if (signIdx !== -1 && data.signatureImage) {
+            if (signatureFormula) sheet.getRange(row, signIdx + 1).setFormula(signatureFormula);
+            else sheet.getRange(row, signIdx + 1).setValue(data.signatureImage);
+          }
           if (photoIdx !== -1 && data.photoImage) sheet.getRange(row, photoIdx + 1).setValue(data.photoImage);
           if (gpsIdx !== -1 && data.gpsCoordinates) sheet.getRange(row, gpsIdx + 1).setValue(data.gpsCoordinates);
           if (updaterIdx !== -1 && staffName) sheet.getRange(row, updaterIdx + 1).setValue(staffName);
@@ -548,7 +584,7 @@ var Service_Package = {
             if (metric === "ทั้งหมด") { stats.todayReceived = val; foundAny = true; }
             if (metric === "รอนำจ่าย") { stats.pendingDelivery = val; foundAny = true; }
             if (metric === "ส่งมอบแล้ว" || metric === "จ่ายสำเร็จ") { stats.deliveredToday = val; foundAny = true; }
-            if (metric === "ส่วนตัว") { stats.personalCount = val; foundAny = true; }
+            if (metric === "ส่วนบุคคล" || metric === "ส่วนตัว") { stats.personalCount = val; foundAny = true; }
             if (metric === "ลงทะเบียน/EMS") { stats.regCount = val; foundAny = true; }
             if (metric === "ธรรมดา") { stats.ordCount = val; foundAny = true; }
             if (metric === "หน่วยงานที่ส่งครบ") { stats.successDepts = val; foundAny = true; }
@@ -627,7 +663,7 @@ var Service_Package = {
           stats.todayReceived++;
           if (isDelivered) stats.deliveredToday++;
           
-          if (sUseType.indexOf("ส่วนตัว") > -1 || sUseType.toLowerCase().includes("personal")) stats.personalCount++;
+          if (sUseType.indexOf("ส่วนบุคคล") > -1 || sUseType.indexOf("ส่วนตัว") > -1 || sUseType.toLowerCase().includes("personal")) stats.personalCount++;
           
           if (sType.indexOf("ลงทะเบียน") > -1 || sType.indexOf("EMS") > -1 || sType.toLowerCase().includes("reg")) {
             stats.regCount++;
@@ -873,6 +909,13 @@ function getPublicTrackingLinks() {
   return [centralLink];
 }
 
+function _extractImageFormulaUrl(formula) {
+  var text = String(formula || "").trim();
+  if (!text) return "";
+  var match = text.match(/^=IMAGE\("([^"]+)"/i);
+  return match ? match[1] : "";
+}
+
 function publicSearchPackages(filters) {
   filters = filters || {};
   var keyword = String(filters.keyword || "").trim();
@@ -882,12 +925,21 @@ function publicSearchPackages(filters) {
   if (hasDeptToken) {
     dept = _resolvePublicTrackingDept(filters.deptId, filters.token);
   } else {
+    if (!filters.authToken) {
+      throw new Error("กรุณาเข้าสู่ระบบด้วยอีเมลและ OTP ก่อนค้นหาพัสดุ");
+    }
+    var session = Service_Auth.verifySessionToken(filters.authToken);
+    var user = Service_Auth._findUserByEmail(session.email);
+    if (!user) throw new Error("ไม่พบอีเมลนี้ในฐานข้อมูลผู้ใช้");
+    var userPayload = Service_Auth._publicUserPayload(user);
+    var userDept = String(userPayload.Department || "").trim();
+    if (!userDept) throw new Error("ไม่พบหน่วยงานของผู้ใช้นี้");
     if (keyword.length < 4) {
-      throw new Error("กรุณาค้นด้วยเลขพัสดุหรือชื่อผู้รับอย่างน้อย 4 ตัวอักษร");
+      throw new Error("กรุณาค้นด้วยเลขพัสดุหรือชื่อผู้รับไปรษณีย์ภัณฑ์อย่างน้อย 4 ตัวอักษร");
     }
     dept = {
-      id: filters.deptId || "",
-      name: _resolvePublicTrackingDeptName(filters.deptId)
+      id: userDept,
+      name: userDept
     };
   }
 
@@ -930,17 +982,19 @@ function executeSearchPackages(filters) {
       var sheet = typeof _getSheetByCanonicalName === "function" ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG) : (ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log"));
       if (!sheet) return;
       
-      var data = sheet.getDataRange().getValues();
+      var range = sheet.getDataRange();
+      var data = range.getValues();
+      var formulas = range.getFormulas();
       var headers = data[0];
       var idIdx = getHeaderIndex(headers, ["รหัสพัสดุ", "Package ID", "ID"]);
       var trackIdx = getHeaderIndex(headers, ["เลขพัสดุ", "Tracking No", "Tracking Number"]);
       var typeIdx = getHeaderIndex(headers, ["ประเภท", "Item Type", "Type"]);
-      var recIdx = getHeaderIndex(headers, ["ชื่อผู้รับ", "Receiver Name", "Recipient Name"]);
+      var recIdx = getHeaderIndex(headers, ["ชื่อผู้รับไปรษณีย์ภัณฑ์", "ชื่อผู้รับ", "Receiver Name", "Recipient Name"]);
       var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department", "Dept Name"]);
       var statusIdx = getHeaderIndex(headers, ["สถานะ", "Status"]);
       var dateIdx = getHeaderIndex(headers, ["เวลาที่บันทึก", "Created At", "Received At"]);
       var outIdx = getHeaderIndex(headers, ["เวลาที่จ่าย", "Delivered At", "Out At"]);
-      var receiverIdx = getHeaderIndex(headers, ["ผู้รับจริง", "Signer", "Actual Receiver"]);
+      var receiverIdx = getHeaderIndex(headers, ["ผู้รับตามจ่าหน้า", "ผู้รับจริง", "Signer", "Actual Receiver"]);
       var delivererIdx = getHeaderIndex(headers, ["จนท.ผู้นำจ่าย", "Staff", "Deliverer"]);
       var signIdx = getHeaderIndex(headers, ["ลายเซ็น", "Signature"]);
       var photoIdx = getHeaderIndex(headers, ["รูปภาพ", "Photo"]);
@@ -990,7 +1044,9 @@ function executeSearchPackages(filters) {
             ? Service_Utils.formatThaiDateTime(outVal)
             : String(outVal || "-");
 
-          var staffEmail = String(row[delivererIdx] || "").toLowerCase();
+          var staffValue = String(row[delivererIdx] || "").trim();
+          var staffEmail = staffValue.toLowerCase();
+          var signatureUrl = signIdx !== -1 ? (_extractImageFormulaUrl((formulas[i] || [])[signIdx]) || row[signIdx] || "") : "";
 
           results.push({
             id: row[idIdx] || "-", 
@@ -999,14 +1055,14 @@ function executeSearchPackages(filters) {
             recipientName: row[recIdx] || "ไม่ระบุชื่อ", 
             receiverName: row[recIdx] || "ไม่ระบุชื่อ",
             signerName: row[receiverIdx] || "-",
-            deliverer: userMap[staffEmail] || staffEmail || "-",
+            deliverer: userMap[staffEmail] || staffValue || "-",
             department: row[deptIdx] || "-",
             status: row[statusIdx] || "-", 
             date: formattedDate,
             deliveredAt: formattedOut,
             type: row[typeIdx] || "พัสดุ",
             itemType: row[typeIdx] || "พัสดุ",
-            signature: row[signIdx] || "",
+            signature: signatureUrl,
             photo: row[photoIdx] || "",
             method: row[methodIdx] || "-",
             useType: row[useTypeIdx] || "-",
