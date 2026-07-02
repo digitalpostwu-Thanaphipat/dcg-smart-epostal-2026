@@ -26,7 +26,35 @@
 
 ---
 
-## 5. Deploy Checklist (Backend: GAS)
+## 5. Accepted Risks
+
+### xlsx (SheetJS) - Accepted Risk
+
+- **Package:** `xlsx` v0.18.5
+- **Vulnerabilities:** Prototype Pollution (GHSA-4r6h-8v6p-xvw6), ReDoS (GHSA-5pgg-2g8v-p4x9)
+- **Severity:** High
+- **Fix available:** No
+- **Decision:** Accept risk + isolate
+- **Justification:**
+  - Used only for client-side Excel export (dynamic import)
+  - Does NOT parse user-uploaded Excel files
+  - Already isolated via dynamic import (`await import('xlsx')`)
+  - Attack surface is minimal (output only, no untrusted input)
+
+#### Conditions for Acceptance
+
+1. **DO NOT** use xlsx to parse/import Excel files from users without security review
+2. **Keep** dynamic import to minimize bundle exposure
+3. **If future Excel import is needed:** Replace library or implement sandbox/validation
+
+#### Monitoring
+
+- Re-evaluate when xlsx releases a fix
+- Check npm advisories quarterly
+
+---
+
+## 6. Deploy Checklist (Backend: GAS)
 - [ ] **Copy dist:** `Copy-Item frontend\dist\index.html backend\index.html -Force`
 - [ ] **Push source:** `clasp push` — อัปเดต HEAD code
 - [ ] **Create deployment:** `clasp deploy -d "Description (YYYY-MM-DD)"` — สร้าง Live version ใหม่
@@ -39,7 +67,7 @@
 
 ---
 
-## 6. Skills Reference
+## 7. Skills Reference
 
 | ขั้นตอน | Skill ที่ใช้ | สถานะ |
 |---------|------------|------|
@@ -62,7 +90,7 @@
 
 ---
 
-## Live Production Check - 2026-07-02
+## 8. Live Production Check - 2026-07-02
 
 - [x] Unit test: `npm run test:unit` ผ่าน 22/22
 - [x] Frontend build: `npm run build:gas --prefix frontend` ผ่าน (2081 modules)
