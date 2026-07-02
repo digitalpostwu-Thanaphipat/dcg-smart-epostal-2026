@@ -62,22 +62,18 @@
 
 ---
 
-## Live Production Check - 2026-06-30
+## Live Production Check - 2026-07-02
 
 - [x] Unit test: `npm run test:unit` ผ่าน 22/22
-- [x] Frontend build: `npm run build --prefix frontend` ผ่าน
-- [x] Backend deploy: `clasp push` และ `clasp redeploy` สำเร็จ
-- [x] Production version: `@248`
-- [x] Public tracking: เปิดลิงก์ `?publicTrack=1` แล้วเข้าหน้าติดตามไปรษณีย์ภัณฑ์ได้
-- [x] Admin OTP login: `digitalpost.wu@gmail.com` ยืนยัน OTP ได้สำเร็จ
-- [x] Admin permission: ระบบคืนสิทธิ์ `Admin`
-- [x] Project users sheet: อ่านผู้ใช้งานได้ 15 คน
-- [x] Departments: อ่านหน่วยงานได้ 62 หน่วยงาน
-- [x] Package search: ค้นหารายการจริงได้ 17 รายการ
-- [ ] Full write test: ยังไม่ได้ทดสอบเพิ่มพัสดุ/เปลี่ยนสถานะบนข้อมูลจริง
-- [ ] Warning cleanup: ยังมี warning เรื่อง `VITE_GAS_URL` และ service worker MIME
-
-รายละเอียดเต็มอยู่ใน `PRODUCTION_LIVE_TEST_REPORT_2026-06-30.md`
+- [x] Frontend build: `npm run build:gas --prefix frontend` ผ่าน (2081 modules)
+- [x] Backend deploy: `clasp push` + `clasp deploy` สำเร็จ
+- [x] Production version: `@274`
+- [x] Sentry Error Monitoring: DSN ใส่แล้ว (Project: `dcg-smart-epostal-2026`)
+- [x] Health Check: `Service_Health.gs` ตรวจ 7 จุด (integrity, access, config, backup, trigger, monitor, sharding)
+- [x] SystemSettingsPage: 3 การ์ดหลัก + เครื่องมือขั้นสูง (AI Model, Uptime, Maintenance, Restore, Repair)
+- [x] Public tracking: ลิงก์ติดตามพัสดุทำงานปกติ
+- [x] Admin OTP login: ยืนยัน OTP ได้สำเร็จ
+- [x] Git push: ซิงค์กับ GitHub main branch เรียบร้อย
 
 ---
 

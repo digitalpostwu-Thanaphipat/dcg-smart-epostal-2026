@@ -1,8 +1,8 @@
 # ePostal: Agent Master Instructions
 
 > **Lead Agent:** @antigravity
-> **Last Updated:** 2026-05-14
-> **System Version:** v4.1.0 | Backend @216
+> **Last Updated:** 2026-07-02
+> **System Version:** v4.0.2 | Backend @274
 
 ---
 
@@ -45,11 +45,13 @@
 
 ## 🏗 Architecture Overview
 - **Frontend:** React 19 + Vite 6 + TailwindCSS v4 (Single-File Build via `vite-plugin-singlefile`)
-- **Backend:** Google Apps Script (clasp-managed, 25 files)
+- **Backend:** Google Apps Script (clasp-managed, 17 files)
 - **Database:** Google Sheets (`ePostal_2026`, ID: `1cJsSEs5wXof4jORuaonNn0mA9AfENzQoSw5s9D7J8SQ`)
 - **Schema:** 18-column canonical schema (header-mapped dynamic writes via `buildRow()`)
 - **PWA:** Service Worker + Offline-first via Dexie (IndexedDB)
 - **Sharding:** Fiscal Year-based (Thai FY, `DB_SHARDS` in ScriptProperties)
+- **Error Monitoring:** Sentry (`@sentry/react`) — Org: `dcg-smart-2026`, Project: `dcg-smart-epostal-2026`
+- **Health Check:** `Service_Health.gs` (7-point system integrity check)
 
 ## 📦 Package Manager & Deploy Workflow
 - **Frontend:** npm (`npm install`, `npm run dev`)
@@ -66,7 +68,7 @@
 
 ## 🔧 Dev Server Proxy
 - Vite proxy `/api` → `https://script.google.com/macros/s/{DEPLOY_ID}/exec`
-- **Current Deploy ID:** `AKfycbyoA4IRJzAerCqrGl3eHymWpM8b8b5uUDF_p0MMvz05VPK3RpCcLCljgGY8Qc5i7iPH-Q` (@223)
+- **Current Deploy ID:** `AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g` (@274)
 - ⚠️ **ต้องอัปเดต `vite.config.ts` proxy URL ทุกครั้งที่ `clasp deploy` ใหม่**
 
 ## ⚠️ Known Gotchas
@@ -76,6 +78,8 @@
 4. **Auth Session Sync:** Frontend caches user roles. Background sync added in App.tsx to automatically verify Role/Department silently on app load to prevent stale RBAC states.
 5. **Header-Mapped Writes:** `savePackageEntry` ใช้ `buildRow()` + `getHeaderIndex()` — เพิ่ม/ย้ายคอลัมน์ได้โดยแก้แค่ header string
 6. **Email→Name Resolution:** คอลัมน์ จนท.ผู้นำจ่าย, ผู้บันทึก, ผู้อัปเดตล่าสุด แสดง FullName แทนอีเมล (resolved @216)
+7. **Sentry DSN:** DSN เก็บใน `frontend/.env.local` (VITE_SENTRY_DSN) — ห้าม hardcode ลงในโค้ด
+8. **OCR Retired:** ระบบ OCR ถูกยกเลิกทั้งหมด (frontend + backend) ตั้งแต่ @264
 
 ---
 **Co-Authored-By:** Antigravity <antigravity@epostal.ai>

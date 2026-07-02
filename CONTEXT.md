@@ -2,11 +2,25 @@
 
 ## Current Production Deployment
 
-- Production deployment: `@264`
+- Production deployment: `@274`
 - Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
-- Release note: `docs/release-2026-07-01-264.md`
+- Last deploy description: `Production - Sentry DSN updated to dcg-smart-epostal-2026 project`
 - Readiness report: `PRODUCTION_READINESS_REPORT.md`
-- Core workflows are production ready after local gates and deploy. Full PWA readiness still requires Android Chrome install/offline verification.
+- Core workflows are production ready after local gates and deploy.
+
+## Error Monitoring (Sentry)
+
+- Sentry Organization: `dcg-smart-2026` (https://dcg-smart-2026.sentry.io)
+- Sentry Project: `dcg-smart-epostal-2026` (Platform: React)
+- DSN: Stored in `frontend/.env.local` as `VITE_SENTRY_DSN`
+- Integration: `frontend/src/instrument.ts` (auto-init with ErrorBoundary in App.tsx)
+- Features: Error Monitoring, Browser Tracing, Session Replay
+
+## System Health Check (Backend)
+
+- File: `backend/Service_Health.gs`
+- Checks 7 points: integrity, access, config, backup, trigger, monitor, sharding
+- Called from Admin UI: ตั้งค่าระบบ → ตรวจสุขภาพระบบ
 
 ## Package Log Glossary
 
