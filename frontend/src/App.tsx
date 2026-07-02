@@ -83,7 +83,6 @@ function App() {
             const updatedDept = userData.Department || userData.department || userData.หน่วยงาน || 'มหาลัย';
             
             if (user.role !== updatedRole || user.department !== updatedDept) {
-              console.log(`[Auth Sync] Updating user session: Role(${updatedRole}), Dept(${updatedDept})`);
               useAuthStore.getState().login({
                 ...user,
                 role: updatedRole,

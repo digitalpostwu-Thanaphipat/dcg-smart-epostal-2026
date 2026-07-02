@@ -1,5 +1,5 @@
 function _findSpreadsheetIdByName(name) {
-  try { var files = DriveApp.getFilesByName(name); if (files.hasNext()) { return files.next().getId(); } } catch (e) { }
+  try { var files = DriveApp.getFilesByName(name); if (files.hasNext()) { return files.next().getId(); } } catch (e) { console.warn("Failed to find file by name: " + name, e); }
   return null;
 }
 
@@ -457,7 +457,9 @@ function getActiveDatabaseId(targetDate) {
   try {
     var activeSs = SpreadsheetApp.getActiveSpreadsheet();
     if (activeSs) return activeSs.getId();
-  } catch (e) {}
+  } catch (e) {
+    console.warn("getActiveSpreadsheet failed: " + e.message);
+  }
 
   // Try finding by name "ePostal_2026"
   var discoveredId = _findSpreadsheetIdByName("ePostal_2026");
@@ -755,7 +757,9 @@ function _setupSheet(ss, name, headers) {
     // เธเธฃเธฑเธเธเธเธฒเธ”เธเธญเธฅเธฑเธกเธเนเนเธซเนเธญเธฑเธ•เนเธเธกเธฑเธ•เธด
     try {
       sheet.autoResizeColumns(1, headers.length);
-    } catch(e) {}
+    } catch(e) {
+      console.warn("autoResizeColumns failed: " + e.message);
+    }
   }
 }
 

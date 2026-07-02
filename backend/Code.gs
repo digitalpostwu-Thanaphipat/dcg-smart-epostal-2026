@@ -475,9 +475,9 @@ function _verifyAccess(action, data) {
     role = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
     // Cache the role for 15 minutes (900 seconds)
     cache.put(cacheKey, role, 900);
-    console.log(`Cache Miss: Stored role '${role}' for ${actorEmail}`);
+    console.log("Cache Miss: Stored role '" + role + "'");
   } else {
-    console.log(`Cache Hit: Using cached role '${role}' for ${actorEmail}`);
+    console.log("Cache Hit: Using cached role '" + role + "'");
   }
 
   const allowedActions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS["User"];

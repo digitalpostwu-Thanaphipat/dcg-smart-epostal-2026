@@ -41,7 +41,9 @@ function test_schemaEnforcement() {
       lock.waitLock(10000);
       sheet.getRange(1, 1, 1, expectedLength).setValues([Service_Schema.DEFAULT_PACKAGE_LOG_SCHEMA]);
     } finally {
-      try { lock.releaseLock(); } catch(e) {}
+      try { lock.releaseLock(); } catch(e) {
+        console.warn("releaseLock failed or lock already released: " + e.message);
+      }
     }
     if (sheet.getMaxColumns() > expectedLength) {
       // We can't easily delete columns in a test without affecting production 

@@ -153,7 +153,9 @@ var Service_Package = {
     try {
       var cachedStr = PropertiesService.getScriptProperties().getProperty("YOY_STATS_CACHE");
       if (cachedStr) yoyCache = JSON.parse(cachedStr);
-    } catch(e) {}
+    } catch(e) {
+      console.warn("Failed to parse YOY_STATS_CACHE: " + e.message);
+    }
     
     // Merge current year data into yoyCache
     Object.keys(yoyLocal).forEach(function(yr) {
@@ -890,11 +892,15 @@ function _searchSourcesForFiscalYear(filters) {
     var years = Object.keys(registry).sort(function(a, b) { return Number(b) - Number(a); });
     years.forEach(function(y) {
       if (registry[y] !== SPREADSHEET_ID) {
-        try { ssList.push(SpreadsheetApp.openById(registry[y])); } catch (e) {}
+        try { ssList.push(SpreadsheetApp.openById(registry[y])); } catch (e) {
+          console.warn("Failed to open spreadsheet shard for year " + y + ": " + e.message);
+        }
       }
     });
   } else if (registry[filters.fiscalYear] && registry[filters.fiscalYear] !== SPREADSHEET_ID) {
-    try { ssList.push(SpreadsheetApp.openById(registry[filters.fiscalYear])); } catch (e) {}
+    try { ssList.push(SpreadsheetApp.openById(registry[filters.fiscalYear])); } catch (e) {
+      console.warn("Failed to open spreadsheet shard for fiscalYear " + filters.fiscalYear + ": " + e.message);
+    }
   }
   return ssList;
 }
@@ -964,7 +970,9 @@ function getPublicTrackingDepartments() {
 function getPublicTrackingLinks() {
   var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
   var baseUrl = "";
-  try { baseUrl = ScriptApp.getService().getUrl(); } catch (e) {}
+  try { baseUrl = ScriptApp.getService().getUrl(); } catch (e) {
+    console.warn("Failed to get service URL: " + e.message);
+  }
   var centralLink = {
     deptId: "ALL",
     department: "ลิงก์กลางสำหรับทุกหน่วยงาน",

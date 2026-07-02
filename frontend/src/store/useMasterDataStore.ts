@@ -158,7 +158,6 @@ export const useMasterDataStore = create<MasterDataState>((set) => ({
     set({ isLoading: true, error: null, statsFilters: filters || { startDate: null, endDate: null, departmentName: null } })
     try {
       const statsRes: any = await ApiClient.postal.getStats(filters)
-      console.log('🔍 Stats Debug:', statsRes); // T-016 Diagnosis
       if (statsRes.success) {
         set({ stats: statsRes.data, isLoading: false })
       } else {

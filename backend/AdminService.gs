@@ -194,7 +194,9 @@ var AdminService = {
       var ss = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
       var sheet = ss.getSheetByName(SHEET_NAMES.USERS);
       if (!sheet) {
-        try { sheet = ss.insertSheet(SHEET_NAMES.USERS); } catch(ex) {}
+        try { sheet = ss.insertSheet(SHEET_NAMES.USERS); } catch(ex) {
+          console.warn("insertSheet USERS failed: " + ex.message);
+        }
       }
       if (sheet.getLastRow() === 0) {
         var headers = ["Email", "FullName", "Role", "Department", "Picture"];

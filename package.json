@@ -28,8 +28,6 @@
   },
   "dependencies": {
     "dexie": "^4.4.2",
-    "googleapis": "^171.4.0",
-    "mcp-gsheets": "^1.8.1",
     "vite-plugin-pwa": "^1.2.0"
   }
 }
