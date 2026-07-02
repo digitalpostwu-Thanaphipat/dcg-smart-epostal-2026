@@ -6,29 +6,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ---
 
-## [4.0.3] - 2026-07-02
+## [Unreleased]
 
-### @274 - CI/CD & Documentation
-
-#### Added
+### Added
 - CI/CD pipeline: `.github/workflows/deploy.yml` (auto deploy on push to main)
-- GitHub Secrets: `CLASP_SCRIPT_ID`, `CLASP_TOKEN` configured
-- Documentation: `CONTEXT.md` updated with CI/CD, Rate Limiting, Backup info
-- Documentation: `QUALITY_GATES.md` updated with new checkpoints
+- GitHub Secrets configured: `CLASP_SCRIPT_ID`, `CLASP_TOKEN`
+
+### Documentation
+- `CONTEXT.md` updated with CI/CD, Rate Limiting, Backup info
+- `QUALITY_GATES.md` updated with new checkpoints
+- `CHANGELOG.md` created
 
 ---
 
-## [4.0.2] - 2026-07-02
+## [4.0.2] - 2026-07-01 to 2026-07-02
 
 ### @272 - Accessibility Compliance
 
 #### Fixed
 - Added missing `aria-label` to all buttons in `SystemSettingsPage.tsx`
 - Advanced tools drawer buttons: Uptime Monitor, Maintenance, Repair Schema, Restore
-
----
-
-## [4.0.2] - 2026-07-02
 
 ### @271 - Cleanup & Optimization
 
@@ -40,35 +37,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 #### Changed
 - Backend files reduced from 25 to 17 files
 
----
-
-## [4.0.2] - 2026-07-02
-
 ### @268 - Security & Monitoring
 
 #### Added
-- **Health Check Endpoint**: `?get=health` → `Service_Health.gs`
-- **Rate Limiting**: 15 requests/minute for public tracking search
-- **Automated Backup**: Time-driven trigger `createDailyBackup`
-- **Sheet Protection**: `repairProjectSheetHeaders` locks header rows
+- Health Check Endpoint: `?get=health` -> `Service_Health.gs`
+- Rate Limiting: 15 requests/minute for public tracking search
+- Automated Backup: Time-driven trigger `createDailyBackup`
+- Sheet Protection: `repairProjectSheetHeaders` locks header rows
 
 #### Fixed
 - Removed PII leaks: user email/role no longer logged in plaintext
-- Fixed empty `catch(e) {}` blocks → added `console.warn` logging
+- Fixed empty `catch(e) {}` blocks -> added `console.warn` logging
 - Cleaned `console.log` from frontend production code
 
 #### Security
-- `window.ApiClient` and `window.db` debug objects removed from production build
-- `.env.local` verified not in git history
-
----
-
-## [4.0.2] - 2026-07-01
+- `.env.local` verified not tracked in git
 
 ### @266 - Quality Gates Hardening
 
 #### Fixed
-- ESLint/Prettier warnings resolved (44 warnings → 0 errors)
+- ESLint errors resolved (0 errors; 44 warnings remain as technical debt)
 - React 19 compliance: component declarations moved outside main functions
 - Unused imports cleaned: `Sentry`, `configs`, catch block parameters
 
@@ -77,10 +65,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - `useOfflineSync.ts`: Wrapped callbacks with `useCallback`
 - `App.tsx`: `VersionMismatchBanner` moved outside component
 - `Layout.tsx`: `SyncBadge` moved outside component
-
----
-
-## [4.0.2] - 2026-07-01
 
 ### @264 - OCR Retirement & Production Hardening
 
@@ -107,14 +91,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## Summary
 
-| Version | Key Changes |
-|---------|-------------|
-| @274 | CI/CD Pipeline, Documentation |
-| @272 | Accessibility (WCAG 2.1 AA) |
-| @271 | Dependency cleanup, Debug scripts removed |
-| @268 | Health Check, Rate Limiting, Backup, Security |
-| @266 | ESLint fixes, React 19 compliance |
-| @264 | OCR retired, Production hardening |
+| Deployment | Date | Key Changes |
+|-----------|------|-------------|
+| @272 | 2026-07-02 | Accessibility (WCAG 2.1 AA) |
+| @271 | 2026-07-02 | Dependency cleanup, Debug scripts removed |
+| @268 | 2026-07-02 | Health Check, Rate Limiting, Backup, Security |
+| @266 | 2026-07-01 | ESLint fixes, React 19 compliance |
+| @264 | 2026-07-01 | OCR retired, Production hardening |
 
 ---
 
