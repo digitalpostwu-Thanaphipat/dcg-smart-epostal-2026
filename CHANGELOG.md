@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - **CI/CD Pipeline**: `.github/workflows/deploy.yml` for automated build + deploy on push to main
-- **GitHub Secrets**: `CLASP_SCRIPT_ID` and `CLASP_TOKEN` configured
+- **Required GitHub Secrets documented**: `CLASP_SCRIPT_ID`, `CLASP_TOKEN`
 
 ### Changed
 - Updated `CONTEXT.md` with CI/CD, rate limiting, and backup documentation
