@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Database, ShieldCheck, Download, RefreshCcw, History, AlertTriangle, 
-  FileJson, Loader2, Zap, Link2, Copy, CheckCircle2, XCircle, ChevronDown, ChevronUp, Bot
+  FileJson, Loader2, Zap, Link2, Copy, CheckCircle2, XCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { ApiClient } from '@/api/client';
 import { toast } from 'react-hot-toast';
@@ -18,12 +18,7 @@ export const SystemSettingsPage = () => {
   const [checkingHealth, setCheckingHealth] = useState(false);
   const [healthResults, setHealthResults] = useState<any>(null);
 
-  const availableModels = [
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (แนะนำ - ประหยัดโค้วต้า)' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (เร็ว & ฉลาด)' },
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (รุ่นใหม่ล่าสุด)' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (ฉลาดสูงสุด - โควต้าน้อย)' }
-  ];
+
 
   useEffect(() => {
     loadConfigs();
@@ -426,21 +421,7 @@ export const SystemSettingsPage = () => {
               
               {/* Left Column: AI Model & Uptime configs */}
               <div className="space-y-6">
-                {/* AI Model config */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1 flex items-center gap-1.5">
-                    <Bot className="w-3.5 h-3.5 text-emerald-500" /> Active AI Model Selection
-                  </label>
-                  <select
-                    className="w-full px-4 py-3.5 bg-zinc-100 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-xs focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all font-bold text-zinc-800 dark:text-zinc-200"
-                    value={configs.active_ai_model || 'gemini-1.5-flash'}
-                    onChange={(e) => updateConfig('active_ai_model', e.target.value)}
-                  >
-                    {availableModels.map(model => (
-                      <option key={model.id} value={model.id}>{model.name}</option>
-                    ))}
-                  </select>
-                </div>
+
 
                 {/* Uptime Monitor config */}
                 <div className="space-y-4">
