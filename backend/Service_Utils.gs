@@ -292,6 +292,28 @@ var Service_Utils = {
       console.error("LINE Notify Error:", e.message);
       return { success: false, error: e.message };
     }
+  },
+
+  checkRateLimit: function (action, limit, periodSeconds) {
+    try {
+      var cache = CacheService.getScriptCache();
+      var key = "rate_limit_" + action;
+      var current = cache.get(key);
+      if (current === null) {
+        cache.put(key, "1", periodSeconds);
+      } else {
+        var count = parseInt(current, 10);
+        if (count >= limit) {
+          throw new Error("RATE_LIMIT_EXCEEDED: มีการเรียกใช้งานถี่เกินไป กรุณารอสักครู่");
+        }
+        cache.put(key, String(count + 1), periodSeconds);
+      }
+    } catch (e) {
+      if (e.message && e.message.indexOf("RATE_LIMIT_EXCEEDED") !== -1) {
+        throw e;
+      }
+      console.warn("Rate limit check warning: " + e.message);
+    }
   }
 };
 
@@ -313,4 +335,7 @@ function logAction(actor, action, details) {
 }
 function sendLineNotify(msg) {
   return Service_Utils.sendLineNotify(msg);
+}
+function checkRateLimit(action, limit, periodSeconds) {
+  return Service_Utils.checkRateLimit(action, limit, periodSeconds);
 }

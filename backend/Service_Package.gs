@@ -1001,6 +1001,9 @@ function publicSearchPackages(filters) {
   var hasDeptToken = filters.deptId && filters.token;
 
   if (hasDeptToken) {
+    if (typeof checkRateLimit === "function") {
+      checkRateLimit("public_search_" + filters.deptId, 15, 60); // Max 15 requests per minute per department link
+    }
     dept = _resolvePublicTrackingDept(filters.deptId, filters.token);
   } else {
     if (!filters.authToken) {

@@ -229,6 +229,14 @@ function doGet(e) {
     );
   }
 
+  // Handle Health check delivery
+  if (e.parameter.get === "health") {
+    var health = Service_Health.systemHealthCheck();
+    return ContentService.createTextOutput(JSON.stringify(health)).setMimeType(
+      ContentService.MimeType.JSON,
+    );
+  }
+
   return HtmlService.createHtmlOutputFromFile("index")
     .setTitle("DCG Smart ePostal")
     .addMetaTag(
