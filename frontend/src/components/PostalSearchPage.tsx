@@ -201,6 +201,7 @@ export const PostalSearchPage = () => {
                 <button 
                   type="submit"
                   disabled={loading}
+                  aria-label="ค้นหาพัสดุ"
                   className="hidden sm:flex items-center gap-3 bg-primary text-white px-8 lg:px-12 py-4 lg:py-5 rounded-3xl font-heading font-black text-lg hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
                 >
                   {loading ? (
@@ -222,6 +223,7 @@ export const PostalSearchPage = () => {
               haptics.light();
               setShowFilters(true);
             }}
+            aria-label="เปิดเมนูตัวกรองขั้นสูง"
             className="flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-heading font-black text-[10px] uppercase tracking-widest transition-all shadow-lg group relative"
           >
             <SlidersHorizontal className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" /> 
@@ -237,6 +239,7 @@ export const PostalSearchPage = () => {
           {results.length > 0 && (
             <button 
               onClick={handleExportExcel}
+              aria-label="ดาวน์โหลดรายงานเป็นไฟล์ Excel"
               className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-success/10 hover:bg-success/20 text-success dark:text-success/80 font-heading font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 border border-success/20"
             >
               <Download className="w-4 h-4" /> 
@@ -381,6 +384,7 @@ export const PostalSearchPage = () => {
                     {isDelivered && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleRevert(pkg); }}
+                        aria-label="ยกเลิกการนำจ่ายพัสดุรายการนี้"
                         className="p-2.5 rounded-xl bg-warning/5 hover:bg-warning text-warning hover:text-white transition-all font-black text-[9px] flex items-center gap-1.5 uppercase tracking-widest shadow-sm active:scale-90"
                       >
                         <RotateCcw className="w-3 h-3" /> ยกเลิก
@@ -405,6 +409,7 @@ export const PostalSearchPage = () => {
                   haptics.light();
                   setFilters({ status: 'all', type: 'all', department: '', dateFrom: '', dateTo: '', fiscalYear: currentFY });
                 }}
+                aria-label="ล้างการกรองทั้งหมด"
                 className="px-12 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-heading font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl"
              >
                ล้างการกรองทั้งหมด
@@ -434,6 +439,7 @@ export const PostalSearchPage = () => {
                    </div>
                    <button 
                      onClick={() => setShowFilters(false)}
+                     aria-label="ปิดกล่องเลือกตัวกรอง"
                      className="w-10 h-10 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0"
                    >
                      <X className="w-5 h-5" />
@@ -459,6 +465,7 @@ export const PostalSearchPage = () => {
                           haptics.light();
                           setFilters(prev => ({ ...prev, status: s.id }));
                         }}
+                        aria-label={`กรองสถานะเป็น ${s.label}`}
                         className={cn(
                           "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
                           filters.status === s.id 
@@ -488,6 +495,7 @@ export const PostalSearchPage = () => {
                           haptics.light();
                           setFilters(prev => ({ ...prev, type: t.id }));
                         }}
+                        aria-label={`กรองประเภทเป็น ${t.label}`}
                         className={cn(
                           "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
                           filters.type === t.id
@@ -545,6 +553,7 @@ export const PostalSearchPage = () => {
                           haptics.light();
                           setFilters(prev => ({ ...prev, fiscalYear: y.id }));
                         }}
+                        aria-label={`กรองปีงบประมาณเป็น ${y.label}`}
                         className={cn(
                           "px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
                           filters.fiscalYear === y.id 
@@ -581,6 +590,7 @@ export const PostalSearchPage = () => {
                     handleSearch();
                     setShowFilters(false);
                   }}
+                  aria-label="ใช้ตัวกรองที่เลือก"
                   className="w-full bg-primary hover:bg-primary-hover text-white p-5 rounded-2xl font-heading font-black text-sm uppercase tracking-[0.2em] transition-all shadow-xl shadow-primary/30 active:scale-95 btn-primary"
                 >
                   ใช้ตัวกรองที่เลือก
@@ -616,7 +626,7 @@ export const PostalSearchPage = () => {
                        <Building2 className="w-4 h-4" /> {selectedPackage.department}
                     </p>
                  </div>
-                 <button onClick={() => setSelectedPackage(null)} className="p-3 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all shadow-sm">
+                 <button onClick={() => setSelectedPackage(null)} aria-label="ปิดหน้าต่างรายละเอียด" className="p-3 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all shadow-sm">
                     <X className="w-6 h-6" />
                  </button>
               </div>
@@ -728,6 +738,7 @@ export const PostalSearchPage = () => {
               <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
                  <button 
                    onClick={() => setSelectedPackage(null)}
+                   aria-label="ปิดหน้าต่างรายละเอียด"
                    className="px-10 py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-heading font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-zinc-500/20"
                  >
                     ปิดหน้าต่าง

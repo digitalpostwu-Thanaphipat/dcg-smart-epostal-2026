@@ -39,32 +39,6 @@ export function usePostalEntry() {
   });
 
   const [isGlobalPersonal, setIsGlobalPersonal] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-
-  // AI OCR Handler
-  const handleOCR = async (imageBase64: string) => {
-    setIsScanning(true);
-    haptics.medium();
-    const t = toast.loading('AI กำลังประมวลผลรูปภาพ...');
-    try {
-      const res = await ApiClient.ai.processImage(imageBase64);
-      if (res.success) {
-        setCurrentEms(prev => ({
-          ...prev,
-          trackingNumber: res.data.trackingNumber || prev.trackingNumber,
-          recipientName: res.data.recipientName || prev.recipientName
-        }));
-        toast.success('AI ประมวลผลสำเร็จ!', { id: t });
-      } else {
-        throw new Error(res.error || 'AI ไม่สามารถประมวลผลได้');
-      }
-    } catch (error: any) {
-      haptics.error();
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการประมวลผล', { id: t });
-    } finally {
-      setIsScanning(false);
-    }
-  };
 
   // Check Duplicate from Backend (Debounced)
   useEffect(() => {
@@ -173,7 +147,7 @@ export function usePostalEntry() {
         for (const item of batchData.emsList) {
           await db.receiveRecords.add({
             trackingId: item.trackingNumber,
-            senderName: '-', // Needs OCR or Input
+            senderName: '-',
             receiverName: item.recipientName,
             type: item.itemType,
             status: 'synced',
@@ -252,8 +226,6 @@ export function usePostalEntry() {
     setCurrentEms,
     isGlobalPersonal,
     setIsGlobalPersonal,
-    isScanning,
-    handleOCR,
     addEmsItem,
     removeEmsItem,
     handleSubmit

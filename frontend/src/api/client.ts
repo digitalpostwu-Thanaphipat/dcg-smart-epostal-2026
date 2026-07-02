@@ -268,10 +268,6 @@ export const ApiClient = {
   health: {
     check: () => request("systemHealthCheck", null, "POST"),
   },
-  ai: {
-    performOCR: (imageBase64: string) => request("performOCR", { image: imageBase64 }, "POST"),
-    processImage: (imageBase64: string) => request("performOCR", { image: imageBase64 }, "POST"),
-  },
   announcements: {
     get: () => request("getAnnouncements", null, "POST"),
   }

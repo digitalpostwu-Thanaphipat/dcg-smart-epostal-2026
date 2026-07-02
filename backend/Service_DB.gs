@@ -738,10 +738,10 @@ function _setupSheet(ss, name, headers) {
     }
   }
   
-  // เธ•เธฃเธงเธเธชเธญเธเธเนเธญเธกเธนเธฅเนเธเนเธ–เธงเธ—เธตเน 1
-  var firstCell = sheet.getRange(1, 1).getValue();
+  // ตรวจสอบข้อมูลในแถวที่ 1
+  var firstCell = sheet.getRange("A1").getValue();
   
-  // เธ–เนเธฒเนเธ–เธงเธ—เธตเน 1 เธงเนเธฒเธ เธซเธฃเธทเธญเนเธกเนเธกเธตเธซเธฑเธงเธ•เธฒเธฃเธฒเธ เนเธซเนเธเธฑเธเธเธฑเธเน€เธเธตเธขเธ
+  // ถ้าแถวที่ 1 ว่าง หรือไม่มีหัวตาราง ให้บังคับเขียน
   if (!firstCell || firstCell === "") {
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])

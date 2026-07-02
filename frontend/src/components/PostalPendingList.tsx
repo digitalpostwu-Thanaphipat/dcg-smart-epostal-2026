@@ -79,6 +79,7 @@ const PackageItem = React.memo(({
              {canManageDept && (
                <button 
                  onClick={(e) => handleReportIssue(e, pkg)}
+                 aria-label={`แจ้งปัญหาหรือตีกลับพัสดุเลขที่ ${pkg.trackingNumber || pkg.id}`}
                  className={cn(
                    "p-2.5 rounded-xl border transition-all hover:bg-rose-500 hover:text-white hover:scale-110 active:scale-90",
                    isSelected ? "bg-white/10 border-white/20 text-white" : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-300"
@@ -463,6 +464,7 @@ export const PostalPendingList = () => {
           <button 
             onClick={fetchItems}
             disabled={loading}
+            aria-label="รีเฟรชข้อมูลไปรษณีย์ภัณฑ์รอนำจ่าย"
             className="flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl bg-white/10 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95 disabled:opacity-50 border border-white/10"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -483,7 +485,7 @@ export const PostalPendingList = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-4 p-1.5 text-zinc-300 hover:text-rose-500 transition-colors">
+              <button onClick={() => setSearchQuery('')} aria-label="ล้างคำค้นหา" className="absolute right-4 p-1.5 text-zinc-300 hover:text-rose-500 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -510,6 +512,7 @@ export const PostalPendingList = () => {
               </div>
               <button 
                 onClick={() => setSelectedPackages([])}
+                aria-label="ยกเลิกการเลือกทั้งหมด"
                 className="text-xs font-bold text-zinc-500 hover:text-white transition-colors"
               >
                 ยกเลิกทั้งหมด
@@ -517,6 +520,7 @@ export const PostalPendingList = () => {
             </div>
             <button 
               onClick={handleOpenSignature}
+              aria-label="ลงชื่อยืนยันการนำจ่ายที่เลือกทั้งหมด"
               className="w-full py-4 bg-primary text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:bg-primary-hover transition-all shadow-xl shadow-primary/20 active:scale-95 flex items-center justify-center gap-2"
             >
                <Send className="w-5 h-5" /> ยืนยันการนำจ่ายที่เลือก
@@ -538,6 +542,7 @@ export const PostalPendingList = () => {
              <p className="text-sm font-bold text-red-400 mt-2 max-w-md mx-auto">{error}</p>
              <button 
                 onClick={fetchItems}
+                aria-label="ลองดึงข้อมูลใหม่อีกครั้ง"
                 className="mt-6 px-8 py-3 rounded-2xl bg-red-500 text-white font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20"
              >
                 ลองใหม่อีกครั้ง
@@ -562,6 +567,7 @@ export const PostalPendingList = () => {
                   haptics.light();
                   setExpandedBuildings(prev => prev.includes(building) ? prev.filter(b => b !== building) : [...prev, building]);
                 }}
+                aria-label={`สลับการแสดงรายการอาคาร ${building}`}
                 className="w-full flex items-center justify-between p-5 sm:p-7 clay-card hover:shadow-xl group"
               >
                 <div className="flex items-center gap-4">
@@ -607,6 +613,7 @@ export const PostalPendingList = () => {
                               haptics.light();
                               setExpandedDepartments(prev => prev.includes(deptKey) ? prev.filter(d => d !== deptKey) : [...prev, deptKey]);
                             }}
+                            aria-label={`สลับการแสดงหน่วยงาน ${dept}`}
                             className="flex items-center gap-3 flex-1 min-w-0"
                           >
                              <div className={cn("p-2.5 rounded-xl", someSelected ? "bg-primary/20 text-primary" : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400")}>
@@ -622,6 +629,7 @@ export const PostalPendingList = () => {
                           <button 
                             disabled={!canManageDept}
                             onClick={(e) => { e.stopPropagation(); selectAllInDept(packages); }}
+                            aria-label={`เลือกไปรษณีย์ภัณฑ์ทั้งหมดของหน่วยงาน ${dept}`}
                             className={cn(
                               "text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-all shrink-0 ml-2",
                               allSelected 

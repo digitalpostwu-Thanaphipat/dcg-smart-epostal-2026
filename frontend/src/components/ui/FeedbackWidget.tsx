@@ -119,6 +119,7 @@ export const FeedbackWidget = () => {
                          key={cat.id}
                          type="button"
                          onClick={() => { haptics.light(); setFormData(prev => ({ ...prev, category: cat.id })) }}
+                         aria-label={`เลือกประเภทหัวข้อ ${cat.label}`}
                          className={`px-2 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase transition-all text-center leading-tight flex items-center justify-center min-h-[44px] ${
                            formData.category === cat.id
                              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
@@ -143,13 +144,13 @@ export const FeedbackWidget = () => {
                         type="button"
                         onClick={() => { haptics.medium(); setFormData(prev => ({ ...prev, rating: star })) }}
                         className={`flex-1 flex justify-center items-center py-3 rounded-2xl transition-all ${
-                           formData.rating >= star 
+                           star <= formData.rating
                              ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/30' 
                              : 'bg-zinc-50 dark:bg-zinc-800/50 text-zinc-300 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                          }`}
                         aria-label={`ให้คะแนน ${star} ดาว`}
                       >
-                         <Star className={`w-6 h-6 ${formData.rating >= star ? 'fill-current' : ''}`} />
+                         <Star className={`w-6 h-6 ${star <= formData.rating ? 'fill-current' : ''}`} />
                       </button>
                     ))}
                  </div>
@@ -171,6 +172,7 @@ export const FeedbackWidget = () => {
               <button
                  type="submit"
                  disabled={loading}
+                 aria-label="ส่งข้อเสนอแนะ"
                  className="w-full flex items-center justify-center gap-2 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-black font-heading uppercase tracking-widest hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 transition-all shadow-xl hover:shadow-emerald-500/20 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                  {loading ? (

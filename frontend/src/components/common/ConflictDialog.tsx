@@ -77,6 +77,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
               </div>
               <button 
                 onClick={() => onResolve('keep_server')}
+                aria-label="ใช้ข้อมูลจากเซิร์ฟเวอร์"
                 className="mt-6 w-full py-4 px-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
               >
                 ใช้ข้อมูลเซิร์ฟเวอร์
@@ -111,6 +112,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
               </div>
               <button 
                 onClick={() => onResolve('keep_mine')}
+                aria-label="ยืนยันข้อมูลออฟไลน์ของฉัน"
                 className="mt-6 w-full py-4 px-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-lg shadow-emerald-200"
               >
                 ยืนยันข้อมูลของฉัน
@@ -123,6 +125,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
         <div className="p-6 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
           <button 
             onClick={onClose}
+            aria-label="ยกเลิกและตรวจสอบใหม่"
             className="px-6 py-3 text-gray-500 font-semibold hover:text-gray-700 transition-colors"
           >
             ยกเลิกและตรวจสอบใหม่

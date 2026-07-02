@@ -99,6 +99,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
+              aria-label={item.label}
               className={`flex w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-xs font-black uppercase tracking-widest transition-all duration-300 font-heading ${
                 activeTab === item.id
                   ? 'bg-primary text-white shadow-lg shadow-primary/20'
@@ -125,6 +126,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
               </div>
               <button 
                 onClick={handleLogout}
+                aria-label="ออกจากระบบ"
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
               >
                  <LogOut className="w-3.5 h-3.5" /> ออกจากระบบ
@@ -173,6 +175,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
+            aria-label={item.label}
             className={cn(
                "flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2 transition-all duration-300",
                activeTab === item.id ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "text-zinc-400 hover:text-zinc-600"

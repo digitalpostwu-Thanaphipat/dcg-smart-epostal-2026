@@ -167,6 +167,7 @@ export const BentoStats = () => {
           <div className="flex items-center gap-3 pt-2 md:pt-0">
             <button 
               onClick={handleApplyFilter}
+              aria-label="กรองข้อมูลสถิติตามเงื่อนไข"
               className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl font-black text-sm uppercase tracking-wider hover:scale-105 transition-all shadow-lg active:scale-95 shadow-zinc-500/20"
             >
               <Filter className="w-4 h-4" /> กรองข้อมูล
@@ -174,6 +175,7 @@ export const BentoStats = () => {
             {isFiltered && (
               <button 
                 onClick={handleReset}
+                aria-label="ล้างตัวกรอง"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200/50 transition-all"
                 title="ล้างตัวกรอง"
               >
@@ -204,6 +206,7 @@ export const BentoStats = () => {
           )}
           <button 
             onClick={handleReset}
+            aria-label="ล้างตัวกรองทั้งหมด"
             className="flex items-center gap-1 px-3 py-2 ml-auto md:ml-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent hover:border-rose-200/50 rounded-xl transition-all text-xs font-bold uppercase"
             title="ล้างข้อมูลการค้นหาทั้งหมด"
           >

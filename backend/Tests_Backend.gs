@@ -36,7 +36,13 @@ function test_schemaEnforcement() {
     }
     
     // Ensure we are at expected standard length
-    sheet.getRange(1, 1, 1, expectedLength).setValues([Service_Schema.DEFAULT_PACKAGE_LOG_SCHEMA]);
+    const lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(10000);
+      sheet.getRange(1, 1, 1, expectedLength).setValues([Service_Schema.DEFAULT_PACKAGE_LOG_SCHEMA]);
+    } finally {
+      try { lock.releaseLock(); } catch(e) {}
+    }
     if (sheet.getMaxColumns() > expectedLength) {
       // We can't easily delete columns in a test without affecting production 
       // but we can test the validation logic directly.

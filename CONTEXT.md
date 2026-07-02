@@ -1,5 +1,13 @@
 # ePostal Context
 
+## Current Production Deployment
+
+- Production deployment: `@264`
+- Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
+- Release note: `docs/release-2026-07-01-264.md`
+- Readiness report: `PRODUCTION_READINESS_REPORT.md`
+- Core workflows are production ready after local gates and deploy. Full PWA readiness still requires Android Chrome install/offline verification.
+
 ## Package Log Glossary
 
 - `ชื่อผู้รับไปรษณีย์ภัณฑ์`: ชื่อผู้รับที่บันทึกจากหน้าซองหรือหน้าพัสดุ ใช้แทนคำเดิม `ชื่อผู้รับ`
@@ -9,6 +17,21 @@
 - `จนท.ผู้นำจ่าย`, `ผู้บันทึก`, `ผู้อัปเดตล่าสุด`: แสดงชื่อบุคลากร ไม่แสดงอีเมลเมื่อพบข้อมูลผู้ใช้ในฐานข้อมูล
 - `ลายเซ็น`: บันทึกเป็นรูปที่แสดงใน Google Sheets ผ่าน `IMAGE()` เมื่อระบบได้รับ data URL หรือ URL
 - `ประเภท`: ใช้ค่า `ไปรษณีย์ธรรมดา`, `ไปรษณีย์ด่วนพิเศษ (EMS)`, หรือ `ไปรษณีย์ลงทะเบียน`
+- `OCR`: ยกเลิกการใช้งานในขั้นตอนบันทึกรับไปรษณีย์ภัณฑ์ เพื่อเลี่ยงความเสี่ยงจากการอ่านเลขพัสดุผิด
+
+## Build And Deploy Notes
+
+- Apps Script project files live in `backend/`; run `clasp.cmd` commands from that directory.
+- `npm.cmd run build:gas --prefix frontend` builds the frontend bundle and copies `frontend/dist/index.html` into `backend/index.html`.
+- After frontend changes, run `build:gas` before `clasp.cmd push`; otherwise production can keep serving an old `backend/index.html`.
+- OCR is retired end-to-end. Do not re-add `performOCR` to `Code.gs` route or role permission maps without a new reviewed workflow.
+
+## Access Control Glossary
+
+- `Postal`: เจ้าหน้าที่งานไปรษณีย์ที่ทำงานกับรายการไปรษณีย์ภัณฑ์ได้ รวมถึงการย้อนสถานะการนำจ่ายเมื่อจำเป็น
+- `Staff`: เจ้าหน้าที่ปฏิบัติงานที่บันทึกและนำจ่ายไปรษณีย์ภัณฑ์ได้ แต่ไม่ใช่สิทธิ์สำหรับย้อนสถานะการนำจ่าย
+- `DeptRep`: ตัวแทนหน่วยงาน ผู้มีรายชื่อในชีทผู้ใช้งานระบบและผูกกับหน่วยงาน ใช้สำหรับค้นหาไปรษณีย์ภัณฑ์ของหน่วยงานตนเองเท่านั้น
+- `User`: ผู้ใช้งานทั่วไปที่มีรายชื่อในชีทผู้ใช้งานระบบ ใช้สำหรับค้นหาไปรษณีย์ภัณฑ์ของหน่วยงานตนเองเท่านั้น
 
 ## Migration Notes
 

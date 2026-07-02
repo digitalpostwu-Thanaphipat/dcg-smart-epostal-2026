@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Package, User, Building2, MapPin, Search, CheckCircle2, Plus, Trash2, Camera, Loader2, Send, ClipboardCheck, History, Laptop, ShieldCheck, AlertCircle, Sparkles, Briefcase, UserCog } from 'lucide-react';
+import React, { useState } from 'react';
+import { Package, User, Building2, MapPin, Search, CheckCircle2, Plus, Trash2, Camera, Loader2, Send, ClipboardCheck, History, Laptop, ShieldCheck, AlertCircle, Briefcase, UserCog } from 'lucide-react';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
 import { BarcodeScanner } from './ui/BarcodeScanner';
 import { SearchableSelect } from './ui/SearchableSelect';
@@ -9,7 +9,6 @@ import { filterBySelectedDept } from '@/lib/filterUtils';
 
 export const PostalEntryForm = () => {
   const [showScanner, setShowScanner] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { departments, personnel, positions, representatives } = useMasterDataStore();
   
   const {
@@ -23,24 +22,10 @@ export const PostalEntryForm = () => {
     setCurrentEms,
     isGlobalPersonal,
     setIsGlobalPersonal,
-    isScanning,
-    handleOCR,
     addEmsItem,
     removeEmsItem,
     handleSubmit
   } = usePostalEntry();
-
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      handleOCR(base64String);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const recipientOptions = [
     ...(positions || [])
@@ -135,6 +120,7 @@ export const PostalEntryForm = () => {
                         setIsGlobalPersonal(newPersonal);
                         setCurrentEms(prev => ({ ...prev, isPersonal: newPersonal }));
                       }}
+                      aria-label="เลือกประเภทไปรษณีย์ภัณฑ์ส่วนบุคคล"
                       className={cn(
                         "px-3 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase transition-all whitespace-nowrap text-center",
                         isGlobalPersonal ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-400"
@@ -146,6 +132,7 @@ export const PostalEntryForm = () => {
                         setIsGlobalPersonal(newPersonal);
                         setCurrentEms(prev => ({ ...prev, isPersonal: newPersonal }));
                       }}
+                      aria-label="เลือกประเภทงานมหาวิทยาลัย"
                       className={cn(
                         "px-3 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase transition-all whitespace-nowrap text-center",
                         !isGlobalPersonal ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-400"
@@ -156,27 +143,6 @@ export const PostalEntryForm = () => {
 
               {/* Add EMS Form */}
               <div className="p-8 rounded-[2.5rem] bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-100 dark:border-zinc-800 mb-8 space-y-8">
-                  {/* AI Scanner Button */}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isScanning}
-                      aria-busy={isScanning}
-                      className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black uppercase tracking-widest text-xs shadow-lg hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                    >
-                      {isScanning ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Sparkles className="w-5 h-5 animate-pulse" aria-hidden="true" />}
-                      <span>{isScanning ? 'AI กำลังประมวลผล...' : 'สแกนหน้าพัสดุ (AI)'}</span>
-                    </button>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      capture="environment" 
-                      className="hidden" 
-                      ref={fileInputRef} 
-                      onChange={onFileChange}
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {/* Tracking Number */}
                       <div className="space-y-3">
@@ -219,6 +185,7 @@ export const PostalEntryForm = () => {
                               <button
                                 key={type}
                                 onClick={() => setCurrentEms({ ...currentEms, itemType: type })}
+                                aria-label={`เลือกประเภท ${type}`}
                                 className={cn(
                                   "px-2 py-4 rounded-xl text-[11px] font-heading font-black border transition-all truncate",
                                   currentEms.itemType === type 
@@ -264,6 +231,7 @@ export const PostalEntryForm = () => {
                       {/* Add Button - Directly Under Recipient */}
                       <button 
                         onClick={addEmsItem}
+                        aria-label="เพิ่มลงในตะกร้ารายการบันทึก"
                         className="w-full flex items-center justify-center gap-2 sm:gap-3 bg-primary text-white py-5 rounded-2xl font-heading font-black text-sm sm:text-base hover:scale-[1.01] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 text-center"
                       >
                          <Plus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" /> <span className="leading-tight">เพิ่มลงในตะกร้ารายการบันทึก</span>
@@ -410,6 +378,7 @@ export const PostalEntryForm = () => {
                  <button 
                    onClick={handleSubmit}
                    disabled={loading || !!duplicateWarning}
+                   aria-label="ยืนยันบันทึกเข้าระบบ"
                    className="w-full bg-white text-primary py-6 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50 mt-4"
                  >
                     {loading ? (

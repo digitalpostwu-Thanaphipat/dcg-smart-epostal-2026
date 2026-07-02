@@ -38,12 +38,14 @@ export const ReloadPrompt: React.FC = () => {
             <div className="flex gap-2 mt-4">
               <button
                 onClick={onReload}
+                aria-label="อัปเดตระบบและโหลดหน้าเว็บใหม่"
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95"
               >
                 อัปเดตเลย
               </button>
               <button
                 onClick={() => setNeedUpdate(false)}
+                aria-label="ปิดกล่องแจ้งเตือนอัปเดต"
                 className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold py-2 px-4 rounded-xl transition-colors active:scale-95"
               >
                 ไว้ก่อน

@@ -79,7 +79,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             <div className="space-y-6">
               <CameraOff className="w-16 h-16 mx-auto text-rose-400 opacity-50" />
               <p className="text-xs text-rose-500 font-black uppercase tracking-widest">{error}</p>
-              <button onClick={startScanning} className="w-full h-16 bg-zinc-900 dark:bg-zinc-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95">RETRY CONNECTION</button>
+              <button onClick={startScanning} aria-label="เชื่อมต่อกล้องใหม่อีกครั้ง" className="w-full h-16 bg-zinc-900 dark:bg-zinc-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95">RETRY CONNECTION</button>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-4 text-zinc-400">

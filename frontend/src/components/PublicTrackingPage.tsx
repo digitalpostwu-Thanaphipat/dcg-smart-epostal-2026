@@ -142,7 +142,7 @@ export function PublicTrackingPage() {
               </div>
             </div>
             {canSearch && (
-              <button onClick={handleLogout} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-zinc-200 px-4 text-xs font-black text-zinc-600 transition hover:text-rose-600 dark:border-zinc-800 dark:text-zinc-300">
+              <button onClick={handleLogout} aria-label="ออกจากระบบ" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-zinc-200 px-4 text-xs font-black text-zinc-600 transition hover:text-rose-600 dark:border-zinc-800 dark:text-zinc-300">
                 <LogOut className="h-4 w-4" />
                 ออกจากระบบ
               </button>
@@ -185,7 +185,7 @@ export function PublicTrackingPage() {
               </label>
             )}
 
-            <button type="submit" disabled={authLoading} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">
+            <button type="submit" disabled={authLoading} aria-label={otpRequested ? 'ยืนยัน OTP และเข้าใช้งาน' : 'ส่ง OTP ไปยังอีเมล'} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">
               {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
               {otpRequested ? 'ยืนยัน OTP และเข้าใช้งาน' : 'ส่ง OTP ไปยังอีเมล'}
             </button>
@@ -206,7 +206,7 @@ export function PublicTrackingPage() {
                   placeholder="ค้นด้วยเลขพัสดุหรือชื่อผู้รับไปรษณีย์ภัณฑ์"
                 />
               </div>
-              <button type="submit" disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">
+              <button type="submit" disabled={loading} aria-label="ค้นหาพัสดุ" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 ค้นหา
               </button>

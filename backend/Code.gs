@@ -27,7 +27,6 @@ const ROLE_PERMISSIONS = {
     "adminAddUser",
     "adminUpdateUser",
     "adminDeleteUser",
-    "performOCR",
     "getAnnouncements",
     "createManualBackup",
     "restoreFromBackup",
@@ -56,7 +55,6 @@ const ROLE_PERMISSIONS = {
     "checkDuplicate",
     "searchPackages",
     "getDailyOperationalStats",
-    "performOCR",
     "getAnnouncements",
     "submitFeedback",
   ],
@@ -73,7 +71,6 @@ const ROLE_PERMISSIONS = {
     "checkDuplicate",
     "searchPackages",
     "getDailyOperationalStats",
-    "performOCR",
     "getAnnouncements",
     "submitFeedback",
   ],
@@ -163,9 +160,6 @@ var ROUTE_MAP = {
   repairProjectSheetHeaders: () => repairProjectSheetHeaders(),
   normalizePackageLogStaffNames: () => normalizePackageLogStaffNames(),
   normalizePackageLogLegacyValues: () => normalizePackageLogLegacyValues(),
-
-  // AI Services
-  performOCR: (data) => Service_AI.performOCR(data.image),
 
   // Announcement Services
   getAnnouncements: () => Service_DB.getData(SHEET_NAMES.ANNOUNCEMENTS),

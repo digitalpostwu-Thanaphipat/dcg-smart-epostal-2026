@@ -168,6 +168,7 @@ export const Login = () => {
                       setOtpRequested(false);
                       setOtp('');
                     }}
+                    aria-label="เปลี่ยนอีเมลหรือขอรหัสใหม่"
                     className={`w-full text-xs font-black uppercase tracking-widest ${isDark ? 'text-zinc-400 hover:text-emerald-400' : 'text-zinc-500 hover:text-emerald-600'}`}
                   >
                     เปลี่ยนอีเมล / ขอรหัสใหม่
@@ -178,6 +179,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
+                aria-label={otpRequested ? 'ยืนยันรหัสและเข้าสู่ระบบ' : 'ส่งรหัสยืนยันเข้าใช้งาน'}
                 className={`w-full h-24 font-black text-xl uppercase tracking-widest rounded-[2.5rem] flex items-center justify-center gap-4 transition-all active:scale-[0.97] group ${isDark ? 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-[0_20px_40px_-12px_rgba(16,185,129,0.3)]' : 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-xl'}`}
               >
                  {loading ? (

@@ -96,9 +96,17 @@ function checkFrontendAccessibility() {
     if (filePath.endsWith('.tsx') || filePath.endsWith('.jsx')) {
       const content = fs.readFileSync(filePath, 'utf8');
       
+      // Mask inline arrow functions to prevent premature regex matching termination at '=>'
+      const maskedContent = content.replace(/=>/g, '__ARROW__');
+      
+      // Preprocess multi-line button tags to be single-line for robust regex matching
+      const singleLineContent = maskedContent.replace(/<button[\s\S]*?>/g, match => {
+        return match.replace(/\r?\n/g, ' ');
+      });
+      
       // Check for buttons without labels or icons without alt
       const buttonRegex = /<button(?!.*aria-label)(?!.*aria-labelledby)[^>]*>/g;
-      const matches = content.match(buttonRegex);
+      const matches = singleLineContent.match(buttonRegex);
       
       if (matches) {
         // Filter out components that we know handle labels internally

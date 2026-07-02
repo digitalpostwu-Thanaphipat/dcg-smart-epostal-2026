@@ -162,7 +162,9 @@ var Service_Schema = {
 
       var value = JSON.stringify(schema);
       if (keyRow > 0) {
-        sheet.getRange(keyRow, 2).setValue(value);
+        var valueColIdx = getHeaderIndex(data[0], ["ค่าที่ตั้งไว้", "Value"]);
+        var valueCol = valueColIdx === -1 ? 2 : valueColIdx + 1;
+        sheet.getRange(keyRow, valueCol).setValue(value);
       } else {
         sheet.appendRow([this.PACKAGE_LOG_CONFIG_KEY, value]);
       }

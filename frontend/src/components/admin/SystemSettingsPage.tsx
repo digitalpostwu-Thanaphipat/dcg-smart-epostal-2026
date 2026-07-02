@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Database, ShieldCheck, Download, RefreshCcw, History, AlertTriangle, FileJson, Loader2, Zap, Cpu, Sparkles, CheckCircle2, Link2, Copy } from 'lucide-react';
+import { Database, ShieldCheck, Download, RefreshCcw, History, AlertTriangle, FileJson, Loader2, Zap, Link2, Copy } from 'lucide-react';
 import { ApiClient } from '@/api/client';
 import { toast } from 'react-hot-toast';
 import { haptics } from '@/utils/haptics';
-import { cn } from '@/lib/utils';
 
 export const SystemSettingsPage = () => {
   const [loading, setLoading] = useState(false);
   const [restoreFileId, setRestoreFileId] = useState('');
   const [trackingLinks, setTrackingLinks] = useState<any[]>([]);
 
-  const [activeAiModel, setActiveAiModel] = useState('gemini-1.5-flash');
   const [configs, setConfigs] = useState<any>({});
 
   useEffect(() => {
@@ -22,40 +20,11 @@ export const SystemSettingsPage = () => {
       const res: any = await ApiClient.admin.getSystemConfigs();
       if (res.success) {
         setConfigs(res.data);
-        if (res.data.active_ai_model) {
-          setActiveAiModel(res.data.active_ai_model);
-        }
       }
     } catch (e) {
       console.error('Failed to load configs', e);
     }
   };
-
-  const handleUpdateModel = async (modelId: string) => {
-    setLoading(true);
-    haptics.medium();
-    const t = toast.loading(`กำลังเปลี่ยนเป็น ${modelId}...`);
-    try {
-      const res: any = await ApiClient.admin.updateSystemConfig('active_ai_model', modelId);
-      if (res.success) {
-        setActiveAiModel(modelId);
-        haptics.success();
-        toast.success(`เปลี่ยนโมเดลเป็น ${modelId} เรียบร้อยแล้ว`, { id: t });
-      } else {
-        throw new Error(res.error);
-      }
-    } catch (error: any) {
-      haptics.error();
-      toast.error(error.message || 'ไม่สามารถเปลี่ยนโมเดลได้', { id: t });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const aiModels = [
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'เน้นความเร็วสูง ประหยัดพลังงาน เหมาะสำหรับงาน OCR ทั่วไป', type: 'High Speed' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'เน้นความแม่นยำสูงสุดและตรรกะที่ซับซ้อน เหมาะสำหรับงานเอกสารที่มีลายมือ', type: 'High Intelligence' }
-  ];
 
   const handleMaintenance = async () => {
     setLoading(true);
@@ -209,62 +178,8 @@ export const SystemSettingsPage = () => {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-        {/* Left: Maintenance & AI Config */}
+        {/* Left: Maintenance & Public Admin Tasks */}
         <div className="lg:col-span-2 space-y-8">
-           {/* Section: AI Engine Selection (Loki Mode) */}
-            <div className="clay-card p-8 shadow-xl space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                      <Cpu className="w-6 h-6" />
-                   </div>
-                   <div>
-                      <h3 className="text-xl font-heading font-black text-zinc-900 dark:text-white uppercase">เลือกขุมพลัง AI ประมวลผล</h3>
-                      <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-tighter">ขุมพลังการประมวลผลอัจฉริยะ (Loki Mode)</p>
-                   </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {aiModels.map((model) => (
-                  <button
-                    key={model.id}
-                    onClick={() => handleUpdateModel(model.id)}
-                    disabled={loading || activeAiModel === model.id}
-                    aria-label={`เลือกโมเดล ${model.name}`}
-                    className={cn(
-                      "group p-6 rounded-3xl border transition-all text-left space-y-4 relative overflow-hidden active:scale-[0.98]",
-                      activeAiModel === model.id 
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-600/20" 
-                        : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800 hover:border-indigo-500/50 text-zinc-900 dark:text-white"
-                    )}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                        activeAiModel === model.id ? "bg-white/20 text-white" : "bg-white dark:bg-zinc-900 shadow-sm text-indigo-500"
-                      )}>
-                        <Sparkles className="w-5 h-5" />
-                      </div>
-                      {activeAiModel === model.id && (
-                        <CheckCircle2 className="w-5 h-5 text-white animate-in zoom-in duration-300" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-heading font-black text-sm uppercase">{model.name}</h4>
-                      </div>
-                      <p className={cn(
-                        "text-[10px] leading-relaxed mt-1 font-medium line-clamp-2",
-                        activeAiModel === model.id ? "text-indigo-100" : "text-zinc-500"
-                      )}>
-                        {model.desc}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-           </div>
             <div className="clay-card p-8 shadow-xl space-y-8">
               <div className="flex items-center gap-4 mb-2">
                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
@@ -378,6 +293,7 @@ export const SystemSettingsPage = () => {
                 <button
                   onClick={handleLoadTrackingLinks}
                   disabled={loading}
+                  aria-label="โหลดลิงก์กลางสำหรับติดตามพัสดุ"
                   className="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-heading font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all"
                 >
                   {loading ? 'กำลังโหลด' : 'โหลดลิงก์'}

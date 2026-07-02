@@ -312,6 +312,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                         if (onCustomChange) onCustomChange(searchTerm);
                         setIsOpen(false);
                     }}
+                    aria-label={`ใช้คำค้นหา ${searchTerm}`}
                     className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors hover:bg-blue-600"
                    >
                      ใช้คำค้นหา: "{searchTerm}"

@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
     : undefined
 
   return {
-    cacheDir: path.resolve(__dirname, '../.vite-cache/frontend'),
+    cacheDir: path.resolve(__dirname, '../tmp/vite-cache/frontend'),
     plugins: [
       react(),
       tailwindcss(),

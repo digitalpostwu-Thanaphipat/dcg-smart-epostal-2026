@@ -221,9 +221,16 @@ var Service_Package = {
         });
         if (rowIdx) {
           var currentVal = Number(data[rowIdx - 1][2]) || 0;
-          sheet.getRange(rowIdx, 2).setValue(metric);
-          sheet.getRange(rowIdx, 3).setValue(currentVal + increment);
-          sheet.getRange(rowIdx, 4).setValue(now);
+          var metricCol = getHeaderIndex(data[0], "ตัวชี้วัด");
+          var valueCol = getHeaderIndex(data[0], "ค่าตัวเลข");
+          var updateCol = getHeaderIndex(data[0], "อัปเดตล่าสุด");
+          metricCol = (metricCol === -1 ? 2 : metricCol + 1);
+          valueCol = (valueCol === -1 ? 3 : valueCol + 1);
+          updateCol = (updateCol === -1 ? 4 : updateCol + 1);
+          
+          sheet.getRange(rowIdx, metricCol).setValue(metric);
+          sheet.getRange(rowIdx, valueCol).setValue(currentVal + increment);
+          sheet.getRange(rowIdx, updateCol).setValue(now);
           changes = true;
         } else {
           sheet.appendRow([category, metric, increment, now]);
@@ -514,6 +521,30 @@ var Service_Package = {
       var signatureFormula = signatureUrl ? '=IMAGE("' + signatureUrl.replace(/"/g, '""') + '")' : "";
 
       var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department"]);
+      var updateColumns = [statusIdx, timeOutIdx, receiverIdx, methodIdx];
+      var useSignatureFormula = signIdx !== -1 && data.signatureImage && signatureFormula;
+      if (staffName && staffIdx !== -1) updateColumns.push(staffIdx);
+      if (signIdx !== -1 && data.signatureImage && !useSignatureFormula) updateColumns.push(signIdx);
+      if (photoIdx !== -1 && data.photoImage) updateColumns.push(photoIdx);
+      if (gpsIdx !== -1 && data.gpsCoordinates) updateColumns.push(gpsIdx);
+      if (updaterIdx !== -1 && staffName) updateColumns.push(updaterIdx);
+      updateColumns = updateColumns.filter(function(idx, pos, arr) {
+        return idx !== -1 && arr.indexOf(idx) === pos;
+      }).sort(function(a, b) { return a - b; });
+      var columnGroups = [];
+      updateColumns.forEach(function(idx) {
+        var lastGroup = columnGroups[columnGroups.length - 1];
+        if (lastGroup && lastGroup.end + 1 === idx) {
+          lastGroup.end = idx;
+        } else {
+          columnGroups.push({ start: idx, end: idx });
+        }
+      });
+      var updatedRows = [];
+      var deptCounts = {};
+      function setRowValue(rowValues, idx, value) {
+        if (idx !== -1) rowValues[idx] = value;
+      }
 
       for (var i = 1; i < pData.length; i++) {
         var pId = String(pData[i][idIdx]);
@@ -521,26 +552,65 @@ var Service_Package = {
           var row = i + 1;
           var pDept = String(pData[i][deptIdx] || "ไม่ระบุหน่วยงาน").trim();
           
-          sheet.getRange(row, statusIdx + 1).setValue("ส่งมอบแล้ว");
-          sheet.getRange(row, timeOutIdx + 1).setValue(nowStr);
-          sheet.getRange(row, receiverIdx + 1).setValue(data.signatureName || "เซ็นรับผ่านระบบ");
-          sheet.getRange(row, methodIdx + 1).setValue(data.deliveryMethod || "ส่งมอบที่หน่วยงาน");
-          if (staffName) sheet.getRange(row, staffIdx + 1).setValue(staffName);
+          setRowValue(pData[i], statusIdx, "ส่งมอบแล้ว");
+          setRowValue(pData[i], timeOutIdx, nowStr);
+          setRowValue(pData[i], receiverIdx, data.signatureName || "เซ็นรับผ่านระบบ");
+          setRowValue(pData[i], methodIdx, data.deliveryMethod || "ส่งมอบที่หน่วยงาน");
+          if (staffName) setRowValue(pData[i], staffIdx, staffName);
           
           if (signIdx !== -1 && data.signatureImage) {
-            if (signatureFormula) sheet.getRange(row, signIdx + 1).setFormula(signatureFormula);
-            else sheet.getRange(row, signIdx + 1).setValue(data.signatureImage);
+            if (!useSignatureFormula) setRowValue(pData[i], signIdx, data.signatureImage);
           }
-          if (photoIdx !== -1 && data.photoImage) sheet.getRange(row, photoIdx + 1).setValue(data.photoImage);
-          if (gpsIdx !== -1 && data.gpsCoordinates) sheet.getRange(row, gpsIdx + 1).setValue(data.gpsCoordinates);
-          if (updaterIdx !== -1 && staffName) sheet.getRange(row, updaterIdx + 1).setValue(staffName);
-          
-          // Real-time Stats Updates (Batch)
-          this._updateStatsSnapshot({ "รอนำจ่าย": -1, "ส่งมอบแล้ว": 1 }, "ภาพรวม");
-          this._updateStatsSnapshot({ "รอนำจ่าย": -1, "ส่งมอบแล้ว": 1 }, "หน่วยงาน: " + pDept);
+          setRowValue(pData[i], photoIdx, data.photoImage);
+          setRowValue(pData[i], gpsIdx, data.gpsCoordinates);
+          if (staffName) setRowValue(pData[i], updaterIdx, staffName);
 
+          updatedRows.push(row);
+          deptCounts[pDept] = (deptCounts[pDept] || 0) + 1;
           count++;
         }
+      }
+      if (count > 0 && columnGroups.length > 0) {
+        var rowGroups = [];
+        updatedRows.sort(function(a, b) { return a - b; }).forEach(function(row) {
+          var lastGroup = rowGroups[rowGroups.length - 1];
+          if (lastGroup && lastGroup.end + 1 === row) {
+            lastGroup.end = row;
+          } else {
+            rowGroups.push({ start: row, end: row });
+          }
+        });
+        rowGroups.forEach(function(rowGroup) {
+          columnGroups.forEach(function(colGroup) {
+            var values = [];
+            for (var rowNum = rowGroup.start; rowNum <= rowGroup.end; rowNum++) {
+              values.push(pData[rowNum - 1].slice(colGroup.start, colGroup.end + 1));
+            }
+            sheet.getRange(
+              rowGroup.start,
+              colGroup.start + 1,
+              rowGroup.end - rowGroup.start + 1,
+              colGroup.end - colGroup.start + 1
+            ).setValues(values);
+          });
+          if (useSignatureFormula) {
+            var formulas = [];
+            for (var formulaRow = rowGroup.start; formulaRow <= rowGroup.end; formulaRow++) {
+              formulas.push([signatureFormula]);
+            }
+            sheet.getRange(
+              rowGroup.start,
+              signIdx + 1,
+              rowGroup.end - rowGroup.start + 1,
+              1
+            ).setFormulas(formulas);
+          }
+        });
+        this._updateStatsSnapshot({ "รอนำจ่าย": -count, "ส่งมอบแล้ว": count }, "ภาพรวม");
+        Object.keys(deptCounts).forEach(function(deptName) {
+          var deptCount = deptCounts[deptName];
+          this._updateStatsSnapshot({ "รอนำจ่าย": -deptCount, "ส่งมอบแล้ว": deptCount }, "หน่วยงาน: " + deptName);
+        }, this);
       }
       
       return { success: true, count: count };

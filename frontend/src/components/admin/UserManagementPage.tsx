@@ -147,6 +147,7 @@ export const UserManagementPage = () => {
            
            <button
              onClick={openCreateModal}
+             aria-label="เพิ่มผู้ใช้งานใหม่"
              className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 px-10 py-6 rounded-3xl font-heading font-black text-sm uppercase tracking-widest flex items-center gap-4 transition-all active:scale-95 shadow-[0_20px_40px_-12px_rgba(16,185,129,0.3)] group"
            >
              <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" /> เพิ่มผู้ใช้งานใหม่
@@ -259,10 +260,10 @@ export const UserManagementPage = () => {
                                  </td>
                                  <td className="px-8 py-5 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                       <button onClick={() => openEditModal(u)} className="p-3 rounded-xl hover:bg-white dark:hover:bg-zinc-800 shadow-sm border border-transparent hover:border-zinc-100 dark:hover:border-zinc-700 transition-all text-zinc-400 hover:text-indigo-500">
+                                       <button onClick={() => openEditModal(u)} aria-label="แก้ไขข้อมูลผู้ใช้" className="p-3 rounded-xl hover:bg-white dark:hover:bg-zinc-800 shadow-sm border border-transparent hover:border-zinc-100 dark:hover:border-zinc-700 transition-all text-zinc-400 hover:text-indigo-500">
                                           <Edit3 className="w-4 h-4" />
                                        </button>
-                                       <button onClick={() => handleDelete(u.Email)} className="p-3 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-zinc-400 hover:text-rose-500">
+                                       <button onClick={() => handleDelete(u.Email)} aria-label="ระงับสิทธิ์ผู้ใช้" className="p-3 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-zinc-400 hover:text-rose-500">
                                           <Trash2 className="w-4 h-4" />
                                        </button>
                                     </div>
@@ -282,7 +283,7 @@ export const UserManagementPage = () => {
          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-md animate-in fade-in" onClick={() => !processing && setIsModalOpen(false)} />
             <div className="relative w-full max-w-lg clay-card-deep p-10 shadow-2xl animate-in zoom-in-95 overflow-hidden border-none !rounded-[3rem]">
-               <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-colors">
+               <button onClick={() => setIsModalOpen(false)} aria-label="ปิดหน้าต่าง" className="absolute top-8 right-8 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-colors">
                   <X className="w-6 h-6" />
                </button>
                
@@ -341,6 +342,7 @@ export const UserManagementPage = () => {
                   <button 
                      type="submit" 
                      disabled={processing}
+                     aria-label="บันทึกข้อมูลผู้ใช้งาน"
                      className="w-full h-20 bg-emerald-500 hover:bg-emerald-400 text-zinc-900 font-black font-heading text-lg uppercase tracking-[0.2em] rounded-[2rem] shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50"
                   >
                      {processing ? <Loader2 className="w-8 h-8 animate-spin" /> : <CheckCircle2 className="w-8 h-8" />}

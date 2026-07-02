@@ -237,6 +237,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
               <button
                 key={method.id}
                 onClick={() => setDeliveryMethod(method.id as any)}
+                aria-label={`เลือกวิธีการส่งมอบแบบ ${method.label}`}
                 className={cn(
                   "py-3 rounded-2xl text-[11px] font-heading font-black border transition-all flex items-center justify-center gap-1.5",
                   deliveryMethod === method.id 
@@ -293,6 +294,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
         <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 p-4 sm:p-8 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-800">
            <button 
              onClick={onClose}
+             aria-label="ยกเลิกการเซ็นรับ"
              className="px-6 py-3.5 bg-white dark:bg-zinc-900 text-zinc-400 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 transition-all active:scale-95 text-center"
            >
              ยกเลิก
@@ -300,6 +302,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
            <button 
              onClick={handleConfirm}
              disabled={isEmpty || loading || !receiverName.trim()}
+             aria-label="ยืนยันตัวตนและบันทึกลายเซ็น"
              className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50 disabled:grayscale hover:brightness-110"
            >
              {loading ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <Check className="w-5 h-5" />}
