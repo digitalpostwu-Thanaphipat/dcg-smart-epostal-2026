@@ -70,7 +70,10 @@
 - [x] Production version: `@274`
 - [x] Sentry Error Monitoring: DSN ใส่แล้ว (Project: `dcg-smart-epostal-2026`)
 - [x] Health Check: `Service_Health.gs` ตรวจ 7 จุด (integrity, access, config, backup, trigger, monitor, sharding)
-- [x] SystemSettingsPage: 3 การ์ดหลัก + เครื่องมือขั้นสูง (AI Model, Uptime, Maintenance, Restore, Repair)
+- [x] Rate Limiting: `checkRateLimit()` จำกัด 15 req/min สำหรับ public search
+- [x] Automated Backup: Time-driven trigger `createDailyBackup` ตั้งแล้ว
+- [x] CI/CD Pipeline: `.github/workflows/deploy.yml` พร้อมใช้งาน
+- [x] SystemSettingsPage: 3 การ์ดหลัก + เครื่องมือขั้นสูง (Uptime, Maintenance, Restore, Repair)
 - [x] Public tracking: ลิงก์ติดตามพัสดุทำงานปกติ
 - [x] Admin OTP login: ยืนยัน OTP ได้สำเร็จ
 - [x] Git push: ซิงค์กับ GitHub main branch เรียบร้อย

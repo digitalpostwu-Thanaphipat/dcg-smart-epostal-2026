@@ -19,8 +19,23 @@
 ## System Health Check (Backend)
 
 - File: `backend/Service_Health.gs`
+- Endpoint: `?get=health`
 - Checks 7 points: integrity, access, config, backup, trigger, monitor, sharding
 - Called from Admin UI: ตั้งค่าระบบ → ตรวจสุขภาพระบบ
+- Uptime monitoring: ใช้กับ UptimeRobot หรือ service อื่นๆ
+
+## Rate Limiting (Public Tracking)
+
+- File: `backend/Service_Utils.gs` → `checkRateLimit()`
+- Applied to: `Service_Package.gs` → `publicSearchPackages()`
+- Limit: 15 requests per minute per department link
+- Error message: `RATE_LIMIT_EXCEEDED: มีการเรียกใช้งานถี่เกินไป กรุณารอสักครู่`
+
+## Automated Backup
+
+- Trigger: Time-driven (daily) → `createDailyBackup`
+- File: `backend/Service_Backup.gs`
+- Setup: Apps Script Editor → Triggers → createDailyBackup
 
 ## Package Log Glossary
 
@@ -32,6 +47,15 @@
 - `ลายเซ็น`: บันทึกเป็นรูปที่แสดงใน Google Sheets ผ่าน `IMAGE()` เมื่อระบบได้รับ data URL หรือ URL
 - `ประเภท`: ใช้ค่า `ไปรษณีย์ธรรมดา`, `ไปรษณีย์ด่วนพิเศษ (EMS)`, หรือ `ไปรษณีย์ลงทะเบียน`
 - `OCR`: ยกเลิกการใช้งานในขั้นตอนบันทึกรับไปรษณีย์ภัณฑ์ เพื่อเลี่ยงความเสี่ยงจากการอ่านเลขพัสดุผิด
+
+## CI/CD Pipeline
+
+- Workflow: `.github/workflows/deploy.yml`
+- Trigger: Push to `main` branch or manual dispatch
+- Process: Run tests → Build frontend → Deploy to GAS
+- Secrets required: `CLASP_SCRIPT_ID`, `CLASP_TOKEN` (in GitHub repo settings)
+- Manual deploy: GitHub Actions → Deploy → Run workflow
+- Emergency deploy: Select "Skip tests" option
 
 ## Build And Deploy Notes
 
