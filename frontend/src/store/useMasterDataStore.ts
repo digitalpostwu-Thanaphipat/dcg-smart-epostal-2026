@@ -81,7 +81,7 @@ export const useMasterDataStore = create<MasterDataState>((set) => ({
       const res: any = await ApiClient.admin.getInitialData();
       
       if (res.success && res.data) {
-        const { departments, personnel, positions, representatives, announcements, stats, systemInfo, configs } = res.data;
+        const { departments, personnel, positions, representatives, announcements, stats, systemInfo } = res.data;
         
         const normalizedDepts = (departments || []).map((d: any) => ({
           id: d.DeptID || d.id,

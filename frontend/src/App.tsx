@@ -39,6 +39,26 @@ const detectPublicTrackingFromBrowser = () => {
   }
 }
 
+interface VersionMismatchBannerProps {
+  isVersionMismatch: boolean;
+  backendVersion?: string;
+  frontendVersion: string;
+}
+
+const VersionMismatchBanner: React.FC<VersionMismatchBannerProps> = ({ 
+  isVersionMismatch, 
+  backendVersion, 
+  frontendVersion 
+}) => {
+  if (!isVersionMismatch) return null;
+  return (
+    <div className="bg-rose-500 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
+      <AlertCircle className="w-4 h-4" />
+      เวอร์ชัน Backend ไม่ตรงกัน: พบ {backendVersion} (ต้องการ {frontendVersion}) กรุณาติดต่อผู้ดูแลระบบเพื่อทำการ Deploy
+    </div>
+  );
+};
+
 function App() {
   const [isPublicTracking, setIsPublicTracking] = useState(detectPublicTrackingFromBrowser)
   const [activeTab, setActiveTab] = useState('home')
@@ -110,15 +130,7 @@ function App() {
     }
   }, [isVersionMismatch, systemInfo])
 
-  const VersionMismatchBanner = () => {
-    if (!isVersionMismatch) return null;
-    return (
-      <div className="bg-rose-500 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 animate-pulse">
-        <AlertCircle className="w-4 h-4" />
-        เวอร์ชัน Backend ไม่ตรงกัน: พบ {systemInfo?.version} (ต้องการ {APP_VERSION}) กรุณาติดต่อผู้ดูแลระบบเพื่อทำการ Deploy
-      </div>
-    );
-  };
+
 
   if (isPublicTracking) {
     return (
@@ -237,7 +249,11 @@ function App() {
         haptics.light();
         setActiveTab(tab);
       }}>
-        <VersionMismatchBanner />
+        <VersionMismatchBanner 
+          isVersionMismatch={isVersionMismatch} 
+          backendVersion={systemInfo?.version} 
+          frontendVersion={APP_VERSION} 
+        />
         <Toaster position="top-right" />
         <div className="animate-slide-fade-in" key={activeTab}>
           {renderContent()}

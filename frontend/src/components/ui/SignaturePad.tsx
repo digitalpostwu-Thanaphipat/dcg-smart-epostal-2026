@@ -58,9 +58,12 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
   // Pre-fill receiver name if exactly one unique recipient name exists
   useEffect(() => {
     if (originalRecipients.length === 1 && !receiverName) {
-      setReceiverName(originalRecipients[0]);
+      const timer = setTimeout(() => {
+        setReceiverName(originalRecipients[0]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [originalRecipients]);
+  }, [originalRecipients, receiverName]);
 
   // Build filtered options: Original Recipients + Positions + Personnel + Representatives
   const signerOptions = useMemo(() => {

@@ -1,12 +1,17 @@
 {
   "name": "frontend",
   "version": "4.0.2",
+  "private": true,
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host",
     "build": "tsc && vite build && node scripts/prepare-gas-build.cjs",
     "build:gas": "vite build --base ./ && node scripts/prepare-gas-build.cjs",
-    "check:size": "du -sh dist/index.html"
+    "check:size": "du -sh dist/index.html",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
     "@sentry/react": "^9.0.0",
@@ -31,12 +36,22 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@eslint/js": "^9.20.0",
     "@types/node": "^25.5.0",
     "@types/prop-types": "^15.7.15",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.62.1",
+    "@typescript-eslint/parser": "^8.62.1",
     "@vitejs/plugin-react": "^4.3.4",
     "esbuild": "^0.25.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.4",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vite-plugin-pwa": "^1.2.0",

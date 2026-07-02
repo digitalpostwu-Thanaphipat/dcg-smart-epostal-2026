@@ -22,7 +22,7 @@ export const offlineDb = {
       if (!item) return null;
       const payload = JSON.parse(item);
       return payload.data;
-    } catch (e) {
+    } catch {
       return null;
     }
   },

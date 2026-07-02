@@ -14,6 +14,46 @@ interface LayoutProps {
   onTabChange: (tab: string) => void;
 }
 
+interface SyncBadgeProps {
+  pendingCount: number;
+  isOnline: boolean;
+  isSyncing: boolean;
+  processQueue: () => void;
+}
+
+const SyncBadge: React.FC<SyncBadgeProps> = ({ pendingCount, isOnline, isSyncing, processQueue }) => {
+  if (pendingCount === 0 && isOnline) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
+        <Wifi className="w-3 h-3" /> Online
+      </div>
+    );
+  }
+
+  return (
+    <button 
+      onClick={() => isOnline && processQueue()}
+      disabled={isSyncing || !isOnline}
+      aria-label={!isOnline ? 'ออฟไลน์' : `กำลังซิงค์ ${pendingCount} รายการ`}
+      className={cn(
+        "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all",
+        !isOnline 
+          ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
+          : "bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse"
+      )}
+    >
+      {isSyncing ? (
+        <RefreshCw className="w-3 h-3 animate-spin" />
+      ) : !isOnline ? (
+        <WifiOff className="w-3 h-3" />
+      ) : (
+        <RefreshCw className="w-3 h-3" />
+      )}
+      {!isOnline ? 'Offline' : `Syncing ${pendingCount}...`}
+    </button>
+  );
+};
+
 export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => {
   const { theme, setTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
@@ -45,37 +85,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
 
   const { isOnline, isSyncing, pendingCount, processQueue } = useOfflineSync();
 
-  const SyncBadge = () => {
-    if (pendingCount === 0 && isOnline) return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
-        <Wifi className="w-3 h-3" /> Online
-      </div>
-    );
-
-    return (
-      <button 
-        onClick={() => isOnline && processQueue()}
-        disabled={isSyncing || !isOnline}
-        aria-label={!isOnline ? 'ออฟไลน์' : `กำลังซิงค์ ${pendingCount} รายการ`}
-        className={cn(
-          "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all",
-          !isOnline 
-            ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
-            : "bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse"
-        )}
-      >
-        {isSyncing ? (
-          <RefreshCw className="w-3 h-3 animate-spin" />
-        ) : !isOnline ? (
-          <WifiOff className="w-3 h-3" />
-        ) : (
-          <RefreshCw className="w-3 h-3" />
-        )}
-        {!isOnline ? 'Offline' : `Syncing ${pendingCount}...`}
-      </button>
-    );
-  };
-
   return (
     <div className={cn(
       "min-h-screen transition-colors duration-500 overflow-hidden relative selection:bg-primary/20",
@@ -100,11 +109,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
               key={item.id}
               onClick={() => onTabChange(item.id)}
               aria-label={item.label}
-              className={`flex w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-xs font-black uppercase tracking-widest transition-all duration-300 font-heading ${
+              className={cn(
+                "flex w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-xs font-black uppercase tracking-widest transition-all duration-300 font-heading",
                 activeTab === item.id
                   ? 'bg-primary text-white shadow-lg shadow-primary/20'
                   : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100'
-              }`}
+              )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
@@ -116,13 +126,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         <div className="p-4 border-t border-zinc-100 dark:border-zinc-800">
            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black">
-                    {user?.fullName?.charAt(0) || 'U'}
-                 </div>
-                 <div className="overflow-hidden">
-                    <p className="text-xs font-black truncate">{user?.fullName}</p>
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight truncate">{user?.role}</p>
-                 </div>
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black">
+                     {user?.fullName?.charAt(0) || 'U'}
+                  </div>
+                  <div className="overflow-hidden">
+                     <p className="text-xs font-black truncate">{user?.fullName}</p>
+                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight truncate">{user?.role}</p>
+                  </div>
               </div>
               <button 
                 onClick={handleLogout}
@@ -143,7 +153,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
             {menuItems.find(m => m.id === activeTab)?.label || 'หน้าแรก'}
           </h2>
           <div className="flex items-center gap-2 lg:gap-4">
-            <SyncBadge />
+            <SyncBadge 
+              pendingCount={pendingCount} 
+              isOnline={isOnline} 
+              isSyncing={isSyncing} 
+              processQueue={processQueue} 
+            />
             <button
               onClick={toggleTheme}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors tooltip-trigger relative group"
