@@ -2,49 +2,92 @@
 
 ## Current Production
 
-- Deployment: `@264`
+- Deployment: `@275`
 - URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 - Public tracking link: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec?publicTrack=1`
 
-## Current Admin Home
+## สถานะระบบ
 
-หน้า `ตั้งค่าระบบ` สำหรับงาน production ปกติควรเน้นเฉพาะงานที่ admin ใช้จริงและความเสี่ยงต่ำ:
+ระบบผ่าน live readiness และ write lifecycle smoke แล้ว พร้อมใช้งานจริงสำหรับ workflow หลัก
 
-- `ลิงก์กลางติดตามพัสดุ`: ใช้คัดลอก URL `?publicTrack=1` ไปแปะหน้าเว็บหน่วยงาน
-- `สำรองข้อมูลทันที`: ใช้ก่อน deploy, ก่อนแก้ข้อมูลใหญ่, หรือหลังยืนยันข้อมูลสำคัญ
-- `ตรวจสุขภาพระบบ`: ใช้ตรวจ DB, config, backup, trigger, monitor, sharding ก่อนประกาศพร้อมใช้งาน
+สิ่งที่ตั้งค่าแล้ว:
 
-## Advanced / Technical Operations
+- `ROOT_ADMIN_EMAIL`
+- `BACKUP_FOLDER_ID`
+- OAuth scope `script.scriptapp`
+- Trigger `createDailyBackup`
+- Trigger `checkSystemUptime`
+- ชีท `บันทึกการใช้งาน` ใช้หัวคอลัมน์ภาษาไทย
 
-รายการต่อไปนี้ไม่ควรอยู่หน้าแรกของ admin เพราะใช้ไม่บ่อยหรือมีความเสี่ยง:
+## งาน Admin ประจำ
 
-- `Maintenance ปีงบ`: ใช้จัดเก็บ/แยกข้อมูลตามปีงบประมาณ ควรใช้ช่วงปิดรอบหรือโดยผู้ดูแลเชิงเทคนิค
-- `Restore`: ใช้เฉพาะเหตุฉุกเฉิน เพราะเขียนทับข้อมูลปัจจุบัน ต้องมี backup และ confirm สองชั้น
-- `Repair schema / normalize data`: ใช้ตอน rollout, ซ่อมหัวตาราง, หรือปรับข้อมูล legacy เท่านั้น
-- `Uptime Monitor`: ไม่ใช่งาน admin ประจำ ควรตั้งโดยผู้ดูแลเชิงเทคนิคหลังตรวจช่องทางแจ้งเตือนจริง
+หน้า `ตั้งค่าระบบ` ควรใช้สำหรับงาน production ปกติ:
+
+- คัดลอกลิงก์ติดตามพัสดุส่วนกลาง
+- สำรองข้อมูลทันที ก่อน deploy หรือก่อนแก้ข้อมูลขนาดใหญ่
+- ตรวจสุขภาพระบบผ่าน health check
+- ตรวจการตั้งค่า trigger และ backup
+
+## Advanced Operations
+
+ใช้เฉพาะเมื่อจำเป็น:
+
+- Maintenance ปีงบ: ใช้ช่วงปิดรอบหรือโดยผู้ดูแลเชิงเทคนิค
+- Restore: ใช้เฉพาะเหตุฉุกเฉิน ต้องมี backup และยืนยันสองชั้น
+- Repair schema / normalize data: ใช้ตอน rollout, ซ่อมหัวตาราง, หรือปรับข้อมูล legacy
+- Uptime Monitor: ตั้งโดยผู้ดูแลระบบหลังยืนยันช่องทางแจ้งเตือนจริง
+
+## Backup
+
+Backup ล่าสุดที่ตรวจแล้ว:
+
+- `BACKUP_ePostal_2026-07-02_1639`
+
+ต้องมี trigger `createDailyBackup` ทำงานรายวัน และควรตรวจ log หลัง deploy สำคัญทุกครั้ง
+
+## Production Health
+
+Health check ต้องผ่าน 7 จุด:
+
+- integrity
+- access
+- config
+- backup
+- trigger
+- monitor
+- sharding
+
+ถ้า health check degrade ให้แก้ก่อน Go-Live หรือก่อนประกาศ release ใหม่
+
+## Security
+
+- ห้ามแชร์ session token, OTP, Apps Script properties, หรือ Drive folder ID ในช่องทางสาธารณะ
+- หลังใช้ token สำหรับ live smoke ให้ logout/re-login เพื่อออก session ใหม่
+- `xlsx` เป็น accepted risk เฉพาะ Excel export ฝั่ง client เท่านั้น
 
 ## Retired OCR Flow
 
-ยกเลิก OCR จากหน้า entry แล้ว เพราะพนักงานใช้งานยากและมีความเสี่ยงอ่านเลขพัสดุผิด
+OCR ถูกยกเลิกจากหน้า entry แล้ว เพราะมีความเสี่ยงอ่านเลขพัสดุผิดและไม่เหมาะกับ workflow production
 
-- Frontend ไม่แสดงปุ่ม `สแกนหน้าพัสดุ (AI)` แล้ว
-- Backend ถอด action `performOCR` ออกจาก RBAC และ route แล้ว
-- ยังเก็บไฟล์ `backend/Service_AI.gs` ไว้เพื่อ compatibility แต่ฟังก์ชันตอบ `OCR_RETIRED` เท่านั้น และไม่เรียก Gemini/UrlFetch
-- การบันทึกเลขพัสดุให้ใช้การพิมพ์หรือ barcode scanner เท่านั้น
+- Frontend ไม่แสดงปุ่ม AI/OCR
+- Backend ไม่ expose `performOCR`
+- `Service_AI.gs` เป็น compatibility stub เท่านั้น
 
 ## Production Rule
 
-ก่อน deploy production ให้รัน:
+ก่อน deploy:
 
 ```powershell
 npm.cmd run test:unit
 npm.cmd run build --prefix frontend
+npm.cmd run build:gas --prefix frontend
 ```
 
-หลัง deploy production ให้ตรวจ:
+หลัง deploy:
 
 ```powershell
+$env:EPOSTAL_LIVE_BASE_URL = "https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec"
 npm.cmd run test:live-readiness
 ```
 
-โดยตั้ง `EPOSTAL_LIVE_BASE_URL` และ token ตาม `docs/production-readiness-live-gate.md`
+Production write smoke ต้อง opt-in ชัดเจน และใช้ session token ใหม่เท่านั้น

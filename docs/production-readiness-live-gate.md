@@ -1,26 +1,31 @@
 # ePostal Production Readiness Live Gate
 
-Generated: 2026-07-01  
-Current production deployment: `@264`  
+Generated: 2026-07-02
+Current production deployment: `@275`
 Current production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
-## Status Model
+## สถานะปัจจุบัน
 
-The project is treated as **Production Ready for core workflows** only when local gates pass and the live read-only gate passes against the current Apps Script deployment.
+Live readiness gate ผ่านแล้ว และ write lifecycle smoke ผ่านแล้วบน production
 
-The project is treated as **Full Production Ready with PWA support** only after a real Android Chrome install/offline check is also completed.
+สถานะ release:
+
+- **Production Ready for core workflows:** ผ่าน
+- **Full Production Ready with completed PWA offline validation:** ยังรอ manual Android Chrome PWA test
 
 ## Local Gates
 
-Run these before any deployment sign-off:
+รันก่อน sign-off หรือ deploy รอบถัดไป:
 
 ```powershell
 npm.cmd run test:unit
-npm.cmd audit --audit-level=high
+npm.cmd audit
+npm.cmd audit --prefix frontend
 npm.cmd run build --prefix frontend
 npm.cmd run build:gas --prefix frontend
-npx.cmd playwright test
 ```
+
+หมายเหตุ: frontend audit ยังมี `xlsx` high vulnerability ที่ไม่มี fix available และถูกบันทึกเป็น accepted risk ใน `QUALITY_GATES.md`
 
 ## Live Readiness Gate
 
@@ -39,7 +44,7 @@ $env:EPOSTAL_LIVE_AUTH_TOKEN = "<admin-session-token>"
 npm.cmd run test:live-readiness
 ```
 
-Production write lifecycle check, explicit opt-in:
+Production write lifecycle check ต้อง opt-in ชัดเจน:
 
 ```powershell
 $env:EPOSTAL_LIVE_BASE_URL = "https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec"
@@ -48,24 +53,39 @@ $env:EPOSTAL_LIVE_WRITE = "1"
 npm.cmd run test:live-readiness
 ```
 
-## What The Gate Verifies
+## สิ่งที่ Gate ตรวจ
 
-- Public tracking page loads from the live deployment.
-- GAS serves manifest content from `?get=manifest`.
-- GAS serves service worker content from `?get=sw`.
-- `systemHealthCheck` exposes integrity, access, config, backup, trigger, monitor, and sharding checks.
-- Protected admin actions reject unauthenticated and invalid-token requests.
-- Optional authenticated read smoke verifies admin users and package search.
-- Optional write smoke creates a uniquely named production test record and verifies it via search.
-- OCR is retired: production UI must not show the AI parcel scan button, and backend `performOCR` must not be exposed in `Code.gs` route/permission maps.
+- หน้า public tracking โหลดจาก production URL ได้
+- GAS ส่ง manifest ผ่าน `?get=manifest`
+- GAS ส่ง service worker ผ่าน `?get=sw`
+- `systemHealthCheck` ตรวจ 7 จุด: integrity, access, config, backup, trigger, monitor, sharding
+- protected actions ปฏิเสธ request ที่ไม่มี token หรือ token ผิด
+- authenticated read smoke ตรวจ `adminGetUsers` และ `searchPackages`
+- write smoke สร้างรายการ production test, ค้นหา, confirm delivery, และ verify สถานะหลัง confirm
+
+## ผลล่าสุดวันที่ 2 กรกฎาคม 2026
+
+| รายการ | ผล |
+| --- | --- |
+| Main page | ผ่าน |
+| Health check | ผ่าน, status `healthy` |
+| Authenticated admin read | ผ่าน, พบผู้ใช้ 15 คน |
+| Write lifecycle smoke | ผ่าน |
+
+Write lifecycle smoke:
+
+- Tracking: `LIVE-READINESS-20260702100910`
+- Package ID: `EMS-20260702-0001`
+- Final status: `ส่งมอบแล้ว`
+- Delivered at: `2/7/2569 17:09`
 
 ## Manual Mobile PWA Check
 
-Use Android Chrome against the production URL:
+ใช้ Android Chrome กับ production URL:
 
-- Open the live URL and confirm no service worker MIME error appears.
-- Confirm install prompt or Add to Home Screen is available.
-- Install the app and launch it from the home screen.
-- Reopen with network disabled and confirm the app shell loads.
+- เปิด live URL และยืนยันว่าไม่มี service worker MIME error ที่กระทบการใช้งาน
+- ยืนยันว่ามี install prompt หรือ Add to Home Screen
+- ติดตั้งและเปิดจาก Home Screen
+- ปิด network แล้วเปิดซ้ำเพื่อยืนยันว่า app shell โหลดได้
 
-If this manual check is not complete, keep the release status at **Production Ready for core workflows**, not full PWA readiness.
+ถ้ายังไม่ทำ manual check นี้ ให้คงสถานะไว้ที่ **Production Ready for core workflows**

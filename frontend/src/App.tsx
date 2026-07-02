@@ -121,11 +121,11 @@ function App() {
 
 
   // Version Handshake Alert
-  const isVersionMismatch = systemInfo && systemInfo.version !== APP_VERSION;
+  const isVersionMismatch = Boolean(systemInfo && systemInfo.version !== APP_VERSION);
 
   useEffect(() => {
     if (isVersionMismatch) {
-      console.warn(`[Handshake] Version Mismatch: Frontend(${APP_VERSION}) vs Backend(${systemInfo.version})`);
+      console.warn(`[Handshake] Version Mismatch: Frontend(${APP_VERSION}) vs Backend(${systemInfo?.version})`);
       haptics.notification('warning');
     }
   }, [isVersionMismatch, systemInfo])

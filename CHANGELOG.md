@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [@275] - 2026-07-02
+
+### Fixed
+- **Live readiness health check**: Updated `Service_Health.gs` to validate the Thai audit log schema for sheet `บันทึกการใช้งาน`
+- **Production blockers cleared**: OAuth scope, Script Properties, audit sheet headers, backup freshness, and uptime trigger are now verified
+
+### Verified
+- Production deployment redeployed to `@275`
+- Health check status is `healthy` with 7/7 checks passing
+- Write lifecycle smoke passed on production: create -> search -> confirm -> verify
+- Smoke record: `LIVE-READINESS-20260702100910`, package ID `EMS-20260702-0001`, final status `ส่งมอบแล้ว`
+
+### Security
+- Documented `xlsx` as accepted risk + isolate: client-side export only, no user-uploaded Excel parsing
+- Root audit: 0 vulnerabilities
+- Frontend audit: 1 known high vulnerability from `xlsx`, no fix available
+
+---
+
 ## [@274] - 2026-07-02
 
 ### Added
@@ -87,6 +106,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| @275 | 2026-07-02 | Live Readiness Passed, Thai Audit Health Schema, Write Lifecycle Smoke |
 | @274 | 2026-07-02 | CI/CD Pipeline, Documentation Update |
 | @272 | 2026-07-02 | Sheet Protection, Accessibility Fixes |
 | @271 | 2026-07-02 | Unused Modules Cleanup, AI Model Removal |

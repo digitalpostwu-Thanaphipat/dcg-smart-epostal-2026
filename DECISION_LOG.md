@@ -204,4 +204,17 @@
 - **Impact:** ผ่านเกณฑ์ตรวจสอบคุณภาพของโปรเจกต์ 100% (เกณฑ์สเกนความปลอดภัย, ความเข้ากันได้ของคอลัมน์ และ UI Accessibility)
 - **Status:** Implemented | Verified PASS
 - **Lead Agent:** @antigravity
-$newDecision
+### 2026-07-02 - Production Gate 3/4 Sign-off and xlsx Accepted Risk
+- **Context:** ก่อน Full Go-Live ระบบต้องผ่าน live readiness, health check, backup/trigger validation, และ write lifecycle smoke บน production จริง
+- **Decision:**
+    1. Redeploy production เป็น `@275` หลังแก้ `Service_Health.gs` ให้ตรวจ schema ของชีท `บันทึกการใช้งาน` ด้วยหัวคอลัมน์ภาษาไทย
+    2. ตั้งค่า `ROOT_ADMIN_EMAIL` และ `BACKUP_FOLDER_ID` ใน Script Properties
+    3. ยืนยัน trigger `createDailyBackup` และ `checkSystemUptime`
+    4. ยอมรับความเสี่ยง `xlsx` แบบ accept risk + isolate เพราะใช้เฉพาะ client-side Excel export และไม่มีการ parse ไฟล์จากผู้ใช้
+    5. รัน production write lifecycle smoke แบบ explicit opt-in: create -> search -> confirm -> verify
+- **Alternatives Considered:** เปลี่ยน `xlsx` ทันทีเป็น library อื่น, isolate เพิ่มด้วย sandbox, หรือหยุด Go-Live จนกว่าจะไม่มี advisory เหลือ
+- **Rationale:** ความเสี่ยง `xlsx` ถูกจำกัดอยู่ที่ export-only dynamic import และไม่มี fix available ขณะที่ Gate 3/4 ที่เป็น blocker จริงผ่านครบแล้ว
+- **Impact:** ระบบพร้อม Go-Live สำหรับ workflow หลัก, health check ผ่าน 7/7, write lifecycle smoke จบด้วยสถานะ `ส่งมอบแล้ว`
+- **Evidence:** Tracking `LIVE-READINESS-20260702100910`, Package ID `EMS-20260702-0001`, Delivered at `2/7/2569 17:09`
+- **Status:** Accepted | Deployed @275 | Verified PASS
+- **Lead Agent:** Codex

@@ -1,69 +1,90 @@
-# รายงานความพร้อมโปรเจกต์ ePostal
+# รายงานความพร้อมใช้งานจริง ePostal
 
-วันที่อัปเดต: 1 กรกฎาคม 2026  
-Deployment ปัจจุบัน: **@264**  
+วันที่อัปเดต: 2 กรกฎาคม 2026
+Production deployment ปัจจุบัน: **@275**
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะสรุป
 
-สถานะปัจจุบัน: **Production Ready for core workflows**
+สถานะปัจจุบัน: **พร้อมใช้งานจริงสำหรับ workflow หลัก**
+
+ระบบผ่าน 4 Gates สุดท้ายก่อน Go-Live แล้ว:
+
+| Gate | สถานะ | รายละเอียด |
+| --- | --- | --- |
+| 1. Security audit | ผ่านแบบมีเงื่อนไข | root audit = 0 vulnerabilities, frontend เหลือ `xlsx` high vulnerability ที่ไม่มี fix |
+| 2. xlsx decision | ผ่าน | ยอมรับความเสี่ยง + isolate เพราะใช้เฉพาะ client-side Excel export ผ่าน dynamic import |
+| 3. Live readiness | ผ่าน | production health check เป็น `healthy`, checks ทั้ง 7 จุดผ่าน |
+| 4. Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify บน production สำเร็จ |
 
 ระบบพร้อมใช้งานจริงสำหรับงานหลัก:
 
-- บันทึกรับไปรษณีย์ภัณฑ์
+- บันทึกรับไปรษณียภัณฑ์
 - ค้นหารายการ
 - นำจ่ายและบันทึกลายเซ็น
-- ตรวจสอบรายการผ่านลิงก์ติดตามกลาง
+- ตรวจสอบรายการผ่านลิงก์ติดตาม
 - จัดการสิทธิ์ผู้ใช้ตาม role
 - สำรองข้อมูลและตรวจสุขภาพระบบ
 
-ยังไม่ควรประกาศว่า **Full Production Ready with PWA support** จนกว่าจะทดสอบติดตั้งบน Android Chrome จริงครบ manifest, service worker, install prompt, และ offline fallback
+ยังไม่ควรประกาศว่า **Full Production Ready with completed PWA offline validation** จนกว่าจะทดสอบติดตั้งบน Android Chrome จริงครบ manifest, service worker, install prompt และ offline fallback
 
 ## Deployment ล่าสุด
 
 | รายการ | สถานะ | รายละเอียด |
 | --- | --- | --- |
-| Apps Script deployment | PASS | Deployment เดิมถูกอัปเดตเป็น `@264` โดยลิงก์ production ไม่เปลี่ยน |
-| Backend push | PASS | `clasp.cmd push` อัปโหลด 25 ไฟล์สำเร็จ |
-| Frontend GAS bundle | PASS | `npm.cmd run build:gas --prefix frontend` สร้าง single-file bundle และ copy ไป `backend/index.html` |
-| Unit tests | PASS | `npm.cmd run test:unit` ผ่าน 22/22 |
-| OCR retirement | PASS | หน้า entry ไม่มีปุ่ม OCR, backend ไม่มี route/RBAC `performOCR`, `Service_AI.gs` ตอบ `OCR_RETIRED` เท่านั้น |
-| Delivery performance | DEPLOYED | `confirmDelivery` ลดการเขียน Google Sheets ทีละ cell และใช้ batch write ตามช่วงแถว/คอลัมน์ |
-
-## สิ่งที่เปลี่ยนใน @264
-
-1. ปิด OCR ใน workflow บันทึกรับไปรษณีย์ภัณฑ์ เพื่อลดความเสี่ยงจากการอ่านเลขพัสดุผิด
-2. ถอด `performOCR` ออกจาก backend route และ role permissions
-3. เปลี่ยน `Service_AI.gs` เป็น compatibility stub ที่ไม่เรียก Gemini หรือ `UrlFetchApp`
-4. ลบ client API กลุ่ม `ApiClient.ai` ออกจาก frontend source
-5. rebuild `backend/index.html` จาก frontend source ล่าสุด เพื่อให้หน้า production ไม่มี AI/OCR UI ค้าง
-6. ปรับ `prepare-gas-build.cjs` ให้ copy `frontend/dist/index.html` ไป `backend/index.html` อัตโนมัติหลัง build
-7. เพิ่ม/อัปเดตเอกสาร admin operation และ live readiness gate
+| Apps Script deployment | ผ่าน | redeploy production เป็น `@275` โดย URL เดิมไม่เปลี่ยน |
+| OAuth scope | ผ่าน | เพิ่ม/ยืนยัน `https://www.googleapis.com/auth/script.scriptapp` |
+| Script Properties | ผ่าน | ตั้ง `ROOT_ADMIN_EMAIL` และ `BACKUP_FOLDER_ID` แล้ว |
+| ชีทบันทึกการใช้งาน | ผ่าน | ซ่อมหัวคอลัมน์เป็นภาษาไทย 100% แล้ว |
+| Backup | ผ่าน | สร้าง backup `BACKUP_ePostal_2026-07-02_1639` แล้ว |
+| Triggers | ผ่าน | มี `createDailyBackup` และ `checkSystemUptime` |
+| Health check | ผ่าน | `integrity`, `access`, `config`, `backup`, `trigger`, `monitor`, `sharding` ผ่านทั้งหมด |
 
 ## ผลตรวจล่าสุด
 
-| คำสั่ง | ผล |
+| การตรวจสอบ | ผล |
 | --- | --- |
-| `npm.cmd run test:unit` | PASS, 22/22 |
-| `npm run skill-check` | PASS, แก้ไขผ่านเกณฑ์คุณภาพทั้ง 22 รายการ (GAS Hardening, Column Safety, UI/A11y) ครบถ้วน |
-| `npm.cmd run build --prefix frontend` | PASS |
-| `npm.cmd run build:gas --prefix frontend` | PASS |
-| `clasp.cmd push` ใน `backend/` | PASS |
-| `clasp.cmd deploy -i <production-deployment-id>` | PASS, deployed `@264` |
+| `npm audit` ที่ root | ผ่าน, 0 vulnerabilities |
+| `npm audit` ที่ frontend | เหลือ 1 high vulnerability จาก `xlsx`, ไม่มี fix available |
+| Live health check | ผ่าน, `healthy` |
+| Authenticated admin read smoke | ผ่าน, `adminGetUsers` อ่านผู้ใช้ได้ 15 คน |
+| Write lifecycle smoke | ผ่าน |
 
-## เกณฑ์ก่อนประกาศเต็มระบบ
+ผล Gate 4 production write smoke:
 
-ต้องผ่านเพิ่มเติม:
+- Tracking: `LIVE-READINESS-20260702100910`
+- Package ID: `EMS-20260702-0001`
+- สถานะหลังสร้าง: `รอนำจ่าย`
+- สถานะหลังยืนยัน: `ส่งมอบแล้ว`
+- เวลานำจ่าย: `2/7/2569 17:09`
 
-- ทดสอบ mobile/PWA บน Android Chrome จริง
-- รัน live readiness gate กับ production URL ล่าสุด
-- ทดสอบ write lifecycle หลัง deploy: create package -> search -> confirm delivery -> verify sheet/audit log
-- ตรวจ backup ล่าสุดและ trigger รายวันก่อนเปิดใช้งานจริงเต็มรูปแบบ
+## ความเสี่ยงที่ยอมรับ
+
+### `xlsx`
+
+- Package: `xlsx` v0.18.5
+- Advisory: Prototype Pollution และ ReDoS
+- สถานะ: ไม่มี fix available จาก `npm audit fix`
+- การตัดสินใจ: **Accept risk + isolate**
+- เหตุผล: ใช้เฉพาะ client-side Excel export ใน `frontend/src/components/PostalSearchPage.tsx` ผ่าน `await import('xlsx')` และไม่ได้ parse ไฟล์ Excel จากผู้ใช้
+
+เงื่อนไข:
+
+- ห้ามใช้ `xlsx` สำหรับ import/parse ไฟล์จากผู้ใช้โดยไม่มี security review ใหม่
+- ต้องคง dynamic import ไว้
+- ถ้าต้องเพิ่ม Excel import ในอนาคต ให้เปลี่ยน library หรือออกแบบ sandbox/validation ก่อน
+
+## งานคงเหลือ
+
+- ทดสอบ PWA บนอุปกรณ์ Android Chrome จริง
+- ติดตาม advisory ของ `xlsx` เป็นรายไตรมาส
+- หลัง Go-Live ให้ตรวจ backup และ uptime monitor เป็นรอบประจำ
 
 ## เอกสารที่เกี่ยวข้อง
 
-- `docs/admin-operations.md`
-- `docs/production-readiness-live-gate.md`
-- `docs/release-2026-07-01-264.md`
+- `CHANGELOG.md`
 - `QUALITY_GATES.md`
+- `CONTEXT.md`
+- `docs/production-readiness-live-gate.md`
+- `docs/admin-operations.md`
 - `DECISION_LOG.md`

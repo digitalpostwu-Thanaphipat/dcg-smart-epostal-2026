@@ -167,7 +167,14 @@ var Service_Health = {
         "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับตามจ่าหน้า", "ลายเซ็น",
         "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line"
       ],
-      [SHEET_NAMES.LOGS_AUDIT]: ["Timestamp", "Actor", "Action", "Details", "Status"],
+      // Audit log is sheet-facing, so the production schema must stay Thai.
+      [SHEET_NAMES.LOGS_AUDIT]: [
+        "\u0e27\u0e31\u0e19-\u0e40\u0e27\u0e25\u0e32",
+        "\u0e1c\u0e39\u0e49\u0e14\u0e33\u0e40\u0e19\u0e34\u0e19\u0e01\u0e32\u0e23",
+        "\u0e01\u0e32\u0e23\u0e01\u0e23\u0e30\u0e17\u0e33",
+        "\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14",
+        "\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38",
+      ],
     };
 
     let errors = [];

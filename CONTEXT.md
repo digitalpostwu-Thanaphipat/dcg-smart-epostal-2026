@@ -2,83 +2,85 @@
 
 ## Current Production Deployment
 
-- Production deployment: `@274`
+- Production deployment: `@275`
 - Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
-- Last deploy description: `Production - Sentry DSN updated to dcg-smart-epostal-2026 project`
+- Last deploy description: `Production - Gate 3 Thai audit health schema and scriptapp scope`
 - Readiness report: `PRODUCTION_READINESS_REPORT.md`
-- Core workflows are production ready after local gates and deploy.
+- Current status: พร้อม Go-Live สำหรับ workflow หลัก หลังผ่าน live readiness และ write lifecycle smoke
 
-## Error Monitoring (Sentry)
+## Production Readiness Status
 
-- Sentry Organization: `dcg-smart-2026` (https://dcg-smart-2026.sentry.io)
-- Sentry Project: `dcg-smart-epostal-2026` (Platform: React)
-- DSN: Stored in `frontend/.env.local` as `VITE_SENTRY_DSN`
-- Integration: `frontend/src/instrument.ts` (auto-init with ErrorBoundary in App.tsx)
-- Features: Error Monitoring, Browser Tracing, Session Replay
+ผ่าน 4 Gates สุดท้ายแล้ว:
 
-## System Health Check (Backend)
+1. Root audit = 0 vulnerabilities; frontend เหลือ `xlsx` high vulnerability ที่ไม่มี fix available
+2. ตัดสินใจ `xlsx` เป็น accepted risk + isolate
+3. Live health check ผ่าน 7/7 checks
+4. Production write lifecycle smoke ผ่าน create -> search -> confirm -> verify
+
+ยังรอ manual Android Chrome PWA install/offline validation ก่อนประกาศ full PWA readiness
+
+## Error Monitoring
+
+- Sentry Organization: `dcg-smart-2026`
+- Sentry Project: `dcg-smart-epostal-2026`
+- DSN: เก็บใน `frontend/.env.local` เป็น `VITE_SENTRY_DSN`
+- Integration: `frontend/src/instrument.ts` และ ErrorBoundary ใน `App.tsx`
+
+## System Health Check
 
 - File: `backend/Service_Health.gs`
 - Endpoint: `?get=health`
-- Checks 7 points: integrity, access, config, backup, trigger, monitor, sharding
-- Called from Admin UI: ตั้งค่าระบบ → ตรวจสุขภาพระบบ
-- Uptime monitoring: ใช้กับ UptimeRobot หรือ service อื่นๆ
+- Checks 7 จุด: integrity, access, config, backup, trigger, monitor, sharding
+- Audit sheet schema ใช้หัวคอลัมน์ภาษาไทยของชีท `บันทึกการใช้งาน`
+- Required Script Properties: `ROOT_ADMIN_EMAIL`, `BACKUP_FOLDER_ID`
+- Required OAuth scope: `https://www.googleapis.com/auth/script.scriptapp`
 
-## Rate Limiting (Public Tracking)
+## Operations
 
-- File: `backend/Service_Utils.gs` → `checkRateLimit()`
-- Applied to: `Service_Package.gs` → `publicSearchPackages()`
-- Limit: 15 requests per minute per department link
-- Error message: `RATE_LIMIT_EXCEEDED: มีการเรียกใช้งานถี่เกินไป กรุณารอสักครู่`
+- Backup trigger: `createDailyBackup`
+- Uptime trigger: `checkSystemUptime`
+- Latest verified backup: `BACKUP_ePostal_2026-07-02_1639`
+- Public tracking link: production URL + `?publicTrack=1`
 
-## Automated Backup
+## Security Notes
 
-- Trigger: Time-driven (daily) → `createDailyBackup`
-- File: `backend/Service_Backup.gs`
-- Setup: Apps Script Editor → Triggers → createDailyBackup
-
-## Package Log Glossary
-
-- `ชื่อผู้รับไปรษณีย์ภัณฑ์`: ชื่อผู้รับที่บันทึกจากหน้าซองหรือหน้าพัสดุ ใช้แทนคำเดิม `ชื่อผู้รับ`
-- `ผู้รับตามจ่าหน้า`: ชื่อที่บันทึกตอนยืนยันส่งมอบ/ลงนาม ใช้แทนคำเดิม `ผู้รับจริง`
-- `วิธีการส่งมอบ`: ใช้ค่า `ส่งมอบที่หน่วยงาน`
-- `ประเภทการใช้`: ใช้ค่า `ส่วนบุคคล` หรือ `งานมหาวิทยาลัย` เท่านั้น
-- `จนท.ผู้นำจ่าย`, `ผู้บันทึก`, `ผู้อัปเดตล่าสุด`: แสดงชื่อบุคลากร ไม่แสดงอีเมลเมื่อพบข้อมูลผู้ใช้ในฐานข้อมูล
-- `ลายเซ็น`: บันทึกเป็นรูปที่แสดงใน Google Sheets ผ่าน `IMAGE()` เมื่อระบบได้รับ data URL หรือ URL
-- `ประเภท`: ใช้ค่า `ไปรษณีย์ธรรมดา`, `ไปรษณีย์ด่วนพิเศษ (EMS)`, หรือ `ไปรษณีย์ลงทะเบียน`
-- `OCR`: ยกเลิกการใช้งานในขั้นตอนบันทึกรับไปรษณีย์ภัณฑ์ เพื่อเลี่ยงความเสี่ยงจากการอ่านเลขพัสดุผิด
+- ห้าม commit secrets, session token, OTP, Google Drive folder ID ที่เป็นความลับ หรือ Apps Script properties ลง repo
+- ถ้า session token ถูกส่งในแชตหรือ log ให้ logout/re-login เพื่อออก token ใหม่
+- `xlsx` ใช้ได้เฉพาะ export ฝั่ง client ห้ามใช้ parse/import ไฟล์จากผู้ใช้โดยไม่มี security review ใหม่
 
 ## CI/CD Pipeline
 
 - Workflow: `.github/workflows/deploy.yml`
-- Trigger: Push to `main` branch or manual dispatch
-- Process: Run tests → Build frontend → Deploy to GAS
-- Secrets required: `CLASP_SCRIPT_ID`, `CLASP_TOKEN` (in GitHub repo settings)
-- Manual deploy: GitHub Actions → Deploy → Run workflow
-- Emergency deploy: Select "Skip tests" option
+- Trigger: push to `main` หรือ manual dispatch
+- Secrets required: `CLASP_SCRIPT_ID`, `CLASP_TOKEN`
+- Process: test -> build frontend -> deploy to GAS
 
 ## Build And Deploy Notes
 
-- Apps Script project files live in `backend/`; run `clasp.cmd` commands from that directory.
-- `npm.cmd run build:gas --prefix frontend` builds the frontend bundle and copies `frontend/dist/index.html` into `backend/index.html`.
-- After frontend changes, run `build:gas` before `clasp.cmd push`; otherwise production can keep serving an old `backend/index.html`.
-- OCR is retired end-to-end. Do not re-add `performOCR` to `Code.gs` route or role permission maps without a new reviewed workflow.
+- Apps Script project files live in `backend/`; run `clasp.cmd` commands from that directory when needed
+- `npm.cmd run build:gas --prefix frontend` builds frontend and copies `frontend/dist/index.html` into `backend/index.html`
+- After frontend changes, run `build:gas` before `clasp.cmd push`
+- After backend changes, use `clasp.cmd push`, create version, then redeploy the production deployment ID
 
-## Access Control Glossary
+## Production Verification
 
-- `Postal`: เจ้าหน้าที่งานไปรษณีย์ที่ทำงานกับรายการไปรษณีย์ภัณฑ์ได้ รวมถึงการย้อนสถานะการนำจ่ายเมื่อจำเป็น
-- `Staff`: เจ้าหน้าที่ปฏิบัติงานที่บันทึกและนำจ่ายไปรษณีย์ภัณฑ์ได้ แต่ไม่ใช่สิทธิ์สำหรับย้อนสถานะการนำจ่าย
-- `DeptRep`: ตัวแทนหน่วยงาน ผู้มีรายชื่อในชีทผู้ใช้งานระบบและผูกกับหน่วยงาน ใช้สำหรับค้นหาไปรษณีย์ภัณฑ์ของหน่วยงานตนเองเท่านั้น
-- `User`: ผู้ใช้งานทั่วไปที่มีรายชื่อในชีทผู้ใช้งานระบบ ใช้สำหรับค้นหาไปรษณีย์ภัณฑ์ของหน่วยงานตนเองเท่านั้น
+Read-only:
 
-## Migration Notes
+```powershell
+$env:EPOSTAL_LIVE_BASE_URL = "https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec"
+npm.cmd run test:live-readiness
+```
 
-- Runtime code ยังอ่านหัวคอลัมน์เก่า `ชื่อผู้รับ` และ `ผู้รับจริง` เพื่อรองรับชีทที่ยังไม่ได้ซ่อมหัวตาราง
-- `ส่วนตัว` และ `ธุระส่วนตัว (ส่วนบุคคล)` เป็นค่า legacy สำหรับอ่านข้อมูลเก่าเท่านั้น รายการใหม่ต้องบันทึกเป็น `ส่วนบุคคล`
-- `EMS`, `ไปรษณีย์ภัณฑ์ธรรมดา`, `นำจ่ายที่หน่วยงาน`, `เซ็นรับที่เคาน์เตอร์` เป็นค่า legacy ที่ต้อง normalize ก่อน full rollout
-- หลัง deploy ให้รันฟังก์ชันซ่อมหัวตารางของโปรเจคเพื่อให้ชีทจริงใช้ schema ใหม่ครบ 18 คอลัมน์
+Authenticated read/write checks require a fresh admin session token and explicit write opt-in. See `docs/production-readiness-live-gate.md`
+
+## Retired OCR Flow
+
+- OCR ถูกยกเลิกจาก workflow บันทึกรับไปรษณียภัณฑ์แล้ว
+- Frontend ไม่แสดงปุ่ม AI/OCR
+- Backend ไม่ expose `performOCR` ใน route/RBAC
+- `backend/Service_AI.gs` เป็น compatibility stub เท่านั้น
 
 ## Installed Skills
 
 - Installed from `google/agents-cli`: `google-agents-cli-workflow`, `google-agents-cli-scaffold`, `google-agents-cli-adk-code`, `google-agents-cli-eval`, `google-agents-cli-deploy`, `google-agents-cli-publish`, `google-agents-cli-observability`
-- Current ePostal project is a React + Google Apps Script app, not an ADK agent project, so the agents-cli skills are used as workflow/code-preservation guidance only. Do not run scaffold/enhance unless the project is intentionally converted to an ADK agent project.
+- Current ePostal project is React + Google Apps Script, not an ADK agent project

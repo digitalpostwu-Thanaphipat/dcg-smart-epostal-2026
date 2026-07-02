@@ -99,14 +99,17 @@ test.describe('Live production readiness gate', () => {
     const trackingNo = `LIVE-READINESS-${Date.now()}`;
     const save = await postGas(request, 'savePackageEntry', {
       authToken: LIVE_AUTH_TOKEN,
+      userEmail: 'digitalpost.wu@gmail.com',
+      staffEmail: 'digitalpost.wu@gmail.com',
       departmentId: 'D001',
       departmentName: 'Production Readiness Test',
       emsList: [{
         trackingNo,
         receiverName: 'Production Readiness Test',
+        recipientName: 'Production Readiness Test',
         itemType: 'EMS',
         isPersonal: false,
-        note: 'Automated live readiness record',
+        notes: 'Automated live readiness record',
       }],
     });
     expect(save.success).toBe(true);
@@ -117,5 +120,36 @@ test.describe('Live production readiness gate', () => {
     });
     expect(search.success).toBe(true);
     expect(JSON.stringify(search.data || '')).toContain(trackingNo);
+
+    const created = (search.data || []).find((row) =>
+      String(row.trackingNo || row.trackingNumber || '').trim() === trackingNo
+    );
+    expect(created?.id, `created package id for ${trackingNo}`).toBeTruthy();
+
+    const signatureSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80"><rect width="100%" height="100%" fill="white"/><text x="16" y="48" font-family="Arial" font-size="20" fill="black">Live readiness</text></svg>';
+    const signatureImage = `data:image/svg+xml;base64,${Buffer.from(signatureSvg).toString('base64')}`;
+    const confirm = await postGas(request, 'confirmDelivery', {
+      authToken: LIVE_AUTH_TOKEN,
+      packageIds: [String(created?.id)],
+      signatureImage,
+      signatureName: 'Production Readiness Test',
+      receiverName: 'Production Readiness Test',
+      deliveryMethod: 'Production readiness smoke test',
+      staffEmail: 'digitalpost.wu@gmail.com',
+    });
+    expect(confirm.success).toBe(true);
+    expect(Number(confirm.count || 0)).toBeGreaterThan(0);
+
+    const verifiedSearch = await postGas<Array<Record<string, unknown>>>(request, 'searchPackages', {
+      authToken: LIVE_AUTH_TOKEN,
+      keyword: trackingNo,
+      status: '',
+    });
+    expect(verifiedSearch.success).toBe(true);
+    const verified = (verifiedSearch.data || []).find((row) =>
+      String(row.trackingNo || row.trackingNumber || '').trim() === trackingNo
+    );
+    expect(verified, `verified package for ${trackingNo}`).toBeTruthy();
+    expect(String(verified?.status || '')).toMatch(/delivered|ส่ง|จ่าย|มอบ/i);
   });
 });
