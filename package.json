@@ -2,7 +2,7 @@
   "name": "epostal",
   "version": "1.0.0",
   "description": "DCG Smart ePostal - Evolution v4.0",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "npm run dev --prefix frontend",
     "test:loki": "npx playwright test",

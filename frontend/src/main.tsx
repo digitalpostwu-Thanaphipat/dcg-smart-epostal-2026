@@ -13,7 +13,7 @@ if (isProd && 'serviceWorker' in navigator) {
     const swUrl = window.location.href.split(/[?#]/)[0] + '?get=sw';
     navigator.serviceWorker.register(swUrl)
       .then(registration => {
-        console.log('✅ PWA: Service Worker Registered', registration.scope);
+        console.info('✅ PWA: Service Worker Registered', registration.scope);
         
         // ตรวจสอบการอัปเดตแบบ Active
         registration.addEventListener('updatefound', () => {
@@ -21,7 +21,7 @@ if (isProd && 'serviceWorker' in navigator) {
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('✨ PWA: New content available, please refresh.');
+                console.info('✨ PWA: New content available, please refresh.');
                 // Dispatch event for UI to show update prompt
                 window.dispatchEvent(new CustomEvent('sw-update-available'));
               }
@@ -39,11 +39,11 @@ setTimeout(() => {
   if (import.meta.env.DEV) {
     import('./api/client').then(({ ApiClient }) => {
       (window as any).ApiClient = ApiClient;
-      console.log("🛠️ Loki Debug: ApiClient exposed to window.ApiClient");
+      console.info("🛠️ Loki Debug: ApiClient exposed to window.ApiClient");
     });
     import('./db/dexie').then(({ db }) => {
       (window as any).db = db;
-      console.log("🛠️ Loki Debug: Dexie DB exposed to window.db");
+      console.info("🛠️ Loki Debug: Dexie DB exposed to window.db");
     });
   }
 }, 100);

@@ -196,7 +196,7 @@ function repairProjectSheetHeaders() {
         .setHorizontalAlignment("center")
         .setVerticalAlignment("middle");
       sheet.setFrozenRows(1);
-      try { sheet.autoResizeColumns(1, headers.length); } catch (resizeErr) {}
+      try { sheet.autoResizeColumns(1, headers.length); } catch (resizeErr) { console.warn("Auto-resize failed: " + resizeErr.message); }
 
       _lockHeaderRange(sheet, headers.length, warnings);
       updated.push({ sheet: sheetName, columns: headers.length });
@@ -226,7 +226,7 @@ function repairProjectSheetHeaders() {
   } catch (e) {
     return { success: false, error: e.message, updated: updated, warnings: warnings };
   } finally {
-    try { lock.releaseLock(); } catch (releaseErr) {}
+    try { lock.releaseLock(); } catch (releaseErr) { console.warn("Release lock failed: " + releaseErr.message); }
   }
 }
 
