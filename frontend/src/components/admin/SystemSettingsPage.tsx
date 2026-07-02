@@ -439,6 +439,7 @@ export const SystemSettingsPage = () => {
                   <button 
                     onClick={handleSetupMonitor}
                     disabled={loading || !configs.LINE_NOTIFY_TOKEN}
+                    aria-label="ติดตั้งหรืออัปเดตระบบติดตาม Uptime ด้วย LINE Notify"
                     className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-zinc-900 dark:bg-zinc-800 hover:bg-zinc-800 dark:hover:bg-zinc-700 text-white border border-zinc-800 text-xs font-black font-heading uppercase tracking-wider transition-colors disabled:opacity-50"
                   >
                     <Zap className="w-4 h-4 text-amber-500" />
@@ -455,6 +456,7 @@ export const SystemSettingsPage = () => {
                   <button 
                     onClick={handleMaintenance}
                     disabled={loading}
+                    aria-label="เริ่มการจัดเก็บข้อมูลเก่าและทำความสะอาดปีงบประมาณ"
                     className="p-5 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/40 text-left space-y-3 transition-all active:scale-95"
                   >
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
@@ -469,6 +471,7 @@ export const SystemSettingsPage = () => {
                   <button 
                     onClick={handleRepairDatabase}
                     disabled={loading}
+                    aria-label="ซ่อมแซมโครงสร้างและหัวตารางฐานข้อมูล"
                     className="p-5 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-blue-500/40 text-left space-y-3 transition-all active:scale-95"
                   >
                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -496,6 +499,7 @@ export const SystemSettingsPage = () => {
                   <button 
                     onClick={handleRestore}
                     disabled={loading || !restoreFileId}
+                    aria-label="กู้คืนฐานข้อมูลจาก Google Drive File ID"
                     className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black font-heading uppercase text-[10px] tracking-wider transition-colors disabled:opacity-50"
                   >
                     ดำเนินการกู้คืนข้อมูล
