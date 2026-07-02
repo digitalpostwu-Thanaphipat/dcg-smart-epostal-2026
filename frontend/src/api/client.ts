@@ -228,7 +228,8 @@ export const ApiClient = {
     getSystemConfigs: () => request("getSystemConfigs", null, "POST"),
     updateSystemConfig: (key: string, value: string) => request("updateSystemConfig", { key, value }, "POST"),
     setupUptimeMonitor: () => request("setupUptimeMonitor", null, "POST"),
-    getPublicTrackingLinks: () => request("getPublicTrackingLinks", null, "POST")
+    getPublicTrackingLinks: () => request("getPublicTrackingLinks", null, "POST"),
+    repairDatabase: () => request("repairProjectSheetHeaders", null, "POST")
   },
   postal: {
     saveEntry: (data: any) => request("savePackageEntry", data, "POST"),
