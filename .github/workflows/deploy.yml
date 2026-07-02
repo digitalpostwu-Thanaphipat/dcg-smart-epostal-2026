@@ -1,0 +1,102 @@
+name: Deploy to Google Apps Script
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests (emergency deploy)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install dependencies (Root)
+        run: npm ci
+
+      - name: Install dependencies (Frontend)
+        run: npm ci --prefix frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run Playwright tests
+        run: npx playwright test --project=chromium
+
+  deploy:
+    name: Build & Deploy
+    needs: test
+    if: ${{ always() && (needs.test.result == 'success' || inputs.skip_tests) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install dependencies (Root)
+        run: npm ci
+
+      - name: Install dependencies (Frontend)
+        run: npm ci --prefix frontend
+
+      - name: Build frontend (GAS single-file)
+        run: npm run build:gas --prefix frontend
+
+      - name: Verify build output
+        run: |
+          SIZE=$(stat -f%z frontend/dist/index.html 2>/dev/null || stat -c%s frontend/dist/index.html)
+          SIZE_MB=$(echo "scale=2; $SIZE / 1048576" | bc)
+          echo "Build size: ${SIZE_MB} MB"
+          if [ "$SIZE" -gt 31457280 ]; then
+            echo "ERROR: Build exceeds 30MB limit"
+            exit 1
+          fi
+
+      - name: Copy to backend
+        run: cp frontend/dist/index.html backend/index.html
+
+      - name: Setup clasp credentials
+        run: |
+          echo '{"token":{"access_token":"'"${{ secrets.CLASP_TOKEN }}"'","refresh_token":"'"${{ secrets.CLASP_TOKEN }}"'"},"oauth2ClientId":"","oauth2ClientSecret":""}' > ~/.clasprc.json
+          echo '{"scriptId":"${{ secrets.CLASP_SCRIPT_ID }}","rootDir":"./"}' > backend/.clasp.json
+
+      - name: Push to Apps Script
+        working-directory: backend
+        run: npx @google/clasp push --force
+
+      - name: Deploy new version
+        id: deploy
+        working-directory: backend
+        run: |
+          DESC="Auto-Deploy ${{ github.sha }} - $(date -u +'%Y-%m-%d %H:%M')"
+          OUTPUT=$(npx @google/clasp deploy -d "$DESC" 2>&1)
+          echo "$OUTPUT"
+          VERSION=$(echo "$OUTPUT" | grep -oP 'https://script\.google\.com/macros/s/\K[^/]+')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** \`${{ steps.deploy.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
