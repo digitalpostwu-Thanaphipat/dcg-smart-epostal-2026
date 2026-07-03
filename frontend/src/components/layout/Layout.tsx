@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { LayoutDashboard, Package, Search, Settings, User, Moon, Sun, Clock, Shield, LogOut, Mail } from 'lucide-react';
+import { LayoutDashboard, Package, Search, User, Moon, Sun, Clock, Shield, LogOut, Mail } from 'lucide-react';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { cn } from '@/lib/utils';

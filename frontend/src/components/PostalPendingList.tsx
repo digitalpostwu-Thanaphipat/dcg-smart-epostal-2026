@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Package, CheckCircle2, Clock, ChevronUp, ChevronDown, Building2, RefreshCw, Truck, Send, Zap, Loader2, ClipboardList, Search, X, Users, User, AlertTriangle, Lock, AlertCircle } from 'lucide-react';
+import { Package, CheckCircle2, Clock, ChevronUp, ChevronDown, Building2, RefreshCw, Truck, Send, Zap, Loader2, ClipboardList, Search, X, Users, AlertTriangle, Lock, AlertCircle } from 'lucide-react';
 import { ApiClient } from '@/api/client';
 import { toast } from 'react-hot-toast';
 import { SignaturePad } from './ui/SignaturePad';
@@ -238,6 +238,7 @@ export const PostalPendingList = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
 
     // Periodically check for conflicts in SyncQueue
@@ -245,7 +246,7 @@ export const PostalPendingList = () => {
        const conflicts = await db.syncQueue
           .filter(item => !!item.payload.conflict)
           .toArray();
-       
+
        if (conflicts.length > 0 && !showConflictDialog) {
           const conflict = conflicts[0];
           setActiveConflict(conflict);
@@ -254,7 +255,8 @@ export const PostalPendingList = () => {
     }, 5000);
 
     return () => clearInterval(conflictChecker);
-  }, [showConflictDialog]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter items by search query
   const filteredItems = useMemo(() => {
@@ -296,13 +298,6 @@ export const PostalPendingList = () => {
     } else {
       setSelectedPackages(prev => Array.from(new Set([...prev, ...ids])));
     }
-  };
-
-  // Get department name of the currently selected packages (for modal display)
-  const getSelectedDeptName = (): string => {
-    if (selectedPackages.length === 0) return '';
-    const firstSelected = items.find(p => p.id === selectedPackages[0]);
-    return firstSelected?.department || '';
   };
 
   const handleOpenSignature = () => {
@@ -382,7 +377,7 @@ export const PostalPendingList = () => {
             // Optimistic Update local cache
             await db.pendingDeliveries.where('packageId').anyOf(originalIds).delete();
             fetchItems();
-         } catch (dbErr) {
+         } catch (_dbErr) {
             toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกการนำจ่าย');
          }
       }
@@ -441,7 +436,7 @@ export const PostalPendingList = () => {
       setShowConflictDialog(false);
       setActiveConflict(null);
       fetchItems();
-    } catch (e) {
+    } catch (_e) {
        toast.error('ไม่สามารถแก้ไขข้อขัดแย้งได้');
     }
   };

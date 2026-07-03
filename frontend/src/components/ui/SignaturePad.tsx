@@ -160,7 +160,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
       });
 
     return opts;
-  }, [selectedDepts, personnel, positions, representatives, originalRecipients]);
+  }, [selectedDepts, personnel, positions, representatives, originalRecipients, itemDepartments]);
 
   const clear = () => {
     sigCanvas.current?.clear();

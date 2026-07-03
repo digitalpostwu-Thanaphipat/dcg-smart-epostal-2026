@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
 
 export const ReloadPrompt: React.FC = () => {
   const [needUpdate, setNeedUpdate] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { Search, ChevronDown, Check, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,7 +48,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const listboxId = useMemo(() => `listbox-${Math.random().toString(36).substr(2, 9)}`, []);
+  const uniqueId = useId();
+  const listboxId = `listbox-${uniqueId}`;
 
   // Close when clicking outside
   useEffect(() => {
@@ -172,10 +173,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   useEffect(() => {
     if (isOpen) {
       const firstOption = filteredOptions.findIndex(opt => opt.type === 'option');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHighlightedIndex(firstOption);
     } else {
       setHighlightedIndex(-1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, searchTerm]);
 
   const currentLabel = selectedOption ? selectedOption.label : (value ? String(value) : "");

@@ -11,7 +11,6 @@ import {
   Loader2, 
   X, 
   CheckCircle2, 
-  AlertCircle,
   Fingerprint,
   Users,
   Lock,
@@ -30,7 +29,6 @@ interface UserAccount {
 
 export const UserManagementPage = () => {
   const [users, setUsers] = useState<UserAccount[]>([]);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,20 +45,19 @@ export const UserManagementPage = () => {
     try {
       const res = await ApiClient.admin.getUsers();
       setUsers(Array.isArray(res) ? res : (res.data || []));
-    } catch (e: any) {
+    } catch (_e) {
       toast.error('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
     }
   };
 
   const fetchDepts = async () => {
     try {
-      const res = await ApiClient.admin.getDepartments();
-      const depts = Array.isArray(res) ? res : (res.data || []);
-      setDepartments(depts.map((d: any) => ({ id: d.DeptID || d.id, name: d.DeptName || d.name })));
-    } catch (e) { console.error(e); }
+      await ApiClient.admin.getDepartments();
+    } catch (_e) { /* departments loaded on demand */ }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     Promise.all([fetchUsers(), fetchDepts()]).finally(() => setLoading(false));
   }, []);
 
@@ -95,7 +92,7 @@ export const UserManagementPage = () => {
         haptics.success();
         fetchUsers();
       } else { throw new Error(); }
-    } catch (e) {
+    } catch (_e) {
       toast.error('ไม่สามารถดำเนินการได้', { id: t });
       haptics.error();
     }

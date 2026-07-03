@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquareWarning, X, Send, AlertCircle, Smile, Meh, Frown, Star } from 'lucide-react';
+import { MessageSquareWarning, X, Send, AlertCircle, Star } from 'lucide-react';
 import { ApiClient } from '../../api/client';
 import toast from 'react-hot-toast';
 import { haptics } from '../../utils/haptics';
-import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export const FeedbackWidget = () => {

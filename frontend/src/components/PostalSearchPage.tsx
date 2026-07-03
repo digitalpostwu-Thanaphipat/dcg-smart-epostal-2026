@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, 
-  Filter, 
   Calendar, 
   Clock, 
-  ChevronRight, 
-  ChevronLeft, 
-  ArrowLeft,
   X,
   Building2,
   Tag,
   CheckCircle2,
-  AlertCircle,
   RotateCcw,
   SlidersHorizontal,
   Package,
   User,
   Download,
-  RefreshCw,
-  Loader2,
   Inbox,
-  Zap,
-  ClipboardList
+  Zap
 } from 'lucide-react';
 import { ApiClient, type PostalPackage } from '@/api/client';
 import { toast } from 'react-hot-toast';
@@ -95,6 +87,7 @@ export const PostalSearchPage = () => {
       handleSearch();
     }, 600); // ดีเลย์ 600ms เพื่อประหยัด API call
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, filters.status, filters.type, filters.department, filters.dateFrom, filters.dateTo, filters.fiscalYear]);
 
   const handleRevert = async (pkg: PostalPackage) => {

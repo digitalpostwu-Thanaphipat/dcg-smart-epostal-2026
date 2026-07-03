@@ -1,24 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Camera, CameraOff, SwitchCamera, X, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface BarcodeScannerProps {
   onScan: (code: string) => void;
   onClose: () => void;
 }
 
+let scannerIdCounter = 0;
+
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState('');
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const containerRef = useRef<string>('barcode-scanner-' + Date.now());
+  const containerId = useMemo(() => `barcode-scanner-${++scannerIdCounter}`, []);
 
   const startScanning = async () => {
     try {
       setError('');
-      const scanner = new Html5Qrcode(containerRef.current);
+      const scanner = new Html5Qrcode(containerId);
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode },
@@ -38,7 +39,12 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
   const switchCamera = async () => { await stopScanning(); setFacingMode(prev => prev === 'environment' ? 'user' : 'environment'); };
 
-  useEffect(() => { startScanning(); return () => { stopScanning(); }; }, [facingMode]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    startScanning();
+    return () => { stopScanning(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facingMode]);
 
   return (
     <div className="fixed inset-0 z-[1000] bg-zinc-950/90 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-500 font-body">
@@ -60,7 +66,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
         {/* Scanner Area */}
         <div className="relative bg-black h-80 overflow-hidden">
-          <div id={containerRef.current} className="w-full h-full" />
+          <div id={containerId} className="w-full h-full" />
           {!isScanning && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
               <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />

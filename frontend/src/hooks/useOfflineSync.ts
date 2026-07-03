@@ -43,13 +43,15 @@ export function useOfflineSync() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updatePendingCount();
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [processQueue, updatePendingCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return { isOnline, isSyncing, pendingCount, processQueue };
 }

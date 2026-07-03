@@ -34,8 +34,11 @@ test.describe('Live production readiness gate', () => {
   test.skip(!LIVE_BASE_URL, 'Set EPOSTAL_LIVE_BASE_URL to run live production readiness checks.');
 
   test('public tracking page and GAS PWA assets are served with expected content', async ({ page, request }) => {
-    await page.goto(`${LIVE_BASE_URL}?publicTrack=1`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await expect(page.locator('body')).toContainText(/ePostal|DCG|ติดตาม|ไปรษณีย์/i);
+    // GAS serves content inside an iframe, so check the raw HTML response instead of rendered body
+    const response = await request.get(`${LIVE_BASE_URL}?publicTrack=1`, { timeout: 60_000 });
+    expect(response.ok()).toBeTruthy();
+    const html = await response.text();
+    expect(html).toContain('ePostal');
 
     const manifestResponse = await request.get(`${LIVE_BASE_URL}?get=manifest`, { timeout: 60_000 });
     expect(manifestResponse.ok()).toBeTruthy();

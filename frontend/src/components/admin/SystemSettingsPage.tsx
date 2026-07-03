@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Database, ShieldCheck, Download, RefreshCcw, History, AlertTriangle, 
-  FileJson, Loader2, Zap, Link2, Copy, CheckCircle2, XCircle, ChevronDown, ChevronUp
+  Database, ShieldCheck, Download, RefreshCcw, AlertTriangle, 
+  Loader2, Zap, Link2, Copy, CheckCircle2, XCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { ApiClient } from '@/api/client';
 import { toast } from 'react-hot-toast';
@@ -20,13 +20,7 @@ export const SystemSettingsPage = () => {
 
 
 
-  useEffect(() => {
-    loadConfigs();
-    // Auto run health check on mount quietly
-    runQuietHealthCheck();
-  }, []);
-
-  const loadConfigs = async () => {
+  const loadConfigs = useCallback(async () => {
     try {
       const res: any = await ApiClient.admin.getSystemConfigs();
       if (res.success) {
@@ -35,9 +29,9 @@ export const SystemSettingsPage = () => {
     } catch (e) {
       console.error('Failed to load configs', e);
     }
-  };
+  }, []);
 
-  const runQuietHealthCheck = async () => {
+  const runQuietHealthCheck = useCallback(async () => {
     try {
       const res: any = await ApiClient.health.check();
       if (res.status) {
@@ -46,7 +40,13 @@ export const SystemSettingsPage = () => {
     } catch (e) {
       console.warn('Quiet health check failed', e);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadConfigs();
+    runQuietHealthCheck();
+  }, [loadConfigs, runQuietHealthCheck]);
 
   const handleHealthCheck = async () => {
     setCheckingHealth(true);
@@ -219,7 +219,7 @@ export const SystemSettingsPage = () => {
     haptics.medium();
     const t = toast.loading('กำลังปรับปรุง Schema และซ่อมแซมหัวตาราง...');
     try {
-      const res: any = await ApiClient.admin.repairDatabase();
+      await ApiClient.admin.repairDatabase();
       haptics.success();
       toast.success('ซ่อมแซมโครงสร้างตารางและ Normalization ข้อมูลเรียบร้อย', { id: t });
       runQuietHealthCheck();

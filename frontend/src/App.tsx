@@ -34,7 +34,7 @@ const detectPublicTrackingFromBrowser = () => {
     return typeof document !== 'undefined'
       && !!document.referrer
       && hasPublicTrackParam(new URL(document.referrer).searchParams)
-  } catch (e) {
+  } catch (_e) {
     return false
   }
 }
@@ -101,7 +101,7 @@ function App() {
             const userData = response.data;
             const updatedRole = userData.Role || userData.role || 'User';
             const updatedDept = userData.Department || userData.department || userData.หน่วยงาน || 'มหาลัย';
-            
+
             if (user.role !== updatedRole || user.department !== updatedDept) {
               useAuthStore.getState().login({
                 ...user,
@@ -117,6 +117,7 @@ function App() {
       }
     };
     syncUserRole();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user?.email]);
 
 

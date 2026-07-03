@@ -92,7 +92,7 @@ export async function request(action: string, data: any = {}, method: 'GET' | 'P
       payload.authToken = payload.authToken || sessionToken;
     }
     // [SECURITY] mock-token bypass removed - all auth must go through OTP flow
-  } catch(e) {
+  } catch(_e) {
     // Silent fail - auth token will be missing, server will reject
   }
 
@@ -121,7 +121,7 @@ export async function request(action: string, data: any = {}, method: 'GET' | 'P
                 return resolve(executeWithRetry(attempt + 1));
               }
               resolve(parsed);
-            } catch (e) {
+            } catch (_e) {
               resolve(res);
             }
           })
@@ -162,7 +162,7 @@ export async function request(action: string, data: any = {}, method: 'GET' | 'P
       let json;
       try {
         json = JSON.parse(text);
-      } catch (e) {
+      } catch (_e) {
          if (text.includes("ServiceLogin") || text.includes("google-signin")) {
              return { success: false, error: "AUTH_REQUIRED" };
          }
