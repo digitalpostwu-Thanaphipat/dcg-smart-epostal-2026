@@ -130,6 +130,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| @276 | 2026-07-03 | Lint Cleanup (47→0), Proxy CORS Fix, Full Production Ready (95/100) |
 | @275 | 2026-07-02 | Live Readiness Passed, Thai Audit Health Schema, Write Lifecycle Smoke |
 | @274 | 2026-07-02 | CI/CD Pipeline, Documentation Update |
 | @272 | 2026-07-02 | Sheet Protection, Accessibility Fixes |

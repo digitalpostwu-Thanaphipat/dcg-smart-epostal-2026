@@ -20,6 +20,8 @@
 6. PWA: install + online + offline ผ่านบน Android Chrome แล้ว
 
 สถานะ: **Full Production Ready**
+- Commits: `b783848` (lint cleanup + live test fix), `c69475c` (proxy redirect handler)
+- Branch: main, 3 commits ahead of origin
 
 ## Error Monitoring
 

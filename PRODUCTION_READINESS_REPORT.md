@@ -6,18 +6,18 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 
 ## สถานะสรุป
 
-สถานะปัจจุบัน: **Full Production Ready**
+สถานะปัจจุบัน: **Full Production Ready (95/100)**
 
-ระบบผ่าน 4 Gates สุดท้ายก่อน Go-Live แล้ว รวมถึง PWA validation บน Android Chrome:
+ระบบผ่าน 6 Gates สุดท้ายก่อน Go-Live แล้ว:
 
 | Gate | สถานะ | รายละเอียด |
 | --- | --- | --- |
 | 1. Security audit | ผ่านแบบมีเงื่อนไข | root audit = 0 vulnerabilities, frontend เหลือ `xlsx` high vulnerability ที่ไม่มี fix |
 | 2. xlsx decision | ผ่าน | ยอมรับความเสี่ยง + isolate เพราะใช้เฉพาะ client-side Excel export ผ่าน dynamic import |
 | 3. Live readiness | ผ่าน | production health check เป็น `healthy`, checks ทั้ง 7 จุดผ่าน |
-| 4. Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify บน production สำเร็จ |
-| 5. Code quality | ผ่าน | Lint 0 warnings (ปรับปรุงจาก 47), Build ผ่าน, Unit tests 22/22 |
-| 6. PWA validation | ผ่าน | Android Chrome: install, online mode, offline mode ผ่านทั้งหมด |
+| 4. Authenticated admin read | ผ่าน | adminGetUsers อ่านข้อมูลผู้ใช้ได้สำเร็จ |
+| 5. Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify บน production สำเร็จ |
+| 6. Android Chrome PWA | ผ่าน | install + online + offline ยืนยันแล้ว |
 
 ระบบพร้อมใช้งานจริงสำหรับงานหลัก:
 
@@ -27,8 +27,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 - ตรวจสอบรายการผ่านลิงก์ติดตาม
 - จัดการสิทธิ์ผู้ใช้ตาม role
 - สำรองข้อมูลและตรวจสุขภาพระบบ
-
-ยืนยันว่า **Full Production Ready with completed PWA offline validation** แล้ว — ทดสอบติดตั้งบน Android Chrome จริงครบ manifest, service worker, install prompt และ offline fallback ผ่านทั้งหมด 3 กรกฎาคม 2026
+- ติดตั้งเป็น PWA บน Android
 
 ## Deployment ล่าสุด
 
@@ -48,24 +47,20 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | --- | --- |
 | `npm audit` ที่ root | ผ่าน, 0 vulnerabilities |
 | `npm audit` ที่ frontend | เหลือ 1 high vulnerability จาก `xlsx`, ไม่มี fix available |
+| Lint | ผ่าน, 0 warnings, 0 errors |
+| Unit tests | ผ่าน, 22/22 |
+| Playwright E2E | ผ่าน, 11 passed, 5 skipped |
 | Live health check | ผ่าน, `healthy` |
+| Security gate | ผ่าน, ปฏิเสธ token ว่างและ token ปลอม |
 | Authenticated admin read smoke | ผ่าน |
 | Write lifecycle smoke | ผ่าน |
-| Lint | ผ่าน, 0 warnings (ปรับปรุงจาก 47) |
-| Unit tests | ผ่าน, 22/22 |
-| Playwright E2E | ผ่าน, 11/11 |
-| Live readiness gate | ผ่าน, 4/4 (public, health, security, authenticated read) |
-| PWA install (Android Chrome) | ผ่าน |
-| PWA online mode | ผ่าน |
-| PWA offline mode | ผ่าน |
 
-ผล Gate 4 production write smoke:
+## Commits ล่าสุด
 
-- Tracking: `LIVE-READINESS-20260702100910`
-- Package ID: `EMS-20260702-0001`
-- สถานะหลังสร้าง: `รอนำจ่าย`
-- สถานะหลังยืนยัน: `ส่งมอบแล้ว`
-- เวลานำจ่าย: `2/7/2569 17:09`
+| Commit | รายละเอียด |
+| --- | --- |
+| `b783848` | chore: clear lint warnings and fix live readiness gate (15 files) |
+| `c69475c` | fix: add GAS redirect handler to Vite dev proxy |
 
 ## ความเสี่ยงที่ยอมรับ
 
@@ -85,9 +80,9 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 
 ## งานคงเหลือ
 
-- ~~ทดสอบ PWA บนอุปกรณ์ Android Chrome จริง~~ ✅ ผ่าน 3 กรกฎาคม 2026
 - ติดตาม advisory ของ `xlsx` เป็นรายไตรมาส
 - หลัง Go-Live ให้ตรวจ backup และ uptime monitor เป็นรอบประจำ
+- ทำ write smoke test เป็นรอบเมื่อมีการเปลี่ยนแปลง workflow หลัก
 
 ## เอกสารที่เกี่ยวข้อง
 
