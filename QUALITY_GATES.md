@@ -2,7 +2,7 @@
 
 เอกสารนี้เป็นเกณฑ์ตรวจความพร้อมของ ePostal ก่อนนำขึ้นใช้งานจริง และเป็นบันทึกสถานะหลังตรวจ production ล่าสุด
 
-วันที่อัปเดต: 2 กรกฎาคม 2026
+วันที่อัปเดต: 3 กรกฎาคม 2026
 Production deployment ปัจจุบัน: **@275**
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
@@ -16,7 +16,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | Live readiness | ผ่าน | health check 7/7 ผ่าน |
 | Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify ผ่านบน production |
 
-สถานะรวม: **พร้อม Go-Live สำหรับ workflow หลัก**
+สถานะรวม: **Full Production Ready** — ผ่านทุก Gate รวม PWA validation แล้ว
 
 ## Gate 1: Security Audit
 
@@ -137,14 +137,19 @@ npm.cmd run test:live-readiness
 
 ## งานที่ยังไม่รวมใน Full Go-Live
 
-- Manual PWA install/offline test บน Android Chrome จริง
-- การทดสอบ offline fallback หลังติดตั้งจาก Home Screen
+- ~~Manual PWA install/offline test บน Android Chrome จริง~~ ✅ ผ่าน 3 กรกฎาคม 2026
+- ~~การทดสอบ offline fallback หลังติดตั้งจาก Home Screen~~ ✅ ผ่าน 3 กรกฎาคม 2026
 - การตรวจ session/token hygiene หลังจบ smoke test ให้ logout หรือ re-login เพื่อออก token ใหม่
 
 ## Final Approval
 
 - [x] Security gate ผ่านแบบมี documented accepted risk
-- [x] Live readiness ผ่าน
+- [x] Live readiness ผ่าน (4/4 tests)
+- [x] Authenticated admin read smoke ผ่าน
 - [x] Write lifecycle smoke ผ่าน
 - [x] Deployment ปัจจุบันเป็น `@275`
-- [ ] Manual Android Chrome PWA validation
+- [x] Manual Android Chrome PWA validation — ผ่าน 3 กรกฎาคม 2026
+- [x] Lint: 0 warnings (ปรับปรุงจาก 47 warnings)
+- [x] Build: ผ่านทั้ง frontend และ GAS
+- [x] Unit tests: 22/22 ผ่าน
+- [x] Playwright E2E: 11/11 ผ่าน

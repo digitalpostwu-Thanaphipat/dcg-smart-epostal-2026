@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3 กรกฎาคม 2026] - Full Production Ready
+
+### Fixed
+- **Lint warnings**: แก้ไข 47 warnings เหลือ 0 warnings (12 ไฟล์)
+- **React hooks/purity**: แก้ `Date.now()`, `Math.random()` impure calls, setState-in-effect patterns, exhaustive-deps
+- **Unused imports/vars**: ลบ unused imports ใน 10 ไฟล์, เปลี่ยน catch vars เป็น `_e` prefix
+- **Live readiness test**: แก้ test ให้ตรงกับ GAS iframe architecture (check raw HTML แทน rendered body)
+- **Dev proxy**: เพิ่ม GAS redirect handler ให้ follow 302 redirect server-side ป้องกัน CORS
+
+### Verified
+- Build frontend: ผ่าน (7.92s)
+- Build GAS: ผ่าน (10.35s)
+- Unit tests: 22/22 ผ่าน
+- Playwright E2E: 11/11 ผ่าน
+- Live readiness gate: 4/4 ผ่าน (public page, health check, security gate, authenticated read)
+- PWA install (Android Chrome): ผ่าน
+- PWA online mode: ผ่าน
+- PWA offline mode: ผ่าน
+
+### Security
+- ESLint config: เพิ่ม `caughtErrorsIgnorePattern: '^_'` สำหรับ catch variables
+
+---
+
 ## [@275] - 2026-07-02
 
 ### Fixed

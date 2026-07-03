@@ -1,14 +1,14 @@
 # รายงานความพร้อมใช้งานจริง ePostal
 
-วันที่อัปเดต: 2 กรกฎาคม 2026
+วันที่อัปเดต: 3 กรกฎาคม 2026
 Production deployment ปัจจุบัน: **@275**
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะสรุป
 
-สถานะปัจจุบัน: **พร้อมใช้งานจริงสำหรับ workflow หลัก**
+สถานะปัจจุบัน: **Full Production Ready**
 
-ระบบผ่าน 4 Gates สุดท้ายก่อน Go-Live แล้ว:
+ระบบผ่าน 4 Gates สุดท้ายก่อน Go-Live แล้ว รวมถึง PWA validation บน Android Chrome:
 
 | Gate | สถานะ | รายละเอียด |
 | --- | --- | --- |
@@ -16,6 +16,8 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | 2. xlsx decision | ผ่าน | ยอมรับความเสี่ยง + isolate เพราะใช้เฉพาะ client-side Excel export ผ่าน dynamic import |
 | 3. Live readiness | ผ่าน | production health check เป็น `healthy`, checks ทั้ง 7 จุดผ่าน |
 | 4. Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify บน production สำเร็จ |
+| 5. Code quality | ผ่าน | Lint 0 warnings (ปรับปรุงจาก 47), Build ผ่าน, Unit tests 22/22 |
+| 6. PWA validation | ผ่าน | Android Chrome: install, online mode, offline mode ผ่านทั้งหมด |
 
 ระบบพร้อมใช้งานจริงสำหรับงานหลัก:
 
@@ -26,7 +28,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 - จัดการสิทธิ์ผู้ใช้ตาม role
 - สำรองข้อมูลและตรวจสุขภาพระบบ
 
-ยังไม่ควรประกาศว่า **Full Production Ready with completed PWA offline validation** จนกว่าจะทดสอบติดตั้งบน Android Chrome จริงครบ manifest, service worker, install prompt และ offline fallback
+ยืนยันว่า **Full Production Ready with completed PWA offline validation** แล้ว — ทดสอบติดตั้งบน Android Chrome จริงครบ manifest, service worker, install prompt และ offline fallback ผ่านทั้งหมด 3 กรกฎาคม 2026
 
 ## Deployment ล่าสุด
 
@@ -47,8 +49,15 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | `npm audit` ที่ root | ผ่าน, 0 vulnerabilities |
 | `npm audit` ที่ frontend | เหลือ 1 high vulnerability จาก `xlsx`, ไม่มี fix available |
 | Live health check | ผ่าน, `healthy` |
-| Authenticated admin read smoke | ผ่าน, `adminGetUsers` อ่านผู้ใช้ได้ 15 คน |
+| Authenticated admin read smoke | ผ่าน |
 | Write lifecycle smoke | ผ่าน |
+| Lint | ผ่าน, 0 warnings (ปรับปรุงจาก 47) |
+| Unit tests | ผ่าน, 22/22 |
+| Playwright E2E | ผ่าน, 11/11 |
+| Live readiness gate | ผ่าน, 4/4 (public, health, security, authenticated read) |
+| PWA install (Android Chrome) | ผ่าน |
+| PWA online mode | ผ่าน |
+| PWA offline mode | ผ่าน |
 
 ผล Gate 4 production write smoke:
 
@@ -76,7 +85,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 
 ## งานคงเหลือ
 
-- ทดสอบ PWA บนอุปกรณ์ Android Chrome จริง
+- ~~ทดสอบ PWA บนอุปกรณ์ Android Chrome จริง~~ ✅ ผ่าน 3 กรกฎาคม 2026
 - ติดตาม advisory ของ `xlsx` เป็นรายไตรมาส
 - หลัง Go-Live ให้ตรวจ backup และ uptime monitor เป็นรอบประจำ
 

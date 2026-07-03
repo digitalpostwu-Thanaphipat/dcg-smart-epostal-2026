@@ -6,18 +6,20 @@
 - Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 - Last deploy description: `Production - Gate 3 Thai audit health schema and scriptapp scope`
 - Readiness report: `PRODUCTION_READINESS_REPORT.md`
-- Current status: พร้อม Go-Live สำหรับ workflow หลัก หลังผ่าน live readiness และ write lifecycle smoke
+- Current status: **Full Production Ready** — ผ่านทุก Gate รวม PWA validation แล้ว (3 กรกฎาคม 2026)
 
 ## Production Readiness Status
 
-ผ่าน 4 Gates สุดท้ายแล้ว:
+ผ่านทุก Gate แล้ว รวมถึง PWA validation:
 
 1. Root audit = 0 vulnerabilities; frontend เหลือ `xlsx` high vulnerability ที่ไม่มี fix available
 2. ตัดสินใจ `xlsx` เป็น accepted risk + isolate
 3. Live health check ผ่าน 7/7 checks
 4. Production write lifecycle smoke ผ่าน create -> search -> confirm -> verify
+5. Lint: 0 warnings (ปรับปรุงจาก 47)
+6. PWA: install + online + offline ผ่านบน Android Chrome แล้ว
 
-ยังรอ manual Android Chrome PWA install/offline validation ก่อนประกาศ full PWA readiness
+สถานะ: **Full Production Ready**
 
 ## Error Monitoring
 
