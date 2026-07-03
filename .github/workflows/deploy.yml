@@ -76,27 +76,34 @@ jobs:
 
       - name: Setup clasp credentials
         run: |
-          echo '{"token":{"access_token":"'"${{ secrets.CLASP_TOKEN }}"'","refresh_token":"'"${{ secrets.CLASP_TOKEN }}"'"},"oauth2ClientId":"","oauth2ClientSecret":""}' > ~/.clasprc.json
+          echo '${{ secrets.CLASP_RC_JSON }}' > ~/.clasprc.json
           echo '{"scriptId":"${{ secrets.CLASP_SCRIPT_ID }}","rootDir":"./"}' > backend/.clasp.json
 
       - name: Push to Apps Script
         working-directory: backend
         run: npx @google/clasp push --force
 
-      - name: Deploy new version
-        id: deploy
+      - name: Create Apps Script version
+        id: version
         working-directory: backend
         run: |
-          DESC="Auto-Deploy ${{ github.sha }} - $(date -u +'%Y-%m-%d %H:%M')"
-          OUTPUT=$(npx @google/clasp deploy -d "$DESC" 2>&1)
+          OUTPUT=$(npx @google/clasp version "Auto-Deploy ${{ github.sha }}" 2>&1)
           echo "$OUTPUT"
-          VERSION=$(echo "$OUTPUT" | grep -oP 'https://script\.google\.com/macros/s/\K[^/]+')
+          VERSION=$(echo "$OUTPUT" | grep -oE '[0-9]+' | tail -1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Redeploy production deployment
+        working-directory: backend
+        run: |
+          npx @google/clasp redeploy "${{ secrets.CLASP_DEPLOYMENT_ID }}" \
+            --versionNumber "${{ steps.version.outputs.version }}" \
+            --description "Auto-Deploy ${{ github.sha }} - $(date -u +'%Y-%m-%d %H:%M')"
 
       - name: Deployment summary
         run: |
           echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version:** \`${{ steps.deploy.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment:** \`${{ secrets.CLASP_DEPLOYMENT_ID }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
