@@ -34,6 +34,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | รายการ | สถานะ | รายละเอียด |
 | --- | --- | --- |
 | Apps Script deployment | ผ่าน | redeploy production เป็น `@275` โดย URL เดิมไม่เปลี่ยน |
+| GitHub Actions deployment | ผ่าน | CI ใช้ `CLASP_RC_JSON`, สร้าง version และ `clasp redeploy` ไปยัง deployment เดิม |
 | OAuth scope | ผ่าน | เพิ่ม/ยืนยัน `https://www.googleapis.com/auth/script.scriptapp` |
 | Script Properties | ผ่าน | ตั้ง `ROOT_ADMIN_EMAIL` และ `BACKUP_FOLDER_ID` แล้ว |
 | ชีทบันทึกการใช้งาน | ผ่าน | ซ่อมหัวคอลัมน์เป็นภาษาไทย 100% แล้ว |
@@ -54,11 +55,14 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | Security gate | ผ่าน, ปฏิเสธ token ว่างและ token ปลอม |
 | Authenticated admin read smoke | ผ่าน |
 | Write lifecycle smoke | ผ่าน |
+| GitHub Actions deploy | ผ่าน, deploy ผ่าน `clasp redeploy` โดย Production URL เดิมไม่เปลี่ยน |
 
 ## Commits ล่าสุด
 
 | Commit | รายละเอียด |
 | --- | --- |
+| `d253e07` | ci: use clasp credentials secret and redeploy production |
+| `6ef406d` | docs: complete documentation updates for Full Production Ready |
 | `b783848` | chore: clear lint warnings and fix live readiness gate (15 files) |
 | `c69475c` | fix: add GAS redirect handler to Vite dev proxy |
 

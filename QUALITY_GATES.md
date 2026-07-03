@@ -17,6 +17,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | Authenticated admin read | ผ่าน | adminGetUsers อ่านข้อมูลผู้ใช้ได้ |
 | Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify ผ่านบน production |
 | Android Chrome PWA | ผ่าน | install + online + offline ยืนยันแล้ว |
+| GitHub Actions deploy | ผ่าน | ใช้ `CLASP_RC_JSON` + `clasp redeploy` เพื่อรักษา Production URL เดิม |
 
 สถานะรวม: **Full Production Ready (95/100)**
 
@@ -110,6 +111,15 @@ Production health check ล่าสุด: **ผ่าน**
 - Offline mode: หน้าหลักยังแสดงผลได้จาก cache
 - Online recovery: sync ข้อมูลกลับมาปกติ
 
+## CI/CD Deployment Automation
+
+สถานะล่าสุด: **ผ่าน**
+
+- Workflow: `.github/workflows/deploy.yml`
+- Required secrets: `CLASP_RC_JSON`, `CLASP_SCRIPT_ID`, `CLASP_DEPLOYMENT_ID`
+- Deploy strategy: `clasp push` -> `clasp version` -> `clasp redeploy`
+- Production URL เดิมไม่เปลี่ยน เพราะ deploy ผ่าน existing deployment ID
+
 ## Local Verification
 
 ก่อน deploy รอบถัดไปให้รัน:
@@ -162,4 +172,5 @@ npm.cmd run test:live-readiness
 - [x] Write lifecycle smoke ผ่าน
 - [x] Android Chrome PWA validation ผ่าน
 - [x] Deployment ปัจจุบันเป็น `@275`
+- [x] GitHub Actions deploy ผ่านและใช้ `clasp redeploy`
 - [x] **Full Production Ready (95/100)**

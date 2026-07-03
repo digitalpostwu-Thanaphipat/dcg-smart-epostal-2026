@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Unused imports/vars**: ลบ unused imports ใน 10 ไฟล์, เปลี่ยน catch vars เป็น `_e` prefix
 - **Live readiness test**: แก้ test ให้ตรงกับ GAS iframe architecture (check raw HTML แทน rendered body)
 - **Dev proxy**: เพิ่ม GAS redirect handler ให้ follow 302 redirect server-side ป้องกัน CORS
+- **GitHub Actions deploy**: แก้ clasp credentials ให้ใช้ `CLASP_RC_JSON` และเปลี่ยน production deploy เป็น `clasp redeploy`
 
 ### Verified
 - Build frontend: ผ่าน (7.92s)
@@ -24,9 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PWA install (Android Chrome): ผ่าน
 - PWA online mode: ผ่าน
 - PWA offline mode: ผ่าน
+- GitHub Actions deploy: ผ่าน โดยรักษา Production URL เดิม
 
 ### Security
 - ESLint config: เพิ่ม `caughtErrorsIgnorePattern: '^_'` สำหรับ catch variables
+- Required deploy secrets: `CLASP_RC_JSON`, `CLASP_SCRIPT_ID`, `CLASP_DEPLOYMENT_ID`
 
 ---
 
@@ -53,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - **CI/CD Pipeline**: `.github/workflows/deploy.yml` for automated build + deploy on push to main
-- **Required GitHub Secrets documented**: `CLASP_SCRIPT_ID`, `CLASP_TOKEN`
+- **Initial GitHub Secrets documented**: `CLASP_SCRIPT_ID`, `CLASP_TOKEN` (later replaced by `CLASP_RC_JSON` deployment flow)
 
 ### Changed
 - Updated `CONTEXT.md` with CI/CD, rate limiting, and backup documentation

@@ -20,8 +20,8 @@
 6. PWA: install + online + offline ผ่านบน Android Chrome แล้ว
 
 สถานะ: **Full Production Ready**
-- Commits: `b783848` (lint cleanup + live test fix), `c69475c` (proxy redirect handler)
-- Branch: main, 3 commits ahead of origin
+- Latest commits: `d253e07` (GitHub Actions clasp credentials + production redeploy), `6ef406d` (Full Production Ready docs), `c69475c` (proxy redirect handler), `b783848` (lint cleanup + live test fix)
+- Branch: `main` synced with `origin/main`
 
 ## Error Monitoring
 
@@ -56,8 +56,9 @@
 
 - Workflow: `.github/workflows/deploy.yml`
 - Trigger: push to `main` หรือ manual dispatch
-- Secrets required: `CLASP_SCRIPT_ID`, `CLASP_TOKEN`
-- Process: test -> build frontend -> deploy to GAS
+- Secrets required: `CLASP_RC_JSON`, `CLASP_SCRIPT_ID`, `CLASP_DEPLOYMENT_ID`
+- Process: test -> build frontend -> `clasp push` -> create Apps Script version -> `clasp redeploy` to the existing production deployment
+- Latest status: GitHub Actions deploy passes and preserves the current production URL
 
 ## Build And Deploy Notes
 
@@ -65,6 +66,7 @@
 - `npm.cmd run build:gas --prefix frontend` builds frontend and copies `frontend/dist/index.html` into `backend/index.html`
 - After frontend changes, run `build:gas` before `clasp.cmd push`
 - After backend changes, use `clasp.cmd push`, create version, then redeploy the production deployment ID
+- Do not use `clasp deploy` for production unless intentionally creating a new deployment URL
 
 ## Production Verification
 
