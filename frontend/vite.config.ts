@@ -22,6 +22,31 @@ export default defineConfig(({ mode }) => {
           target: 'https://script.google.com',
           changeOrigin: true,
           rewrite: (requestPath: string) => requestPath.replace(/^\/api/, `/macros/s/${DEPLOY_ID}/exec`),
+          configure: (proxy) => {
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              // GAS redirects POST to script.googleusercontent.com — follow server-side
+              if (proxyRes.statusCode === 302 || proxyRes.statusCode === 301) {
+                const redirectUrl = proxyRes.headers.location;
+                if (redirectUrl) {
+                  const https = require('https');
+                  https.get(redirectUrl, (redirectRes) => {
+                    let body = '';
+                    redirectRes.on('data', (chunk) => { body += chunk; });
+                    redirectRes.on('end', () => {
+                      res.writeHead(redirectRes.statusCode || 200, {
+                        'Content-Type': redirectRes.headers['content-type'] || 'text/plain',
+                      });
+                      res.end(body);
+                    });
+                  }).on('error', () => {
+                    res.writeHead(502);
+                    res.end('Bad Gateway');
+                  });
+                  return;
+                }
+              }
+            });
+          },
         }
       }
     : undefined
