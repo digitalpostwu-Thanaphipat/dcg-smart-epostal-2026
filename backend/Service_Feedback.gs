@@ -8,11 +8,29 @@
 var Service_Feedback = {
   submitFeedback: function (payload) {
     var lock = LockService.getScriptLock();
+    var lockHeld = false;
     try {
-      lock.waitLock(10000);
+      // [Security] If doPost already holds the lock, reuse it; otherwise acquire
+      if (lock.hasLock()) {
+        lockHeld = false;
+      } else {
+        lock.waitLock(10000);
+        lockHeld = true;
+      }
       // [Loki: Guardrail] Input Validation
       if (!payload || !payload.userEmail) {
         return { success: false, error: "payload.userEmail required" };
+      }
+
+      // [P3-7] Consent gate — reject if user hasn't consented
+      if (payload.consent !== true) {
+        return { success: false, error: "กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนส่งข้อเสนอแนะ" };
+      }
+
+      // [P3-7] Rate-limit: max 5 feedback per user per hour
+      var email = String(payload.userEmail).toLowerCase();
+      if (typeof checkRateLimit === "function") {
+        checkRateLimit("feedback_" + email, 5, 3600);
       }
 
       var timestamp = new Date();
@@ -20,15 +38,16 @@ var Service_Feedback = {
       var thaiTime = Service_Utils.formatThaiDateTime(timestamp);
 
       // payload: { category, rating, comment, url, userEmail, userAgent }
+      // [Security] Sanitize user-controlled free-text fields (formula injection)
       var rowData = [
         timestamp, // A: Timestamp (Object)
         thaiTime, // B: Thai Time String
         payload.userEmail, // C: User
-        payload.category || "", // D: Category (Bug, Feature, Other)
+        sanitizeForSheet(payload.category || ""), // D: Category (Bug, Feature, Other)
         payload.rating || 0, // E: Rating (1-5)
-        payload.comment || "", // F: Comment
-        payload.url || "", // G: Page URL
-        payload.userAgent || "", // H: Browser Info
+        sanitizeForSheet(payload.comment || ""), // F: Comment
+        sanitizeForSheet(payload.url || ""), // G: Page URL
+        sanitizeForSheet(payload.userAgent || ""), // H: Browser Info
         "New", // I: Status
       ];
 
@@ -51,7 +70,7 @@ var Service_Feedback = {
       Logger.log("Feedback Error: " + e.toString());
       return { success: false, error: e.toString() };
     } finally {
-      lock.releaseLock();
+      if (lockHeld) lock.releaseLock();
     }
   },
 };

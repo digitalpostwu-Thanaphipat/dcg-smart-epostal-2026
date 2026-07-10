@@ -1,9 +1,10 @@
 # 📦 ePostal Data Dictionary (Database Schema)
 
-> **Source of Truth:** v4.1.1
+> **Source of Truth:** v4.2.0 (Security & Conflict Control Release)
 > **Database:** Google Sheets (`ePostal_2026` and Fiscal Year Shards)
-> **Schema Strictness:** 18 Fixed Columns. Managed by `Service_Schema.gs`.
+> **Schema Strictness:** 19 Fixed Columns. Managed by `Service_Schema.gs`.
 > **Write Pattern:** Header-mapped via `buildRow()` + `getHeaderIndex()`
+> **Conflict Control:** Optimistic locking via `version` column (index 18)
 
 ## 📋 Table: Package_Log (รายการพัสดุ)
 
@@ -27,6 +28,7 @@
 | 15 | หมายเหตุ / Line | `notes` | String | Additional notes or LINE status |
 | 16 | ผู้บันทึก | `recordedBy` | String | **FullName** of staff who initially logged the package (NEW @216) |
 | 17 | ผู้อัปเดตล่าสุด | `lastModifiedBy` | String | **FullName** of last person who modified this record |
+| 18 | version | `version` | Integer | **Optimistic lock**: starts at 1, incremented on each delivery confirmation. Used by `confirmDelivery` to detect stale writes. |
 
 ---
 
@@ -83,7 +85,7 @@ Managed by `Service_Schema.setupStatusConditionalFormatting()`:
 ---
 
 ## ⚙️ Special Handling Rules
-- **Schema Lock:** The `Package_Log` sheet MUST have exactly 18 columns (enforced by `Service_Schema.gs`).
+- **Schema Lock:** The `Package_Log` sheet MUST have exactly 19 columns (enforced by `Service_Schema.gs`).
 - **Header-Mapped Writes:** `savePackageEntry` uses `buildRow()` to map data by header name, not column index. Adding/moving columns only requires updating the header string.
 - **Thai Header Matching:** AI should use the Thai names for Sheet interactions and the `AI Descriptor` names for JSON/Frontend data.
 - **Buddhist Era (BE):** Dates displayed to users should be in BE format (+543 years).
@@ -91,3 +93,5 @@ Managed by `Service_Schema.setupStatusConditionalFormatting()`:
 - **Email→Name:** Columns `จนท.ผู้นำจ่าย`, `ผู้บันทึก`, `ผู้อัปเดตล่าสุด` store FullName (resolved via `AdminService.getUsers()` userMap).
 - **Auth Sync:** User roles are cached in the frontend but validated against `ePostal_2026 > ผู้ใช้งานระบบ` on app load.
 - **Representative Source:** Postal representatives are read from `ePostal_2026 > ตัวแทนรับไปรษณีย์ภัณฑ์`; `ตัวแทนรับพัสดุ` is only a temporary fallback name.
+- **Version/Conflict Control:** `version` column enables optimistic locking. `confirmDelivery` checks `expectedVersions` before writing. On mismatch, returns `CONFLICT` with no partial write. Version increments by 1 on each successful delivery.
+- **Signature Security:** Signature images stored in `ePostal_Signatures` Drive folder (Private). `getSignatureImage` endpoint serves via authenticated POST only. Frontend fetches by `packageId`, not raw file ID.

@@ -52,8 +52,8 @@ export function PublicTrackingPage() {
     setError('');
     try {
       const res: any = otpRequested
-        ? await ApiClient.auth.verifyOtp({ email: email.trim(), otp })
-        : await ApiClient.auth.requestOtp({ email: email.trim() });
+        ? await ApiClient.auth.verifyTrackingOtp({ email: email.trim(), otp })
+        : await ApiClient.auth.requestTrackingOtp({ email: email.trim() });
 
       if (!otpRequested && res?.success && res?.requiresOtp) {
         setOtpRequested(true);

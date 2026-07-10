@@ -20,6 +20,10 @@ export interface SyncQueue {
   entityId: number;
   payload: any;
   createdAt: number;
+  // [P2-10] retry/conflict tracking fields (optional สำหรับ migration แบบนุ่มนวล)
+  attempts?: number;
+  conflict?: boolean;
+  lastError?: string;
 }
 
 export class EpostalDatabase extends Dexie {

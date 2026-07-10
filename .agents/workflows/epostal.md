@@ -1,11 +1,11 @@
 ---
-description: ePostal Workflow — ระบบบันทึกรับ-จ่ายไปรษณีย์ภัณฑ์ (อัปเดต 27 ก.พ. 2569)
+description: ePostal Workflow — ระบบบันทึกรับ-จ่ายไปรษณีย์ภัณฑ์ (อัปเดต 10 ก.ค. 2569)
 ---
 
 # ePostal (ระบบบันทึกรับ-จ่ายไปรษณีย์ภัณฑ์)
 
-> **Last Updated:** 30 มิถุนายน 2569
-> **Status:** ✅ ใช้งานได้ครบ workflow
+> **Last Updated:** 10 กรกฎาคม 2569
+> **Status:** ✅ ใช้งานได้ครบ workflow + Security patches
 
 ## 1. ภาพรวม (Overview)
 
@@ -27,7 +27,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 ### ฐานข้อมูล
 
 - **Project Spreadsheet**: `ePostal_2026`
-- **Main Sheet**: `รายการพัสดุ` (18 Columns)
+- **Main Sheet**: `รายการพัสดุ` (19 Columns)
 - **Representative Sheet**: `ตัวแทนรับไปรษณีย์ภัณฑ์`
 
 ---
@@ -68,7 +68,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 
 ## 3. Database Schema
 
-### Sheet: `รายการพัสดุ` (18 Columns)
+### Sheet: `รายการพัสดุ` (19 Columns)
 
 | Index | Column | ชื่อฟิลด์       | ประเภท | คำอธิบาย                                               |
 | ----- | ------ | --------------- | ------ | ------------------------------------------------------ |
@@ -82,7 +82,7 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 | 7     | H      | `เวลาที่จ่าย`   | String | วัน-เวลาที่ส่งมอบแล้ว                                  |
 | 8     | I      | `จนท.ผู้นำจ่าย` | String | ชื่อเจ้าหน้าที่ที่นำจ่าย (resolve จาก staffEmail)      |
 | 9     | J      | `ผู้รับจริง`    | String | ชื่อผู้ที่รับพัสดุ (เซ็นรับ)                           |
-| 10    | K      | `ลายเซ็น`       | String | URL ลายเซ็นดิจิทัล (Google Drive)                      |
+| 10    | K      | `ลายเซ็น`       | String | fileId/reference (Private Drive, เรียกผ่าน authenticated endpoint)                      |
 | 11    | L      | `รูปภาพ`        | String | URL รูปภาพ (ถ้ามี)                                     |
 | 12    | M      | `พิกัด GPS`     | String | พิกัด GPS (ถ้ามี)                                      |
 | 13    | N      | `วิธีการส่งมอบ` | String | Digital Signature                                      |
@@ -147,15 +147,14 @@ description: ePostal Workflow — ระบบบันทึกรับ-จ่
 - **ข้อมูลที่ส่ง**:
   - `packageIds`: รหัสพัสดุที่เลือก
   - `receiverName`: ชื่อผู้รับจริง
-  - `recipientSignature`: ลายเซ็นดิจิทัล (Base64)
+  - `signatureImage`: ลายเซ็นดิจิทัล (Base64)
   - `staffEmail`: อีเมลเจ้าหน้าที่นำจ่าย (จาก Auth Store)
-  - `userEmail`: อีเมลผู้ใช้ (จาก Auth Store)
 - **Backend** (`confirmDelivery`):
   - อัปเดต สถานะ → "ส่งมอบแล้ว"
   - บันทึก เวลาที่จ่าย (Thai datetime)
   - บันทึก จนท.ผู้นำจ่าย (resolve ชื่อจาก staffEmail ผ่าน Users DB)
   - บันทึก ผู้รับจริง
-  - **บันทึกลายเซ็น**: อัปโหลดผ่าน Google Drive `_saveSignatureToDrive()`
+  - **บันทึกลายเซ็น**: อัปโหลดผ่าน Google Drive `saveBase64ToDrive() + getSignatureImage(packageId)`
   - **Log Workload**: บันทึกงานนำจ่าย
 
 #### ขั้นที่ 4: ค้นหาประวัติ (Search)
@@ -281,15 +280,15 @@ const tabs = [
 {
   packageIds: string[]           // รหัสพัสดุที่เลือก
   receiverName: string           // ชื่อผู้รับจริง
-  recipientSignature: string    // Base64 PNG
+  signatureImage: string      // Base64 data:image
+  expectedVersions: Record<string, number>  // optimistic locking
   staffEmail: string             // เจ้าหน้าที่นำจ่าย (จาก Auth Store)
-  userEmail: string              // อีเมลผู้ใช้ (จาก Auth Store)
 }
 
 // Backend → Frontend
 {
   success: true,
-  updated: number
+  count: number
 }
 ```
 
@@ -339,7 +338,7 @@ const tabs = [
 | **AdminService**     | Cache ข้อมูลหน่วยงาน + ตัวแทน    | `getDepartments()`, `getRepresentatives()`                 | ✅ ใช้งาน             |
 | **Service_Workload** | Log ภาระงาน                      | `logWorkload()` - งานรับพัสดุ + งานนำจ่าย                  | ⚠️ ปิดไว้ (try-catch) |
 | **Service_Cache**    | Clear cache                      | `remove("CACHE_PACKAGE_LOGS")`                             | ✅ ใช้งาน             |
-| **Google Drive API** | บันทึกลายเซ็นดิจิทัล             | `_saveSignatureToDrive()`                                  | ✅ ใช้งาน             |
+| **Google Drive API** | บันทึกลายเซ็นดิจิทัล             | `saveBase64ToDrive() + getSignatureImage(packageId)`                                  | ✅ ใช้งาน             |
 
 ---
 

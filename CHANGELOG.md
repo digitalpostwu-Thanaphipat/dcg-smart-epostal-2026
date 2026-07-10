@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [10 กรกฎาคม 2026] - Security & Conflict Control Release
+
+### Security (P0)
+- **Configs leak**: ลบ `configs` ออกจาก `getInitialData()` — ป้องกัน API key/token รั่วถึง User role
+- **Signature privacy**: ไฟล์ลายเซ็นบน Drive เปลี่ยนเป็น Private; `getSignatureImage` endpoint ตรวจ token + department
+- **RBAC hardening**: `getSystemConfigs` / `updateSystemConfig` / `migrateSignaturePrivacy` — Admin-only
+- **Role cache clearing**: `adminDeleteUser` / `adminUpdateUser` ล้าง cache ก่อนและหลัง operation สำเร็จ
+- **Nested locks**: `Service_Feedback` / `Service_Batch` ใช้ `lock.hasLock()` ป้องกัน lock ซ้ำจาก doPost
+
+### Conflict Control (P1)
+- **Version column**: เพิ่มคอลัมน์ `version` (index 18) ใน `Package_Log`
+- **Optimistic locking**: `confirmDelivery` ตรวจ `expectedVersions` ก่อนเขียน — ไม่ตรง → return `CONFLICT` ไม่ partial write
+- **Version lifecycle**: สร้างใหม่ `version=1`, นำจ่ายสำเร็จ `version+1`
+- **Conflict response**: normalize เป็น `{ packageId, currentData, conflicts[] }` ตรงกับ ConflictDialog
+
+### Batch Dead-Letter (P1)
+- **create-batch handling**: `SyncService._handleRetryOrFail()` รองรับ `create-batch` — mark `receiveRecords` เป็น `failed` พร้อม `lastError` ก่อนลบ queue
+
+### Error Classification (P1)
+- **Server response = show immediately**: ข้อผิดพลาดจาก server (duplicate, permission, validation) แสดง toast ทันที ไม่เข้าคิว offline
+- **Network failure only = offline queue**: เฉพาะ genuine network failure เท่านั้นที่เข้าคิว
+
+### User Management (P1)
+- **Department dropdown**: เพิ่ม `<select>` จาก master departments (ไม่ใช่ free text)
+- **Postal role**: เพิ่ม role "Postal (เจ้าหน้าที่นำจ่าย)" ใน user management
+
+### Other Fixes
+- **reportIssue field**: Frontend ส่ง `issueType` ตรงกับ backend validation
+- **Master data cache**: ลบ debug `localStorage.removeItem` ที่ล้าง cache ก่อนอ่านทุกครั้ง
+- **Migration setValue**: `Service_DB.gs` ใช้ `setValue()` แทน `setFormula()` สำหรับ file ID
+
+### Verified
+- Unit tests: 117/117 ผ่าน
+- RBAC tests: 78/78 ผ่าน (source-of-truth from actual backend code)
+- Build: ผ่าน
+- ESLint: 0 errors
+
+---
+
 ## [3 กรกฎาคม 2026] - Full Production Ready
 
 ### Fixed

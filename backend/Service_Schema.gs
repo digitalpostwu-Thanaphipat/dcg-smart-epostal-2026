@@ -8,14 +8,14 @@
 
 var Service_Schema = {
   PACKAGE_LOG_CONFIG_KEY: "SCHEMA_Package_Log",
-  PACKAGE_LOG_EXPECTED_LENGTH: 18,
+  PACKAGE_LOG_EXPECTED_LENGTH: 19,
   CACHE_TTL_SECONDS: 3600, // Increase cache TTL for production
 
   DEFAULT_PACKAGE_LOG_SCHEMA: [
     "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับไปรษณีย์ภัณฑ์", "สถานะ",
     "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับตามจ่าหน้า", "ลายเซ็น",
     "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line",
-    "ผู้บันทึก", "ผู้อัปเดตล่าสุด"
+    "ผู้บันทึก", "ผู้อัปเดตล่าสุด", "version"
   ],
 
   DEFAULT_SYSTEM_STATS_SCHEMA: [
@@ -126,6 +126,10 @@ var Service_Schema = {
    * @private
    */
   _forceSchemaAndDimensions: function(sheet, schema) {
+    // [Safety] Pre-backup snapshot ก่อน destructive column operations
+    // deleteColumns เป็นการกระทำที่ย้อนกลับไม่ได้ → สำรองข้อมูลก่อน
+    this._createPreRepairBackup(sheet);
+
     // Set headers
     sheet.getRange(1, 1, 1, schema.length).setValues([schema]);
     sheet.getRange(1, 1, 1, schema.length)
@@ -139,9 +143,36 @@ var Service_Schema = {
     if (maxCols > schema.length) {
       sheet.deleteColumns(schema.length + 1, maxCols - schema.length);
     }
-    
+
     // Freeze header
     sheet.setFrozenRows(1);
+  },
+
+  /**
+   * _createPreRepairBackup - สำรองข้อมูลชีทก่อนดำเนินการซ่อมแซมที่ทำลายล้าง
+   * ใช้ Drive makeCopy เพื่อ snapshot ไฟล์ทั้งหมด (รวมชีทนี้)
+   * หากไม่มี BACKUP_FOLDER_ID หรือเกิดข้อผิดพลาด → log warning และดำเนินการต่อ
+   * (backup failure ไม่ควรบล็อกการซ่อม เพราะ admin ยืนยันแล้วใน UI)
+   * @private
+   */
+  _createPreRepairBackup: function(sheet) {
+    try {
+      var ss = sheet.getParent();
+      var ssId = ss.getId();
+      var backupFolderId = PropertiesService.getScriptProperties().getProperty("BACKUP_FOLDER_ID");
+      if (!backupFolderId) {
+        console.warn("Pre-repair backup skipped: BACKUP_FOLDER_ID not set");
+        return;
+      }
+      var folder = DriveApp.getFolderById(backupFolderId);
+      var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+      var fileName = "PRE_REPAIR_" + ss.getName() + "_" + timestamp;
+      DriveApp.getFileById(ssId).makeCopy(fileName, folder);
+      console.log("Pre-repair backup created: " + fileName);
+    } catch (e) {
+      // ไม่บล็อกการซ่อม เพราะ admin ยืนยันแล้ว แต่ log ไว้ตรวจสอบ
+      console.warn("Pre-repair backup failed (non-blocking): " + e.message);
+    }
   },
 
   syncSchemaToConfig: function(schema) {

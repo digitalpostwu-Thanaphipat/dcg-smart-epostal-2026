@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../../api/client';
+import { useAuthStore } from '../../store/useAuthStore';
+import { Modal } from '../ui/Modal';
 import { 
   ShieldCheck, 
   UserPlus, 
@@ -40,6 +42,7 @@ export const UserManagementPage = () => {
   const [formName, setFormName] = useState('');
   const [formRole, setFormRole] = useState('User');
   const [formDept, setFormDept] = useState('');
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
 
   const fetchUsers = async () => {
     try {
@@ -52,7 +55,12 @@ export const UserManagementPage = () => {
 
   const fetchDepts = async () => {
     try {
-      await ApiClient.admin.getDepartments();
+      const res = await ApiClient.admin.getDepartments();
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setDepartments(list.map((d: any) => ({
+        id: d.DeptID || d.id || '',
+        name: d.DeptName || d.name || d.DeptID || d.id || ''
+      })));
     } catch (_e) { /* departments loaded on demand */ }
   };
 
@@ -82,6 +90,13 @@ export const UserManagementPage = () => {
   };
 
   const handleDelete = async (email: string) => {
+    // [Security] Client-side self-delete guard (backend enforces too)
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && String(currentUser.email).toLowerCase() === String(email).toLowerCase()) {
+      toast.error('ไม่สามารถลบบัญชีตัวเองได้');
+      haptics.error();
+      return;
+    }
     if (!window.confirm(`ยืนยันการระงับสิทธิ์เข้าใช้งานของ ${email}?`)) return;
     haptics.medium();
     const t = toast.loading('กำลังประมวลผล...');
@@ -91,7 +106,7 @@ export const UserManagementPage = () => {
         toast.success('ระงับสิทธิ์สำเร็จ', { id: t });
         haptics.success();
         fetchUsers();
-      } else { throw new Error(); }
+      } else { throw new Error(res.error); }
     } catch (_e) {
       toast.error('ไม่สามารถดำเนินการได้', { id: t });
       haptics.error();
@@ -100,10 +115,22 @@ export const UserManagementPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // [Security] Client-side self-demotion guard (backend enforces too)
+    const currentUser = useAuthStore.getState().user;
+    if (
+      modalMode === 'EDIT' &&
+      currentUser &&
+      String(currentUser.email).toLowerCase() === String(formEmail).toLowerCase() &&
+      formRole !== 'Admin'
+    ) {
+      toast.error('ไม่สามารถลดสิทธิ์ตัวเองได้ กรุณาให้ผู้ดูแลคนอื่นดำเนินการ');
+      haptics.error();
+      return;
+    }
     setProcessing(true);
     const t = toast.loading('กำลังบันทึกข้อมูล...');
     try {
-      const res = modalMode === 'CREATE' 
+      const res = modalMode === 'CREATE'
         ? await ApiClient.admin.addUser({ email: formEmail, fullName: formName, role: formRole, department: formDept })
         : await ApiClient.admin.updateUser({ email: formEmail, newRole: formRole, newDepartment: formDept });
 
@@ -276,10 +303,13 @@ export const UserManagementPage = () => {
       </div>
 
       {/* ─── Modal จัดการผู้ใช้ ─── */}
-      {isModalOpen && (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-md animate-in fade-in" onClick={() => !processing && setIsModalOpen(false)} />
-            <div className="relative w-full max-w-lg clay-card-deep p-10 shadow-2xl animate-in zoom-in-95 overflow-hidden border-none !rounded-[3rem]">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => !processing && setIsModalOpen(false)}
+        label="จัดการผู้ใช้งาน"
+        contentClassName="w-full max-w-lg"
+      >
+         <div className="w-full max-w-lg clay-card-deep p-10 shadow-2xl animate-in zoom-in-95 overflow-hidden border-none !rounded-[3rem]">
                <button onClick={() => setIsModalOpen(false)} aria-label="ปิดหน้าต่าง" className="absolute top-8 right-8 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-colors">
                   <X className="w-6 h-6" />
                </button>
@@ -323,14 +353,29 @@ export const UserManagementPage = () => {
 
                         <div className="space-y-2">
                            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">สิทธิ์การเข้าใช้งาน</label>
-                           <select 
-                              value={formRole} 
-                              onChange={e => setFormRole(e.target.value)} 
+                           <select
+                              value={formRole}
+                              onChange={e => setFormRole(e.target.value)}
                               className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 cursor-pointer dark:text-white"
                            >
                               <option value="Admin">Admin (ผู้ดูแลระบบ)</option>
+                              <option value="Postal">Postal (เจ้าหน้าที่นำจ่าย)</option>
                               <option value="Staff">Staff (เจ้าหน้าที่ ปณ.)</option>
                               <option value="User">User (ผู้ใช้งานทั่วไป)</option>
+                           </select>
+                        </div>
+
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">หน่วยงาน</label>
+                           <select
+                              value={formDept}
+                              onChange={e => setFormDept(e.target.value)}
+                              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 cursor-pointer dark:text-white"
+                           >
+                              <option value="">-- เลือกหน่วยงาน --</option>
+                              {departments.map(d => (
+                                 <option key={d.id} value={d.name}>{d.name}</option>
+                              ))}
                            </select>
                         </div>
                      </div>
@@ -347,8 +392,7 @@ export const UserManagementPage = () => {
                   </button>
                </form>
             </div>
-         </div>
-      )}
+      </Modal>
     </div>
   );
 };

@@ -3,6 +3,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { X, Check, Trash2, PenTool, Info, Loader2, User, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SearchableSelect } from './SearchableSelect';
+import { Modal } from './Modal';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
 
 interface SignaturePadProps {
@@ -186,8 +187,14 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
     : itemDepartments[0] || 'ไม่ระบุหน่วยงาน';
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start pt-6 sm:pt-10 justify-center px-3 sm:px-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300 font-body overflow-y-auto">
-      <div className="w-full max-w-2xl clay-card-deep p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500 mb-8 !rounded-[3rem]">
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      label="ลงนามรับพัสดุ"
+      className="items-start pt-6 sm:pt-10 px-3 sm:px-6 overflow-y-auto"
+      contentClassName="w-full max-w-2xl mb-8"
+    >
+      <div className="w-full max-w-2xl clay-card-deep p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500 !rounded-[3rem]">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 sm:p-8">
@@ -313,6 +320,6 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClose, 
            </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

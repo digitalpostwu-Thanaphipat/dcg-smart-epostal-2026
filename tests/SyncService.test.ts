@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
-import { SyncService } from '../frontend/src/services/SyncService';
+import { SyncService, _testHooks } from '../frontend/src/services/SyncService';
 import { db } from '../frontend/src/db/dexie';
 import { ApiClient } from '../frontend/src/api/client';
+
+// [P2-10] ข้าม backoff จริงใน test (เร็ว)
+_testHooks.sleep = async () => {};
 
 // Mock ApiClient
 vi.mock('../frontend/src/api/client', () => ({
@@ -82,14 +85,15 @@ describe('SyncService', () => {
 
     expect(successCount).toBe(0);
     
-    // Verify queue item still exists and has conflict data
+    // Verify queue item still exists and has normalized conflict data
     const queue = await db.syncQueue.toArray();
     expect(queue.length).toBe(1);
     expect(queue[0].payload.conflict).toBeDefined();
-    expect(queue[0].payload.conflict.error).toBe('CONFLICT');
+    expect(queue[0].payload.conflict.packageId).toBeDefined();
+    expect(queue[0].payload.conflict.conflicts).toBeDefined();
   });
 
-  it('should handle network errors and mark record as failed', async () => {
+  it('should handle network errors and eventually mark record as failed after retries', async () => {
     const recordId = await db.receiveRecords.add({
       trackingId: 'FAIL-001',
       senderName: '-',
@@ -110,10 +114,19 @@ describe('SyncService', () => {
 
     (ApiClient.postal.saveEntry as any).mockRejectedValue(new Error('Internal Server Error'));
 
-    await SyncService.processQueue();
+    // [P2-10] processQueue ตอนนี้ retry ทีละครั้งต่อ processQueue call (พร้อม backoff)
+    // ต้องเรียก MAX_RETRIES (5) ครั้ง ถึงจะ dead-letter และ mark record failed
+    for (let i = 0; i < 5; i++) {
+      await SyncService.processQueue();
+    }
 
     const updatedRecord = await db.receiveRecords.get(recordId);
     expect(updatedRecord?.status).toBe('failed');
-    expect(updatedRecord?.lastError).toBe('Internal Server Error');
+    // lastError มี prefix บอกจำนวนครั้งที่ retry
+    expect(updatedRecord?.lastError).toContain('Internal Server Error');
+
+    // syncQueue ต้องถูก dead-letter ออก
+    const queue = await db.syncQueue.toArray();
+    expect(queue.length).toBe(0);
   });
 });

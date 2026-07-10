@@ -1,43 +1,24 @@
 import React, { useState, useEffect } from 'react'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { PostalEntryForm } from './components/PostalEntryForm'
 import { PostalPendingList } from './components/PostalPendingList'
 import { PostalSearchPage } from './components/PostalSearchPage'
 import { PublicTrackingPage } from './components/PublicTrackingPage'
-import { UserManagementPage } from './components/admin/UserManagementPage'
-import { SystemSettingsPage } from './components/admin/SystemSettingsPage'
 import { useMasterDataStore } from './store/useMasterDataStore'
 import { useAuthStore } from './store/useAuthStore'
 import { ApiClient } from './api/client'
 import { Login } from './pages/Login'
-import { BentoStats } from './components/dashboard/BentoStats'
+import { HomePage } from './pages/HomePage'
+import { AdminPage } from './pages/AdminPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
+import { AdminSettingsPage } from './pages/AdminSettingsPage'
 import { Toaster } from 'react-hot-toast'
 import { haptics } from './utils/haptics'
-import { AlertCircle, Megaphone, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import * as Sentry from "@sentry/react"
 import { ReloadPrompt } from './components/common/ReloadPrompt'
-
-const hasPublicTrackParam = (params?: Record<string, any> | URLSearchParams | null) => {
-  if (!params) return false
-  if (params instanceof URLSearchParams) {
-    return params.get('publicTrack') === '1'
-  }
-  const value = params.publicTrack
-  return value === '1' || (Array.isArray(value) && value.includes('1'))
-}
-
-const detectPublicTrackingFromBrowser = () => {
-  if (typeof window === 'undefined') return false
-  if (hasPublicTrackParam(new URLSearchParams(window.location.search))) return true
-
-  try {
-    return typeof document !== 'undefined'
-      && !!document.referrer
-      && hasPublicTrackParam(new URL(document.referrer).searchParams)
-  } catch (_e) {
-    return false
-  }
-}
+import { ROUTES } from './routes'
 
 interface VersionMismatchBannerProps {
   isVersionMismatch: boolean;
@@ -59,27 +40,12 @@ const VersionMismatchBanner: React.FC<VersionMismatchBannerProps> = ({
   );
 };
 
-function App() {
-  const [isPublicTracking, setIsPublicTracking] = useState(detectPublicTrackingFromBrowser)
-  const [activeTab, setActiveTab] = useState('home')
-  const [adminSubTab, setAdminSubTab] = useState('users')
+function AppRoutes() {
   const [isLoading, setIsLoading] = useState(true)
   
-  const APP_VERSION = "4.0.2"
-  const { fetchMasterData, announcements, systemInfo } = useMasterDataStore()
+  const APP_VERSION = __APP_VERSION__
+  const { fetchMasterData, systemInfo } = useMasterDataStore()
   const { isAuthenticated, user } = useAuthStore()
-
-  useEffect(() => {
-    if (isPublicTracking || typeof window === 'undefined') return
-    const gasUrl = (window as any).google?.script?.url
-    if (!gasUrl?.getLocation) return
-
-    gasUrl.getLocation((location: any) => {
-      if (hasPublicTrackParam(location?.parameter)) {
-        setIsPublicTracking(true)
-      }
-    })
-  }, [isPublicTracking])
 
   useEffect(() => {
     const init = async () => {
@@ -100,7 +66,7 @@ function App() {
           if (response?.success && response?.data) {
             const userData = response.data;
             const updatedRole = userData.Role || userData.role || 'User';
-            const updatedDept = userData.Department || userData.department || userData.หน่วยงาน || 'มหาลัย';
+            const updatedDept = userData.Department || userData.department || userData['หน่วยงาน'] || 'มหาลัย';
 
             if (user.role !== updatedRole || user.department !== updatedDept) {
               useAuthStore.getState().login({
@@ -120,7 +86,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user?.email]);
 
-
   // Version Handshake Alert
   const isVersionMismatch = Boolean(systemInfo && systemInfo.version !== APP_VERSION);
 
@@ -129,18 +94,7 @@ function App() {
       console.warn(`[Handshake] Version Mismatch: Frontend(${APP_VERSION}) vs Backend(${systemInfo?.version})`);
       haptics.notification('warning');
     }
-  }, [isVersionMismatch, systemInfo])
-
-
-
-  if (isPublicTracking) {
-    return (
-      <>
-        <Toaster position="top-right" />
-        <PublicTrackingPage />
-      </>
-    )
-  }
+  }, [isVersionMismatch, systemInfo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) {
     return (
@@ -151,92 +105,47 @@ function App() {
     )
   }
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Toaster position="top-right" />
-        <Login />
-      </>
-    )
-  }
+  return (
+    <Routes>
+      {/* Public routes — no auth required */}
+      <Route path={ROUTES.LOGIN} element={<Login />} />
+      <Route path={ROUTES.TRACKING} element={<PublicTrackingPage />} />
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return (
-          <div className="space-y-10 animate-fade-in">
-            <header className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-[9px] font-black uppercase tracking-[0.2em] border border-primary/10 mb-2">
-                DCG Smart ePostal Gateway
-              </div>
-              <h1 className="text-4xl md:text-5xl font-heading font-black text-zinc-900 dark:text-white tracking-tighter uppercase leading-[0.9]">ระบบบริหารจัดการ<br/>ไปรษณีย์ภัณฑ์ภายใน</h1>
-              <p className="text-xs font-medium text-zinc-500 max-w-md leading-relaxed">แพลตฟอร์มจัดการไปรษณีย์ภัณฑ์ มาตรฐานหน่วยงานดิจิทัล</p>
-            </header>
+      {/* Protected routes — auth required */}
+      <Route
+        path="*"
+        element={
+          isAuthenticated ? (
+            <Layout>
+              <VersionMismatchBanner 
+                isVersionMismatch={isVersionMismatch} 
+                backendVersion={systemInfo?.version} 
+                frontendVersion={APP_VERSION} 
+              />
+              <Routes>
+                <Route path={ROUTES.HOME} element={<HomePage />} />
+                <Route path={ROUTES.ENTRY} element={<PostalEntryForm />} />
+                <Route path={ROUTES.DELIVERY} element={<PostalPendingList />} />
+                <Route path={ROUTES.SEARCH} element={<PostalSearchPage />} />
+                <Route path={ROUTES.ADMIN} element={<AdminPage />}>
+                  <Route index element={<Navigate to={ROUTES.ADMIN_USERS} replace />} />
+                  <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="settings" element={<AdminSettingsPage />} />
+                </Route>
+                <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+              </Routes>
+              <ReloadPrompt />
+            </Layout>
+          ) : (
+            <Navigate to={ROUTES.LOGIN} replace />
+          )
+        }
+      />
+    </Routes>
+  );
+}
 
-            {/* Announcement Section */}
-            {announcements && announcements.length > 0 && announcements.some(a => a['สถานะ (แสดง/ซ่อน)'] === 'แสดง') && (
-              <div className="clay-card p-8 relative overflow-hidden group shadow-xl">
-                <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500">
-                   <Megaphone className="w-24 h-24 text-amber-500 -rotate-12" />
-                </div>
-                <div className="relative z-10 space-y-4">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 animate-bounce">
-                         <Megaphone className="w-5 h-5" />
-                      </div>
-                      <div>
-                         <h3 className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.2em]">ข่าวสารและประกาศสำคัญ</h3>
-                         <p className="text-lg font-black text-zinc-900 dark:text-white leading-tight">
-                            {announcements.find(a => a['สถานะ (แสดง/ซ่อน)'] === 'แสดง')?.['หัวข้อประกาศ']}
-                         </p>
-                      </div>
-                   </div>
-                   
-                   <div className="p-5 rounded-2xl bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-white/50 dark:border-zinc-800">
-                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                         {announcements.find(a => a['สถานะ (แสดง/ซ่อน)'] === 'แสดง')?.['เนื้อหา']}
-                      </p>
-                   </div>
-                </div>
-              </div>
-            )}
-
-            <BentoStats />
-          </div>
-        )
-      case 'entry':
-        return <PostalEntryForm />
-      case 'delivery':
-        return <PostalPendingList />
-      case 'search':
-        return <PostalSearchPage />
-      case 'admin':
-        return (
-          <div className="space-y-6">
-            <div className="flex gap-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-2xl w-fit">
-              <button 
-                onClick={() => setAdminSubTab('users')}
-                aria-label="จัดการผู้ใช้งาน"
-                className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminSubTab === 'users' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-zinc-500'}`}
-              >
-                จัดการผู้ใช้งาน
-              </button>
-              <button 
-                onClick={() => setAdminSubTab('settings')}
-                aria-label="ตั้งค่าระบบ"
-                className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${adminSubTab === 'settings' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-zinc-500'}`}
-              >
-                ตั้งค่าระบบ
-              </button>
-            </div>
-            {adminSubTab === 'users' ? <UserManagementPage /> : <SystemSettingsPage />}
-          </div>
-        )
-      default:
-        return <BentoStats />
-    }
-  }
-
+function App() {
   return (
     <Sentry.ErrorBoundary fallback={({ error }) => (
       <div className="p-10 flex flex-col items-center justify-center min-h-screen text-center">
@@ -246,24 +155,13 @@ function App() {
         <button onClick={() => window.location.reload()} aria-label="โหลดระบบใหม่" className="btn-primary">โหลดระบบใหม่</button>
       </div>
     )}>
-      <Layout activeTab={activeTab} onTabChange={(tab) => {
-        haptics.light();
-        setActiveTab(tab);
-      }}>
-        <VersionMismatchBanner 
-          isVersionMismatch={isVersionMismatch} 
-          backendVersion={systemInfo?.version} 
-          frontendVersion={APP_VERSION} 
-        />
+      <HashRouter>
         <Toaster position="top-right" />
-        <div className="animate-slide-fade-in" key={activeTab}>
-          {renderContent()}
-        </div>
-        <ConnectionDiagnostic />
-        <ReloadPrompt />
-      </Layout>
+        <AppRoutes />
+      </HashRouter>
+      <ConnectionDiagnostic />
     </Sentry.ErrorBoundary>
-  )
+  );
 }
 
 /**

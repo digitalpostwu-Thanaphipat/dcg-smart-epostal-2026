@@ -1,8 +1,12 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 const LIVE_BASE_URL = process.env.EPOSTAL_LIVE_BASE_URL || '';
 const LIVE_AUTH_TOKEN = process.env.EPOSTAL_LIVE_AUTH_TOKEN || '';
 const LIVE_WRITE_ENABLED = process.env.EPOSTAL_LIVE_WRITE === '1';
+
+const APP_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../frontend/package.json'), 'utf-8')).version;
 
 type GasResult<T = unknown> = {
   success?: boolean;
@@ -20,7 +24,7 @@ async function postGas<T = unknown>(
 ) {
   const response = await request.post(LIVE_BASE_URL, {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    data: JSON.stringify({ action, ...data, clientVersion: '4.0.2' }),
+    data: JSON.stringify({ action, ...data, clientVersion: APP_VERSION }),
     timeout: 60_000,
   });
 

@@ -152,7 +152,7 @@ var PROJECT_SHEET_HEADERS = (function() {
     "รหัสพัสดุ", "เลขพัสดุ", "ประเภท", "ชื่อหน่วยงาน", "ชื่อผู้รับไปรษณีย์ภัณฑ์", "สถานะ",
     "เวลาที่บันทึก", "เวลาที่จ่าย", "จนท.ผู้นำจ่าย", "ผู้รับตามจ่าหน้า", "ลายเซ็น",
     "รูปภาพ", "พิกัด GPS", "วิธีการส่งมอบ", "ประเภทการใช้", "หมายเหตุ / Line",
-    "ผู้บันทึก", "ผู้อัปเดตล่าสุด"
+    "ผู้บันทึก", "ผู้อัปเดตล่าสุด", "version"
   ];
   headers[SHEET_NAMES.SYSTEM_STATS] = ["หมวดหมู่", "ตัวชี้วัด", "ค่าตัวเลข", "อัปเดตล่าสุด"];
   headers[SHEET_NAMES.USERS] = ["รหัสพนักงาน", "อีเมล (Google)", "ชื่อ-นามสกุล", "สิทธิ์ (Admin/User/Postal)", "หน่วยงาน/แผนก", "ตำแหน่ง"];
@@ -332,8 +332,9 @@ function _signatureFormulaForValue(value, rowNumber) {
   var text = String(value || "").trim();
   if (!text) return "";
   if (text.indexOf("data:image") === 0 && typeof Service_Utils !== "undefined" && Service_Utils.saveBase64ToDrive) {
-    var url = Service_Utils.saveBase64ToDrive(text, "signature_migration_row_" + rowNumber);
-    return url ? '=IMAGE("' + url.replace(/"/g, '""') + '")' : "";
+    var fileId = Service_Utils.saveBase64ToDrive(text, "signature_migration_row_" + rowNumber);
+    // [Security] Store file ID directly — frontend fetches via authenticated endpoint
+    return fileId || "";
   }
   if (/^https?:\/\//i.test(text)) {
     return '=IMAGE("' + text.replace(/"/g, '""') + '")';
@@ -382,7 +383,8 @@ function _normalizePackageLogLegacyValues(sheet, warnings) {
       if (signIdx > -1 && !_imageFormulaUrl(formulas[r][signIdx])) {
         var signatureFormula = _signatureFormulaForValue(values[r][signIdx], r + 1);
         if (signatureFormula) {
-          sheet.getRange(r + 1, signIdx + 1).setFormula(signatureFormula);
+          // [Security] Store file ID as value (not formula) — frontend fetches via authenticated endpoint
+          sheet.getRange(r + 1, signIdx + 1).setValue(signatureFormula);
           sheet.setRowHeight(r + 1, 96);
           result.signatureImages++;
         }
