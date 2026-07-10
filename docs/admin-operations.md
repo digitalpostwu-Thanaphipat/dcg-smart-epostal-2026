@@ -37,6 +37,36 @@
 - Repair schema / normalize data: ใช้ตอน rollout, ซ่อมหัวตาราง, หรือปรับข้อมูล legacy
 - Uptime Monitor: ตั้งโดยผู้ดูแลระบบหลังยืนยันช่องทางแจ้งเตือนจริง
 
+## Security Operations
+
+### migrateSignaturePrivacy (Admin-only)
+
+คำสั่งเปลี่ยนไฟล์ลายเซ็นทั้งหมดใน Drive ให้เป็น Private:
+
+```
+POST /api
+{ "action": "migrateSignaturePrivacy", "authToken": "<admin_token>" }
+```
+
+- วนลูปไฟล์ทั้งหมดในโฟลเดอร์ `ePostal_Signatures`
+- เปลี่ยนจาก public → private (Owner only)
+- ตรวจ `getSharingAccess()` หลังเปลี่ยนเพื่อยืนยันผล
+- คืน `{ success: true, migrated: N, errors: M }`
+- ใช้ครั้งเดียวหลัง deploy ลายเซ็น security patch
+
+### Role Cache Clearing
+
+เมื่อลบ/แก้ไขผู้ใช้ ระบบจะล้าง role cache อัตโนมัติ:
+- `adminDeleteUser` → ล้าง cache ก่อนและหลัง operation สำเร็จ
+- `adminUpdateUser` → ล้าง cache ของ email เดิม (และ email ใหม่ถ้าเปลี่ยน)
+
+### Conflict Control
+
+`confirmDelivery` ตรวจ `expectedVersions` ก่อนเขียน:
+- ถ้า version ตรง → เขียน + เพิ่ม version +1
+- ถ้า version ไม่ตรง → return `CONFLICT` + ไม่เขียนแม้แต่รายการเดียว
+- Frontend แสดง toast รายชื่อพัสดุที่ conflict + auto-refresh
+
 ## Backup
 
 Backup ล่าสุดที่ตรวจแล้ว:

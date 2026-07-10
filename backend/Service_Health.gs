@@ -13,10 +13,12 @@ var Service_Health = {
     try {
       const integrityResult = this._checkDatabaseIntegrity();
       if (integrityResult.status === "fail") {
+        // [Security] Log full detail server-side, return only count to anonymous caller
+        console.error("Health integrity errors: " + integrityResult.errors.join(", "));
         checks.push({
           name: "integrity",
           status: "fail",
-          detail: "พบความเสียหาย: " + integrityResult.errors.join(", "),
+          detail: "พบความเสียหายในโครงสร้างข้อมูล (" + integrityResult.errors.length + " จุด) กรุณาแจ้งผู้ดูแล",
         });
         overallStatus = "down";
       } else {
@@ -27,7 +29,9 @@ var Service_Health = {
         });
       }
     } catch (e) {
-      checks.push({ name: "integrity", status: "fail", detail: e.message });
+      // [Security] Don't leak raw exception text to anonymous caller
+      console.error("Health integrity exception: " + e.message);
+      checks.push({ name: "integrity", status: "fail", detail: "ตรวจสอบโครงสร้างข้อมูลล้มเหลว กรุณาแจ้งผู้ดูแล" });
       overallStatus = "down";
     }
 
@@ -35,16 +39,19 @@ var Service_Health = {
     try {
       const localSS = SpreadsheetApp.openById(SPREADSHEET_IDS.LOCAL);
       const centralSS = SpreadsheetApp.openById(SPREADSHEET_IDS.CENTRAL);
+      // [Security] Access only — do not expose DB file names to anonymous callers
+      void localSS; void centralSS;
       checks.push({
         name: "access",
         status: "pass",
-        detail: `เชื่อมต่อ DB สำเร็จ (Local: ${localSS.getName()}, Central: ${centralSS.getName()})`,
+        detail: "เชื่อมต่อฐานข้อมูลสำเร็จ",
       });
     } catch (e) {
+      console.error("Health access exception: " + e.message);
       checks.push({
         name: "access",
         status: "fail",
-        detail: "ไม่สามารถเข้าถึงฐานข้อมูลได้: " + e.message,
+        detail: "ไม่สามารถเข้าถึงฐานข้อมูลได้ กรุณาแจ้งผู้ดูแล",
       });
       overallStatus = "down";
     }
@@ -56,7 +63,8 @@ var Service_Health = {
       if (configResult.status === "fail") overallStatus = "down";
       if (configResult.status === "warn" && overallStatus === "healthy") overallStatus = "warn";
     } catch (e) {
-      checks.push({ name: "config", status: "fail", detail: e.message });
+      console.error("Health config exception: " + e.message);
+      checks.push({ name: "config", status: "fail", detail: "ตรวจสอบการตั้งค่าล้มเหลว กรุณาแจ้งผู้ดูแล" });
       overallStatus = "down";
     }
 
@@ -70,7 +78,8 @@ var Service_Health = {
       });
       if (backupResult.status === "fail" && overallStatus === "healthy") overallStatus = "warn";
     } catch (e) {
-      checks.push({ name: "backup", status: "fail", detail: e.message });
+      console.error("Health backup exception: " + e.message);
+      checks.push({ name: "backup", status: "fail", detail: "ตรวจสอบการสำรองข้อมูลล้มเหลว" });
     }
 
     // 5. Trigger Status Check
@@ -83,7 +92,8 @@ var Service_Health = {
       });
       if (triggerResult.status === "fail" && overallStatus === "healthy") overallStatus = "warn";
     } catch (e) {
-      checks.push({ name: "trigger", status: "fail", detail: e.message });
+      console.error("Health trigger exception: " + e.message);
+      checks.push({ name: "trigger", status: "fail", detail: "ตรวจสอบ Trigger ล้มเหลว" });
     }
 
     // 6. Monitoring Trigger Status Check
@@ -96,7 +106,8 @@ var Service_Health = {
       });
       if (monitorResult.status === "fail" && overallStatus === "healthy") overallStatus = "warn";
     } catch (e) {
-      checks.push({ name: "monitor", status: "fail", detail: e.message });
+      console.error("Health monitor exception: " + e.message);
+      checks.push({ name: "monitor", status: "fail", detail: "ตรวจสอบระบบติดตามล้มเหลว" });
     }
 
     // 7. Sharding Status Check [Phase 5]
@@ -109,7 +120,8 @@ var Service_Health = {
       });
       if (shardResult.status === "fail" && overallStatus === "healthy") overallStatus = "warn";
     } catch (e) {
-      checks.push({ name: "sharding", status: "fail", detail: e.message });
+      console.error("Health sharding exception: " + e.message);
+      checks.push({ name: "sharding", status: "fail", detail: "ตรวจสอบระบบแบ่งข้อมูลล้มเหลว" });
     }
 
     return {
@@ -138,22 +150,24 @@ var Service_Health = {
       return {
         name: "config",
         status: "fail",
-        detail: "ENV=DEV: production must disable mock-token bypass before go-live",
+        detail: "ระบบอยู่ในโหมดพัฒนา กรุณาเปลี่ยนเป็นโหมดการใช้งานจริงก่อนเปิดให้ใช้งาน",
       };
     }
 
     if (missing.length > 0) {
+      // [Security] Log key names server-side, return only count to anonymous caller
+      console.error("Health config missing keys: " + missing.join(", "));
       return {
         name: "config",
         status: "fail",
-        detail: "ขาด ScriptProperties สำคัญ: " + missing.join(", "),
+        detail: "ขาดการตั้งค่าสำคัญ " + missing.length + " รายการ กรุณาแจ้งผู้ดูแล",
       };
     }
 
     return {
       name: "config",
       status: Object.keys(allProps).length > 0 ? "pass" : "warn",
-      detail: "Production config พร้อมใช้งาน (" + Object.keys(allProps).length + " รายการ, ENV=" + env + ")",
+      detail: "การตั้งค่าระบบพร้อมใช้งาน",
     };
   },
 
@@ -311,15 +325,19 @@ var Service_Health = {
       
       try {
         const ss = SpreadsheetApp.openById(currentId);
-        return { 
-          status: "pass", 
-          detail: `Shard Engine พร้อมใช้งาน (${years.length} ปีงบประมาณ, ปีปัจจุบัน: ${ss.getName()})` 
+        // [Security] Don't leak shard file name to anonymous callers
+        void ss;
+        return {
+          status: "pass",
+          detail: "ระบบแบ่งข้อมูลตามปีงบประมาณพร้อมใช้งาน (" + years.length + " ปีงบประมาณ)"
         };
       } catch (fErr) {
-        return { status: "fail", detail: "ไม่สามารถเปิดไฟล์ Shard ได้: " + fErr.message };
+        console.error("Health shard open exception: " + fErr.message);
+        return { status: "fail", detail: "ไม่สามารถเปิดไฟล์ข้อมูลปีงบประมาณได้ กรุณาแจ้งผู้ดูแล" };
       }
     } catch (e) {
-      return { status: "fail", detail: "Sharding Error: " + e.message };
+      console.error("Health sharding exception: " + e.message);
+      return { status: "fail", detail: "ตรวจสอบระบบแบ่งข้อมูลล้มเหลว กรุณาแจ้งผู้ดูแล" };
     }
   }
 };

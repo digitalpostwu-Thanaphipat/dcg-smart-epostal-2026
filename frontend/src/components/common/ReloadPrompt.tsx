@@ -32,7 +32,7 @@ export const ReloadPrompt: React.FC = () => {
           <div className="flex-1">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">อัปเดตเวอร์ชันใหม่</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              พบการอัปเดตระบบใหม่ (v4.0.2) เพื่อเพิ่มประสิทธิภาพและความเสถียร
+              พบการอัปเดตระบบใหม่ (v{__APP_VERSION__}) เพื่อเพิ่มประสิทธิภาพและความเสถียร
             </p>
             <div className="flex gap-2 mt-4">
               <button

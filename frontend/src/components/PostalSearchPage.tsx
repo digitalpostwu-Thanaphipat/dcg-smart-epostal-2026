@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Calendar, 
-  Clock, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Search,
+  Calendar,
+  Clock,
   X,
   Building2,
   Tag,
@@ -13,7 +13,9 @@ import {
   User,
   Download,
   Inbox,
-  Zap
+  Zap,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { ApiClient, type PostalPackage } from '@/api/client';
 import { toast } from 'react-hot-toast';
@@ -22,8 +24,11 @@ import { haptics } from '@/utils/haptics';
 import { useMasterDataStore } from '@/store/useMasterDataStore';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { getBuildingColorClass } from '@/utils/designUtils';
+import { Modal } from '@/components/ui/Modal';
 // import * as XLSX from 'xlsx'; // Removed for Dynamic Import Performance Optimization
 
+
+const PAGE_SIZE = 20;
 
 export const PostalSearchPage = () => {
   const [query, setQuery] = useState('');
@@ -31,18 +36,48 @@ export const PostalSearchPage = () => {
   const [results, setResults] = useState<PostalPackage[]>([]);
   const [showFilters, setShowFilters] = useState(false); // Mobile Drawer Toggle
   const [selectedPackage, setSelectedPackage] = useState<PostalPackage | null>(null);
+  const [signatureImage, setSignatureImage] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
   const { departments } = useMasterDataStore();
-  
+
   // Intelligence Filters
   const currentFY = String(getThaiFiscalYear());
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
-    department: '', 
+    department: '',
     dateFrom: '',
     dateTo: '',
     fiscalYear: currentFY
   });
+
+  // Pagination derived state
+  const totalPages = Math.ceil(results.length / PAGE_SIZE);
+  const paginatedResults = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return results.slice(start, start + PAGE_SIZE);
+  }, [results, currentPage]);
+
+  // [Security] Fetch signature image via authenticated endpoint using packageId
+  useEffect(() => {
+    if (!selectedPackage?.signature || !selectedPackage?.id) {
+      setSignatureImage('');
+      return;
+    }
+    // If signature is already a data URI, use it directly (legacy base64 stored inline)
+    if (selectedPackage.signature.startsWith('data:')) {
+      setSignatureImage(selectedPackage.signature);
+      return;
+    }
+    // Fetch via authenticated endpoint — backend resolves file ID from packageId
+    let cancelled = false;
+    ApiClient.admin.getSignatureImage(selectedPackage.id).then((res: any) => {
+      if (!cancelled && res?.success && res.data) {
+        setSignatureImage(res.data);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [selectedPackage?.signature, selectedPackage?.id]);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) {
@@ -83,6 +118,7 @@ export const PostalSearchPage = () => {
 
   // Real-time Search when query changes (Debounced)
   useEffect(() => {
+    setCurrentPage(1); // eslint-disable-line react-hooks/set-state-in-effect
     const timer = setTimeout(() => {
       handleSearch();
     }, 600); // ดีเลย์ 600ms เพื่อประหยัด API call
@@ -280,8 +316,9 @@ export const PostalSearchPage = () => {
       {/* 3. SECTION: RESULTS GRID (ALIGNED TO GLOBAL CARD STYLE) */}
       <div className="font-body">
         {results.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((pkg, idx) => {
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedResults.map((pkg, idx) => {
               const buildingColor = getBuildingColorClass(pkg.building || '', 'bg');
               const buildingLightBg = getBuildingColorClass(pkg.building || '', 'lightBg');
               const isDelivered = pkg.status === 'ส่งมอบแล้ว' || pkg.status === 'Delivered' || pkg.status === 'จ่ายแล้ว' || pkg.status === 'จ่ายสำเร็จ';
@@ -388,6 +425,45 @@ export const PostalSearchPage = () => {
               );
             })}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-8 px-4 py-4 rounded-2xl bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800">
+              <div className="text-sm font-bold text-zinc-500">
+                หน้า <span className="text-zinc-900 dark:text-white font-black">{currentPage}</span> จาก <span className="text-zinc-900 dark:text-white font-black">{totalPages}</span>
+                <span className="text-zinc-400 ml-2">({results.length} รายการ)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { haptics.light(); setCurrentPage(p => Math.max(1, p - 1)); }}
+                  disabled={currentPage === 1}
+                  aria-label="หน้าก่อนหน้า"
+                  className={cn(
+                    "flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    currentPage === 1
+                      ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
+                      : "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:scale-105 active:scale-95"
+                  )}
+                >
+                  <ChevronLeft className="w-4 h-4" /> ก่อนหน้า
+                </button>
+                <button
+                  onClick={() => { haptics.light(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
+                  disabled={currentPage === totalPages}
+                  aria-label="หน้าถัดไป"
+                  className={cn(
+                    "flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    currentPage === totalPages
+                      ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
+                      : "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:scale-105 active:scale-95"
+                  )}
+                >
+                  ถัดไป <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         ) : (
           <div className="glass-card p-24 rounded-[3rem] text-center space-y-6 flex flex-col items-center border border-dashed border-zinc-200 dark:border-zinc-800">
              <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center text-zinc-300">
@@ -411,17 +487,15 @@ export const PostalSearchPage = () => {
         )}
       </div>
 
-      {/* 4. FILTER OVERLAY — Full-screen on mobile (top-aligned), centered modal on desktop */}
-      {showFilters && (
-        <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-zinc-950/80 backdrop-blur-md animate-fade-in" 
-            onClick={() => setShowFilters(false)}
-          />
-          
-          {/* Panel: full-screen on mobile, contained modal on desktop */}
-          <div className="relative w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-xl sm:mx-4 bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border-0 sm:border sm:border-zinc-200 dark:sm:border-white/10 flex flex-col overflow-hidden animate-fade-in">
+      {/* 4. FILTER OVERLAY */}
+      <Modal
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        label="เงื่อนไขการกรอง"
+        className="items-start sm:items-center"
+        contentClassName="w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-xl sm:mx-4"
+      >
+          <div className="w-full h-full sm:h-auto sm:max-h-[85vh] bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl border-0 sm:border sm:border-zinc-200 dark:sm:border-white/10 flex flex-col overflow-hidden animate-fade-in">
              
              {/* Sticky Header */}
              <div className="shrink-0 px-6 pt-6 pb-4 sm:px-8 sm:pt-8 border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
@@ -590,14 +664,17 @@ export const PostalSearchPage = () => {
                 </button>
              </div>
           </div>
-        </div>
-      )}
+      </Modal>
       {/* 5. PACKAGE DETAIL MODAL */}
       {selectedPackage && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xl animate-fade-in" onClick={() => setSelectedPackage(null)} />
-           
-           <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh]">
+      <Modal
+        isOpen={true}
+        onClose={() => setSelectedPackage(null)}
+        label="รายละเอียดพัสดุ"
+        className="p-4"
+        contentClassName="w-full max-w-2xl"
+      >
+        <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh]">
               {/* Modal Header */}
               <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-start justify-between bg-zinc-50/50 dark:bg-zinc-800/50">
                  <div className="space-y-2">
@@ -632,8 +709,8 @@ export const PostalSearchPage = () => {
                        <div className="space-y-3">
                           <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">ลายเซ็นผู้รับ</label>
                           <div className="aspect-[4/3] rounded-3xl bg-zinc-50 dark:bg-zinc-950 border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center justify-center overflow-hidden">
-                             {selectedPackage.signature ? (
-                               <img src={selectedPackage.signature} alt="Signature" className="w-full h-full object-contain p-4 dark:invert" />
+                             {signatureImage ? (
+                               <img src={signatureImage} alt="Signature" className="w-full h-full object-contain p-4 dark:invert" />
                              ) : (
                                <div className="text-center space-y-2 opacity-20">
                                   <User className="w-12 h-12 mx-auto" />
@@ -738,7 +815,7 @@ export const PostalSearchPage = () => {
                  </button>
               </div>
            </div>
-        </div>
+      </Modal>
       )}
     </div>
   );

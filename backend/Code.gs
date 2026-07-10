@@ -40,6 +40,8 @@ const ROLE_PERMISSIONS = {
   "repairProjectSheetHeaders",
   "normalizePackageLogStaffNames",
   "normalizePackageLogLegacyValues",
+  "getSignatureImage",
+  "migrateSignaturePrivacy",
   ],
   Postal: [
     "getInitialData",
@@ -57,6 +59,7 @@ const ROLE_PERMISSIONS = {
     "getDailyOperationalStats",
     "getAnnouncements",
     "submitFeedback",
+    "getSignatureImage",
   ],
   Staff: [
     "getInitialData",
@@ -73,6 +76,7 @@ const ROLE_PERMISSIONS = {
     "getDailyOperationalStats",
     "getAnnouncements",
     "submitFeedback",
+    "getSignatureImage",
   ],
   User: [
     "getInitialData",
@@ -80,6 +84,7 @@ const ROLE_PERMISSIONS = {
     "getAnnouncements",
     "submitFeedback",
     "searchPackages",
+    "getSignatureImage",
   ],
 };
 
@@ -87,9 +92,10 @@ const PUBLIC_ACTIONS = [
   "handleLogin",
   "requestLoginOtp",
   "verifyLoginOtp",
+  "requestTrackingOtp",
+  "verifyTrackingOtp",
   "verifySession",
   "systemHealthCheck",
-  "getSystemInfo",
   "publicSearchPackages",
   "getPublicTrackingDepartments",
 ];
@@ -106,6 +112,7 @@ var ROUTE_MAP = {
   updateSystemConfig: (data) =>
     AdminService.updateSystemConfig(data.key, data.value),
   setupUptimeMonitor: () => AdminService.setupUptimeMonitor(),
+  migrateSignaturePrivacy: () => Service_Utils.migrateSignaturePrivacy(),
 
   // Package Services
   savePackageEntry: (data) => Service_Package.savePackageEntry(data),
@@ -124,6 +131,9 @@ var ROUTE_MAP = {
   getPublicTrackingLinks: () => getPublicTrackingLinks(),
   getPublicTrackingDepartments: () => getPublicTrackingDepartments(),
 
+  // [Security] Authenticated signature image serving
+  getSignatureImage: (data) => getSignatureImage(data),
+
   // System Diagnostics & Feedback
   submitFeedback: (data) => Service_Feedback.submitFeedback(data),
   systemHealthCheck: () => Service_Health.systemHealthCheck(),
@@ -133,16 +143,31 @@ var ROUTE_MAP = {
   adminGetUsers: () => AdminService.getUsers(),
   adminAddUser: (data) => AdminService.addUser(data),
   adminUpdateUser: (data) => {
+    // [Security] Clear cache before + after to prevent race condition
     _clearUserRoleCache(data.email);
-    return AdminService.updateUser(data);
+    var result = AdminService.updateUser(data);
+    if (result && result.success) {
+      _clearUserRoleCache(data.email);
+    }
+    return result;
   },
-  adminDeleteUser: (data) => AdminService.deleteUser(data.email),
+  adminDeleteUser: (data) => {
+    // [Security] Clear cache before + after to prevent race condition
+    _clearUserRoleCache(data.email);
+    var result = AdminService.deleteUser(data.email, data);
+    if (result && result.success) {
+      _clearUserRoleCache(data.email);
+    }
+    return result;
+  },
 
   // Authentication
   handleLogin: (data) =>
     Service_Auth.handleLogin(data.email, data.name, data.picture),
   requestLoginOtp: (data) => Service_Auth.requestLoginOtp(data.email),
   verifyLoginOtp: (data) => Service_Auth.verifyLoginOtp(data.email, data.otp),
+  requestTrackingOtp: (data) => Service_Auth.requestTrackingOtp(data.email),
+  verifyTrackingOtp: (data) => Service_Auth.verifyTrackingOtp(data.email, data.otp),
   verifySession: (data) => Service_Auth.verifySession(data.authToken),
 
   // Backup & Restore Services
@@ -171,9 +196,6 @@ var ROUTE_MAP = {
       personnel: AdminService.getPersonnel(),
       positions: AdminService.getPositions(),
       representatives: AdminService.getRepresentatives(),
-      configs: AdminService.getSystemConfigs
-        ? AdminService.getSystemConfigs().data || {}
-        : {},
       announcements: Service_DB.getData(SHEET_NAMES.ANNOUNCEMENTS),
     };
   },
@@ -247,6 +269,123 @@ function doGet(e) {
 }
 
 /**
+ * [Security] getSignatureImage
+ * Returns base64 signature image from private Drive.
+ * Accepts packageId — looks up file ID from spreadsheet (never trusts user-supplied fileId).
+ */
+function getSignatureImage(data) {
+  try {
+    var packageId = data.packageId;
+    if (!packageId) return { success: false, error: "Missing packageId" };
+
+    // [Security] Department-based access control for User role
+    var actorEmail = data.userEmail || "";
+    var userRole = data._role || "";
+    if (userRole === "User" && actorEmail) {
+      var users = AdminService.getUsers ? AdminService.getUsers() : [];
+      var user = users.find(function(u) {
+        return String(u.Email).toLowerCase() === actorEmail.toLowerCase();
+      });
+      if (!user) return { success: false, error: "User not found" };
+      var userDept = String(user.Department || "").trim();
+      if (!userDept) return { success: false, error: "User has no department" };
+      data._userDept = userDept;
+    }
+
+    // Search across all shards (like executeSearchPackages does)
+    var registry = typeof _getShardRegistry === "function" ? _getShardRegistry() : {};
+    var ssIds = [SPREADSHEET_ID]; // Current year
+    Object.keys(registry).forEach(function(y) {
+      if (registry[y] && registry[y] !== SPREADSHEET_ID) {
+        ssIds.push(registry[y]);
+      }
+    });
+
+    var fileId = "";
+    var packageDept = "";
+
+    for (var s = 0; s < ssIds.length; s++) {
+      try {
+        var ss = SpreadsheetApp.openById(ssIds[s]);
+        var sheet = ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG);
+        if (!sheet || sheet.getLastRow() < 2) continue;
+
+        var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        var idIdx = getHeaderIndex(headers, ["รหัสพัสดุ", "Package ID", "ID"]);
+        var signIdx = getHeaderIndex(headers, ["ลายเซ็น", "Signature"]);
+        var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department"]);
+        if (idIdx === -1 || signIdx === -1) continue;
+
+        var dataRows = sheet.getDataRange().getValues();
+        var formulas = sheet.getDataRange().getFormulas();
+
+        for (var i = 1; i < dataRows.length; i++) {
+          if (String(dataRows[i][idIdx]) === String(packageId)) {
+            var formula = (formulas[i] || [])[signIdx] || "";
+            var raw = String(dataRows[i][signIdx] || "");
+            fileId = _extractSignatureFileId(formula) || raw;
+            packageDept = deptIdx !== -1 ? String(dataRows[i][deptIdx] || "").trim() : "";
+            break;
+          }
+        }
+        if (fileId) break;
+      } catch (e) {
+        continue; // Skip unreadable shards
+      }
+    }
+
+    if (!fileId) return { success: false, error: "Signature not found for this package" };
+
+    // [Security] Department check for User role — fail-closed
+    if (data._userDept) {
+      if (!packageDept || data._userDept.toLowerCase().trim() !== packageDept.toLowerCase().trim()) {
+        return { success: false, error: "ไม่มีสิทธิ์เข้าถึงลายเซ็นของหน่วยงานอื่น" };
+      }
+    }
+
+    // [Security] Verify file is in the ePostal_Signatures folder
+    var folderName = "ePostal_Signatures";
+    var folders = DriveApp.getFoldersByName(folderName);
+    if (!folders.hasNext()) return { success: false, error: "Signature folder not found" };
+    var file = DriveApp.getFileById(fileId);
+    if (!file.getParents().hasNext() || file.getParents().next().getName() !== folderName) {
+      return { success: false, error: "File not in signature folder" };
+    }
+
+    var blob = file.getBlob();
+    var base64 = Utilities.base64Encode(blob.getBytes());
+    var mimeType = blob.getContentType() || "image/png";
+
+    return { success: true, data: "data:" + mimeType + ";base64," + base64 };
+  } catch (err) {
+    return { success: false, error: "File not found or access denied" };
+  }
+}
+
+/**
+ * Extract Drive file ID from a value that may be:
+ * - A raw file ID (11-char alphanumeric)
+ * - An =IMAGE("...") formula containing a URL with id= parameter
+ * - An =IMAGE("...") formula with a direct file ID
+ */
+function _extractSignatureFileId(value) {
+  var text = String(value || "").trim();
+  if (!text) return "";
+  // Raw file ID (Google Drive IDs are typically 28-44 chars, alphanumeric + dash + underscore)
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(text)) return text;
+  // IMAGE formula: =IMAGE("https://drive.google.com/thumbnail?id=XXX&sz=w400")
+  var match = text.match(/^=IMAGE\("([^"]+)"/i);
+  if (match) {
+    var url = match[1];
+    var idMatch = url.match(/[?&]id=([^&]+)/);
+    if (idMatch) return idMatch[1];
+    // If the formula contains a raw ID
+    if (/^[a-zA-Z0-9_-]{20,}$/.test(url)) return url;
+  }
+  return "";
+}
+
+/**
  * getManifest - ข้อมูลสำหรับติดตั้งเป็นแอป
  */
 function getManifest() {
@@ -272,10 +411,9 @@ function getManifest() {
 
 /**
  * getServiceWorker - ระบบจัดการ Offline Caching [Enhanced]
- * VERSION: 4.0.2
  */
 function getServiceWorker() {
-  var CACHE_NAME = "epostal-v4.0.2";
+  var CACHE_NAME = "epostal-v" + APP_VERSION;
   var sw =
     "const CACHE_NAME = '" +
     CACHE_NAME +
@@ -320,7 +458,7 @@ function doPost(e) {
   }
 }
 
-const SYSTEM_VERSION = "4.0.2";
+var SYSTEM_VERSION = APP_VERSION;
 
 /**
  * handleRequest - Internal handler that maintains original standard response structure
@@ -380,7 +518,9 @@ function _validatePayload(action, data) {
     checkDuplicate: ["trackingNumber"],
     requestLoginOtp: ["email"],
     verifyLoginOtp: ["email", "otp"],
-    submitFeedback: ["userEmail"],
+    requestTrackingOtp: ["email"],
+    verifyTrackingOtp: ["email", "otp"],
+    submitFeedback: ["userEmail", "consent"],
     adminAddUser: ["email", "fullName", "role"],
     adminUpdateUser: ["email"],
     adminDeleteUser: ["email"],
@@ -525,10 +665,17 @@ function _verifyAccessV2(action, data) {
   }
 
   let actorEmail = "";
+  let tokenScope = "staff";
   const token = data && data.authToken;
   if (token) {
     const session = Service_Auth.verifySessionToken(token);
     actorEmail = session.email;
+    tokenScope = session.scope || "staff";
+    // [Security] tracking-scope token ใช้ได้เฉพาะ publicSearchPackages เท่านั้น
+    if (tokenScope === "tracking" && action !== "publicSearchPackages") {
+      logAction(actorEmail, action, "DENIED: tracking-scope token cannot access this action");
+      throw new Error("สิทธิ์ของคุณใช้ค้นหาพัสดุได้เท่านั้น กรุณาล็อกอินด้วยบัญชีเจ้าหน้าที่หากต้องการใช้งานส่วนอื่น");
+    }
   } else {
     const sessionEmail = Session.getActiveUser().getEmail();
     if (sessionEmail) actorEmail = sessionEmail;
@@ -568,6 +715,7 @@ function _verifyAccessV2(action, data) {
     cache.put(cacheKey, role, 900);
   }
 
+  data._role = role; // Passed to route handlers for role-based logic
   const allowedActions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS["User"];
   if (allowedActions.indexOf(action) === -1) {
     logAction(

@@ -83,7 +83,7 @@ export interface PostalPackage {
 export async function request(action: string, data: any = {}, method: 'GET' | 'POST' = 'POST') {
   const payload = { 
     ...data,
-    clientVersion: '4.0.2' 
+    clientVersion: __APP_VERSION__
   };
 
   try {
@@ -209,6 +209,8 @@ export const ApiClient = {
     login: (data: { email: string }) => request("requestLoginOtp", data, "POST"),
     requestOtp: (data: { email: string }) => request("requestLoginOtp", data, "POST"),
     verifyOtp: (data: { email: string; otp: string }) => request("verifyLoginOtp", data, "POST"),
+    requestTrackingOtp: (data: { email: string }) => request("requestTrackingOtp", data, "POST"),
+    verifyTrackingOtp: (data: { email: string; otp: string }) => request("verifyTrackingOtp", data, "POST"),
     verifySession: () => request("verifySession", {}, "POST")
   },
   admin: {
@@ -229,7 +231,8 @@ export const ApiClient = {
     updateSystemConfig: (key: string, value: string) => request("updateSystemConfig", { key, value }, "POST"),
     setupUptimeMonitor: () => request("setupUptimeMonitor", null, "POST"),
     getPublicTrackingLinks: () => request("getPublicTrackingLinks", null, "POST"),
-    repairDatabase: () => request("repairProjectSheetHeaders", null, "POST")
+    repairDatabase: () => request("repairProjectSheetHeaders", null, "POST"),
+    getSignatureImage: (packageId: string) => request("getSignatureImage", { packageId }, "POST")
   },
   postal: {
     saveEntry: (data: any) => request("savePackageEntry", data, "POST"),
@@ -246,7 +249,7 @@ export const ApiClient = {
       fiscalYear?: string;
     }) => request("searchPackages", filters, "POST"),
     revert: (data: { packageId: string; reason: string }) => request("revertDelivery", data, "POST"),
-    reportIssue: (packageId: string, reason: string) => request("reportDeliveryIssue", { packageId, reason }, "POST"),
+    reportIssue: (packageId: string, issueType: string) => request("reportDeliveryIssue", { packageId, issueType }, "POST"),
     checkDuplicate: (trackingNumber: string) => request("checkDuplicate", { trackingNumber }, "POST"),
   },
   tracking: {

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ติดตั้งแอป DCG Smart ePostal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+  .banner { width: 800px; background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%); border-radius: 20px; padding: 32px 48px; display: flex; align-items: center; gap: 32px; box-shadow: 0 20px 60px rgba(5,150,105,0.3); position: relative; overflow: hidden; }
+  .banner::before { content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+  .banner::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+  .icon-area { flex-shrink: 0; position: relative; z-index: 1; }
+  .app-icon { width: 80px; height: 80px; background: white; border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+  .app-icon svg { width: 48px; height: 48px; fill: #059669; }
+  .text-area { flex: 1; position: relative; z-index: 1; }
+  .text-area h2 { color: white; font-size: 28px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .text-area p { color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500; }
+  .cta-area { flex-shrink: 0; position: relative; z-index: 1; }
+  .cta-btn { background: white; color: #059669; border: none; padding: 16px 32px; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); transition: transform 0.2s; }
+  .cta-btn:hover { transform: scale(1.05); }
+  .cta-btn svg { width: 20px; height: 20px; fill: #059669; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="icon-area">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+    </div>
+  </div>
+  <div class="text-area">
+    <h2>ติดตั้งแอป DCG Smart ePostal</h2>
+    <p>ใช้งานง่ายบนคอมพิวเตอร์และสมาร์ทโฟน — รองรับทั้ง PC และ Mobile</p>
+  </div>
+  <div class="cta-area">
+    <button class="cta-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      ติดตั้งตอนนี้
+    </button>
+  </div>
+</div>
+</body>
+</html>

@@ -254,6 +254,17 @@ var Service_Package = {
         throw new Error("คุณไม่มีสิทธิ์ในการบันทึกข้อมูล");
       }
 
+      // [P2-2 Idempotency] กันข้อมูลซ้ำจาก retry/sync ถ้าส่งซ้ำด้วย key เดิม → คืนผลเดิม
+      if (payload.idempotencyKey) {
+        var idemCacheKey = "saveEntry_idem_" + String(payload.idempotencyKey).replace(/[^a-zA-Z0-9-]/g, "_");
+        var cached = CacheService.getScriptCache().get(idemCacheKey);
+        if (cached) {
+          // เคยประมวลผลแล้ว → คืนผลเดิม ไม่สร้างซ้ำ
+          console.log("Idempotency hit: saveEntry key=" + payload.idempotencyKey + " → return cached");
+          return JSON.parse(cached);
+        }
+      }
+
       lock.waitLock(30000);
       this.initSheet();
       var sheet = getSheet(SHEET_NAMES.PACKAGE_LOG, null, { skipSchemaValidation: true });
@@ -261,7 +272,7 @@ var Service_Package = {
         throw new Error("ไม่พบชีทรายการพัสดุ กรุณาติดต่อผู้ดูแลระบบ");
       }
       var lastRow = sheet.getLastRow();
-      var deptName = payload.departmentName || payload.deptName;
+      var deptName = sanitizeForSheet(payload.departmentName || payload.deptName);
       if (!deptName) throw new Error("ไม่พบชื่อหน่วยงาน");
 
       var now = new Date();
@@ -289,10 +300,13 @@ var Service_Package = {
           var idx = getHeaderIndex(headers, aliases[key] || key);
           if (idx > -1) row[idx] = data[key];
         });
+        // [P1-5] Default version to 1 for new rows
+        var vIdx = getHeaderIndex(headers, ["version", "Version"]);
+        if (vIdx > -1 && !row[vIdx]) row[vIdx] = 1;
         return row;
       }
       
-      var recipientName = payload.recipientName || "เจ้าหน้าที่หน่วยงาน";
+      var recipientName = sanitizeForSheet(payload.recipientName || "เจ้าหน้าที่หน่วยงาน");
       var personalQty = parseInt(payload.personalQty) || 0;
       var workQty = parseInt(payload.workQty) || 0;
       var rowsToAppend = [];
@@ -350,7 +364,7 @@ var Service_Package = {
           var off = isEms ? eOff++ : rOff++;
           var id = `${isEms ? 'EMS' : 'REG'}-${info.dateStr}-${String(info.seq + off).padStart(4, "0")}`;
           
-          var recipientNameInRow = item.recipientName || item.receiverName || recipientName;
+          var recipientNameInRow = sanitizeForSheet(item.recipientName || item.receiverName || recipientName);
           var thaiItemType = isEms ? "ไปรษณีย์ด่วนพิเศษ (EMS)" : "ไปรษณีย์ลงทะเบียน";
           
           rowsToAppend.push(buildRow({
@@ -359,7 +373,7 @@ var Service_Package = {
             "เวลาที่บันทึก": fullDateTimeStr, "จนท.ผู้นำจ่าย": staffName,
             "วิธีการส่งมอบ": "ส่งมอบที่หน่วยงาน",
             "ประเภทการใช้": item.isPersonal ? "ส่วนบุคคล" : "งานมหาวิทยาลัย",
-            "หมายเหตุ / Line": item.notes || "-", "ผู้บันทึก": staffName
+            "หมายเหตุ / Line": sanitizeForSheet(item.notes || "-"), "ผู้บันทึก": staffName
           }));
           count++;
         });
@@ -397,7 +411,15 @@ var Service_Package = {
         this._updateStatsSnapshot(deptUpdates, "หน่วยงาน: " + deptName);
       }
 
-      return { success: true, count: count, message: "บันทึกสำเร็จ " + count + " รายการ" };
+      var result = { success: true, count: count, message: "บันทึกสำเร็จ " + count + " รายการ" };
+
+      // [P2-2 Idempotency] เก็บผลลัพธ์ไว้ 15 นาที เพื่อ dedupe retry
+      if (payload.idempotencyKey) {
+        var idemKey = "saveEntry_idem_" + String(payload.idempotencyKey).replace(/[^a-zA-Z0-9-]/g, "_");
+        CacheService.getScriptCache().put(idemKey, JSON.stringify(result), 900);
+      }
+
+      return result;
     } catch (e) {
       return { success: false, error: e.message };
     } finally {
@@ -424,6 +446,7 @@ var Service_Package = {
       var statusIdx = getHeaderIndex(headers, ["สถานะ", "Status"]);
       var dateIdx = getHeaderIndex(headers, ["เวลาที่บันทึก", "Created At", "Received At"]);
       var delivererIdx = getHeaderIndex(headers, ["จนท.ผู้นำจ่าย", "Staff", "Deliverer"]);
+      var versionIdx = getHeaderIndex(headers, ["version", "Version"]);
 
       if (idIdx === -1 || statusIdx === -1) {
         console.error("Header Error: idIdx=" + idIdx + ", statusIdx=" + statusIdx + " | Headers: " + JSON.stringify(headers));
@@ -476,7 +499,8 @@ var Service_Package = {
             date: formattedDate,
             building: bInfo.building,
             floor: bInfo.floor,
-            deliverer: userMap[staffEmail] || staffEmail || "-"
+            deliverer: userMap[staffEmail] || staffEmail || "-",
+            version: versionIdx !== -1 ? (parseInt(row[versionIdx], 10) || 0) : 0
           });
         }
       }
@@ -503,6 +527,7 @@ var Service_Package = {
       var photoIdx = getHeaderIndex(headers, "รูปภาพ");
       var gpsIdx = getHeaderIndex(headers, "พิกัด GPS");
       var updaterIdx = getHeaderIndex(headers, "ผู้อัปเดตล่าสุด");
+      var versionIdx = getHeaderIndex(headers, ["version", "Version"]);
 
       var pkgIds = data.packageIds || [];
       var count = 0;
@@ -514,13 +539,50 @@ var Service_Package = {
       users.forEach(function(u) { userMap[String(u.Email).toLowerCase()] = u.FullName; });
       var staffName = data.staffEmail ? (userMap[String(data.staffEmail).toLowerCase()] || data.staffEmail) : "";
       var signatureImage = String(data.signatureImage || "");
-      var signatureUrl = "";
-      if (signatureImage.indexOf("data:image") === 0 && typeof Service_Utils !== "undefined" && Service_Utils.saveBase64ToDrive) {
-        signatureUrl = Service_Utils.saveBase64ToDrive(signatureImage, "signature_" + nowStr.replace(/[^\dA-Za-zก-๙]+/g, "_"));
-      } else if (/^https?:\/\//i.test(signatureImage)) {
-        signatureUrl = signatureImage;
+      // [Security] Signature is mandatory — reject empty
+      if (!signatureImage) {
+        return { success: false, error: "กรุณาลงลายเซ็นก่อนยืนยันนำจ่าย" };
       }
-      var signatureFormula = signatureUrl ? '=IMAGE("' + signatureUrl.replace(/"/g, '""') + '")' : "";
+      // [Security] Strict base64 validation — reject URLs, text, or malformed input
+      if (!/^data:image\/[a-z]+;base64,.+/.test(signatureImage)) {
+        return { success: false, error: "ลายเซ็นต้องเป็นรูปแบบ data:image/...;base64,... เท่านั้น" };
+      }
+
+      // [P1-5] Conflict control — check versions BEFORE saving signature to Drive
+      var expectedVersions = data.expectedVersions || {};
+      if (versionIdx !== -1 && Object.keys(expectedVersions).length > 0) {
+        var conflicts = [];
+        for (var i = 1; i < pData.length; i++) {
+          var pId = String(pData[i][idIdx]);
+          if (pkgIds.indexOf(pId) > -1) {
+            var currentVersion = parseInt(pData[i][versionIdx], 10) || 0;
+            var expectedVersion = parseInt(expectedVersions[pId], 10) || 0;
+            if (expectedVersion > 0 && currentVersion !== expectedVersion) {
+              conflicts.push({
+                packageId: pId,
+                expected: expectedVersion,
+                current: currentVersion,
+                currentStatus: String(pData[i][statusIdx] || "")
+              });
+            }
+          }
+        }
+        if (conflicts.length > 0) {
+          return { success: false, error: "CONFLICT", conflicts: conflicts };
+        }
+      }
+
+      // Save signature only after version check passes
+      var signatureUrl = "";
+      if (typeof Service_Utils === "undefined" || !Service_Utils.saveBase64ToDrive) {
+        return { success: false, error: "ระบบบันทึกลายเซ็นไม่พร้อมใช้งาน" };
+      }
+      signatureUrl = Service_Utils.saveBase64ToDrive(signatureImage, "signature_" + nowStr.replace(/[^\dA-Za-zก-๙]+/g, "_"));
+      if (!signatureUrl) {
+        return { success: false, error: "ไม่สามารถบันทึกลายเซ็นได้ กรุณาลองใหม่" };
+      }
+      // [Security] Store file ID directly — frontend fetches via authenticated endpoint
+      var signatureFormula = signatureUrl || "";
 
       var deptIdx = getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department"]);
       var updateColumns = [statusIdx, timeOutIdx, receiverIdx, methodIdx];
@@ -556,13 +618,11 @@ var Service_Package = {
           
           setRowValue(pData[i], statusIdx, "ส่งมอบแล้ว");
           setRowValue(pData[i], timeOutIdx, nowStr);
-          setRowValue(pData[i], receiverIdx, data.signatureName || "เซ็นรับผ่านระบบ");
-          setRowValue(pData[i], methodIdx, data.deliveryMethod || "ส่งมอบที่หน่วยงาน");
+          setRowValue(pData[i], receiverIdx, sanitizeForSheet(data.signatureName || "เซ็นรับผ่านระบบ"));
+          setRowValue(pData[i], methodIdx, sanitizeForSheet(data.deliveryMethod || "ส่งมอบที่หน่วยงาน"));
           if (staffName) setRowValue(pData[i], staffIdx, staffName);
           
-          if (signIdx !== -1 && data.signatureImage) {
-            if (!useSignatureFormula) setRowValue(pData[i], signIdx, data.signatureImage);
-          }
+          // Signature is written via setValues in columnGroups below (useSignatureFormula path)
           setRowValue(pData[i], photoIdx, data.photoImage);
           setRowValue(pData[i], gpsIdx, data.gpsCoordinates);
           if (staffName) setRowValue(pData[i], updaterIdx, staffName);
@@ -596,18 +656,26 @@ var Service_Package = {
             ).setValues(values);
           });
           if (useSignatureFormula) {
-            var formulas = [];
+            // [Security] Store file ID as value (not formula) — frontend fetches via authenticated endpoint
+            var sigValues = [];
             for (var formulaRow = rowGroup.start; formulaRow <= rowGroup.end; formulaRow++) {
-              formulas.push([signatureFormula]);
+              sigValues.push([signatureFormula]);
             }
             sheet.getRange(
               rowGroup.start,
               signIdx + 1,
               rowGroup.end - rowGroup.start + 1,
               1
-            ).setFormulas(formulas);
+            ).setValues(sigValues);
           }
         });
+        // [P1-5] Increment version for all updated rows
+        if (versionIdx !== -1) {
+          updatedRows.forEach(function(row) {
+            var curVer = parseInt(pData[row - 1][versionIdx], 10) || 0;
+            sheet.getRange(row, versionIdx + 1).setValue(curVer + 1);
+          });
+        }
         this._updateStatsSnapshot({ "รอนำจ่าย": -count, "ส่งมอบแล้ว": count }, "ภาพรวม");
         Object.keys(deptCounts).forEach(function(deptName) {
           var deptCount = deptCounts[deptName];
@@ -779,12 +847,29 @@ var Service_Package = {
       var idIdx = getHeaderIndex(headers, "รหัสพัสดุ");
       var statusIdx = getHeaderIndex(headers, "สถานะ");
       var remarksIdx = getHeaderIndex(headers, "หมายเหตุ / Line");
+      var deptIdx = getHeaderIndex(headers, "ชื่อหน่วยงาน");
 
       for (var i = 1; i < pData.length; i++) {
         if (String(pData[i][idIdx]) === String(data.packageId)) {
           var row = i + 1;
+          var prevStatus = String(pData[i][statusIdx] || "").trim();
+          var pkgDept = String(pData[i][deptIdx] || "").trim();
           sheet.getRange(row, statusIdx + 1).setValue("รอนำจ่าย");
-          sheet.getRange(row, remarksIdx + 1).setValue("ยกเลิก: " + (data.reason || "ไม่ระบุ"));
+          sheet.getRange(row, remarksIdx + 1).setValue("ยกเลิก: " + (sanitizeForSheet(data.reason) || "ไม่ระบุ"));
+
+          // [P2-4 Fix] Reconcile stats snapshot — เดิม revert ไม่อัปเดตทำให้ dashboard ผิด
+          // ปรับเฉพาะถ้าสถานะเดิมเป็น "ส่งมอบแล้ว" (กัน double-count)
+          if (prevStatus === "ส่งมอบแล้ว") {
+            try {
+              this._updateStatsSnapshot({ "รอนำจ่าย": 1, "ส่งมอบแล้ว": -1 }, "ภาพรวม");
+              if (pkgDept) {
+                this._updateStatsSnapshot({ "รอนำจ่าย": 1, "ส่งมอบแล้ว": -1 }, "หน่วยงาน: " + pkgDept);
+              }
+            } catch (statsErr) {
+              console.error("Revert stats reconcile failed: " + statsErr.message);
+            }
+          }
+
           return { success: true };
         }
       }
@@ -811,7 +896,7 @@ var Service_Package = {
         if (String(pData[i][idIdx]) === String(data.packageId)) {
           var row = i + 1;
           sheet.getRange(row, statusIdx + 1).setValue("มีปัญหา/ตีกลับ");
-          sheet.getRange(row, remarksIdx + 1).setValue("มีปัญหา: " + data.issueType + (data.reason ? " - " + data.reason : ""));
+          sheet.getRange(row, remarksIdx + 1).setValue("มีปัญหา: " + sanitizeForSheet(data.issueType) + (data.reason ? " - " + sanitizeForSheet(data.reason) : ""));
           return { success: true };
         }
       }
@@ -977,7 +1062,7 @@ function getPublicTrackingLinks() {
     deptId: "ALL",
     department: "ลิงก์กลางสำหรับทุกหน่วยงาน",
     token: "",
-    url: baseUrl ? baseUrl + "?publicTrack=1" : ""
+    url: baseUrl ? baseUrl + "#/tracking" : ""
   };
   departments.map(function(dept) {
     var deptId = String(dept.DeptID || dept.id || dept.DeptName || dept.name || "").trim();

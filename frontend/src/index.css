@@ -4,9 +4,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Typography Strategies */
-  --font-heading: "Prompt", sans-serif;
-  --font-body: "Sarabun", sans-serif;
+  /* Typography Strategies
+   * [P2-9] เพิ่ม system font fallback stack เพื่อให้ทำงานได้ offline (PWA)
+   * และลดการพึ่งพา external request.
+   * TODO P3: self-host ฟอนต์จริง (base64) เพื่อ PDPA compliance เต็มรูปแบบ
+   */
+  --font-heading: "Prompt", "Leelawadee UI", "Tahoma", system-ui, sans-serif;
+  --font-body: "Sarabun", "Leelawadee UI", "Tahoma", system-ui, sans-serif;
 
   /* Academic Palette (High-End Zinc + Emerald) */
   --color-primary: #047857; /* Emerald 700 (Light Mode) */

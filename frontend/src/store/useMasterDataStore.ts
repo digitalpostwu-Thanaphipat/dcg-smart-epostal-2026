@@ -66,7 +66,6 @@ export const useMasterDataStore = create<MasterDataState>((set) => ({
   fetchMasterData: async () => {
     // 1. Try loading from Cache first
     try {
-      localStorage.removeItem('epostal_cache_master-data-bundle'); // TEMPORARY CLEAR CACHE
       const cached = await offlineDb.get('master-data-bundle');
       if (cached) {
         set({ ...cached, isLoading: false });

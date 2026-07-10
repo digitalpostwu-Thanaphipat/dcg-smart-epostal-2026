@@ -130,12 +130,16 @@ export function usePostalEntry() {
 
     setLoading(true);
     const t = toast.loading('กำลังบันทึกข้อมูล...');
-    
+
+    // [P2-2 Idempotency] สร้าง key ครั้งเดียวต่อการ submit — reuse ใน retry/sync กันข้อมูลซ้ำ
+    const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
     const payload = {
       ...batchData,
       departmentName: selectedDept?.DeptName || selectedDept?.name || batchData.departmentId,
       staffEmail: user?.email || 'admin@university.ac.th',
-      offlineCreatedAt: Date.now()
+      offlineCreatedAt: Date.now(),
+      idempotencyKey
     };
 
     try {
@@ -171,7 +175,18 @@ export function usePostalEntry() {
         throw new Error(res.error || 'Server returned error');
       }
     } catch (error: any) {
-      // 2. Offline Fallback
+      // 2. Any server response (even 500) = show to user immediately, do NOT queue
+      //    Only genuine network failure (no response) goes to offline queue
+      const hasServerResponse = error?.message || error?.error || error?.status || error?.response;
+      const isNetworkFailure = !navigator.onLine || /network|fetch|failed to|ERR_NETWORK|ERR_CONNECTION|ECONNREFUSED|timeout|abort/i.test(String(error?.message || ''));
+
+      if (hasServerResponse && !isNetworkFailure) {
+        haptics.error();
+        toast.error(error?.message || 'เซิร์ฟเวอร์ปฏิเสธคำขอ', { id: t });
+        return;
+      }
+
+      // 3. Genuine network/Offline Fallback
       console.warn('Network failed, falling back to Offline mode', error);
       
       try {

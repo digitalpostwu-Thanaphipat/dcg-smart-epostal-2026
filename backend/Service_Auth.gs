@@ -10,10 +10,60 @@
 
 var Service_Auth = {
   OTP_TTL_SECONDS: 600,
-  SESSION_TTL_SECONDS: 86400, // 1 day
+  SESSION_TTL_SECONDS: 86400, // 1 day — staff session
+  TRACKING_SESSION_TTL_SECONDS: 900, // 15 นาที — public tracking session
+  OTP_RATE_LIMIT: 3, // สูงสุด 3 ครั้ง/ชม.
+  OTP_RATE_WINDOW: 3600,
+  OTP_RESEND_COOLDOWN_MS: 60000, // 60 วินาทีระหว่างการขอ
 
+  // [Security] CSPRNG สำหรับ OTP — แทนที่ Math.random() ที่ไม่ปลอดภัย
+  _generateSecureOtp: function() {
+    // ใช้ SHA-256 digest ของ UUID + timestamp เป็น entropy source
+    // แล้ว mod 900000 + 100000 เพื่อให้ได้เลข 6 หลัก (100000-999999)
+    var seed = Utilities.getUuid() + ":" + Date.now() + ":" + Math.random();
+    var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, seed);
+    // รวม byte ทุกตัวเป็นเลขใหญ่ แล้ว mod
+    var num = 0;
+    for (var i = 0; i < digest.length; i++) {
+      num = (num * 256 + (digest[i] & 0xff)) % 900000;
+    }
+    return String(num + 100000);
+  },
+
+  // [Security] Rate limit + resend cooldown สำหรับ OTP ทุกประเภท
+  _enforceOtpLimits: function(cleanEmail) {
+    var cache = CacheService.getScriptCache();
+    var rlKey = "otp_rl_" + cleanEmail.replace(/[^a-zA-Z0-9]/g, "_");
+    var cdKey = "otp_cd_" + cleanEmail.replace(/[^a-zA-Z0-9]/g, "_");
+
+    // Resend cooldown (60s)
+    var lastSent = cache.get(cdKey);
+    if (lastSent) {
+      var elapsed = Date.now() - parseInt(lastSent, 10);
+      if (elapsed < this.OTP_RESEND_COOLDOWN_MS) {
+        var waitSec = Math.ceil((this.OTP_RESEND_COOLDOWN_MS - elapsed) / 1000);
+        throw new Error("กรุณารอ " + waitSec + " วินาทีก่อนขอรหัสใหม่");
+      }
+    }
+
+    // Rate limit (max 3/ชม.)
+    var count = parseInt(cache.get(rlKey) || "0", 10);
+    if (count >= this.OTP_RATE_LIMIT) {
+      throw new Error("ขอรหัสยืนยันถี่เกินไป กรุณารอ 1 ชั่วโมงแล้วลองใหม่");
+    }
+    cache.put(rlKey, String(count + 1), this.OTP_RATE_WINDOW);
+    cache.put(cdKey, String(Date.now()), this.OTP_RATE_WINDOW);
+  },
+
+  // [Staff] OTP สำหรับเจ้าหน้าที่ — จำกัดเฉพาะวันจันทร์-ศุกร์
   requestLoginOtp: function(email) {
     try {
+      // [Security] จำกัดเฉพาะวันทำการ (จันทร์-ศุกร์)
+      var day = new Date().getDay(); // 0=อาทิตย์, 6=เสาร์
+      if (day === 0 || day === 6) {
+        return { success: false, error: "ระบบเปิดให้ล็อกอินเฉพาะวันจันทร์-ศุกร์ (วันทำการ)" };
+      }
+
       var user = this._findUserByEmail(email);
       if (!user) {
         logAction(String(email || "unknown").toLowerCase(), "LOGIN_OTP", JSON.stringify({ status: "REJECTED", reason: "User not found" }));
@@ -21,7 +71,9 @@ var Service_Auth = {
       }
 
       var cleanEmail = String(user.Email).trim().toLowerCase();
-      var otp = String(Math.floor(100000 + Math.random() * 900000));
+      this._enforceOtpLimits(cleanEmail);
+
+      var otp = this._generateSecureOtp();
       var salt = Utilities.getUuid();
       var cacheKey = this._otpCacheKey(cleanEmail);
 
@@ -29,6 +81,7 @@ var Service_Auth = {
         hash: this._sha256(otp + ":" + salt),
         salt: salt,
         attempts: 0,
+        scope: "staff",
         createdAt: Date.now()
       }), this.OTP_TTL_SECONDS);
 
@@ -74,11 +127,101 @@ var Service_Auth = {
         return { success: false, error: "รหัสยืนยันไม่ถูกต้อง" };
       }
 
+      // [Security] ปฏิเสธถ้า OTP นี้ไม่ใช่ scope "staff"
+      if (record.scope && record.scope !== "staff") {
+        cache.remove(cacheKey);
+        return { success: false, error: "รหัสยืนยันนี้ไม่ใช่สำหรับเจ้าหน้าที่ กรุณาขอรหัสใหม่" };
+      }
+
       cache.remove(cacheKey);
       var payload = this._publicUserPayload(user);
-      payload.sessionToken = this.issueSessionToken(cleanEmail);
+      payload.sessionToken = this.issueSessionToken(cleanEmail, "staff");
 
       logAction(cleanEmail, "LOGIN", JSON.stringify({ status: "SUCCESS", role: payload.Role }));
+      return { success: true, data: payload };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
+  // [Public Tracking] OTP สำหรับประชาชนติดตามพัสดุ — ใช้ได้ทุกวัน, 15 นาที multi-search
+  requestTrackingOtp: function(email) {
+    try {
+      var user = this._findUserByEmail(email);
+      if (!user) {
+        logAction(String(email || "unknown").toLowerCase(), "TRACKING_OTP", JSON.stringify({ status: "REJECTED", reason: "User not found" }));
+        return { success: false, error: "ไม่พบอีเมลนี้ในรายชื่อผู้ใช้งานระบบ" };
+      }
+
+      var cleanEmail = String(user.Email).trim().toLowerCase();
+      this._enforceOtpLimits(cleanEmail);
+
+      var otp = this._generateSecureOtp();
+      var salt = Utilities.getUuid();
+      var cacheKey = this._trackingOtpCacheKey(cleanEmail);
+
+      CacheService.getScriptCache().put(cacheKey, JSON.stringify({
+        hash: this._sha256(otp + ":" + salt),
+        salt: salt,
+        attempts: 0,
+        scope: "tracking",
+        createdAt: Date.now()
+      }), this.OTP_TTL_SECONDS);
+
+      GmailApp.sendEmail(
+        cleanEmail,
+        "รหัสยืนยันการติดตามพัสดุ DCG Smart ePostal",
+        "รหัสยืนยันของคุณคือ " + otp + "\n\nรหัสนี้ใช้สำหรับติดตามพัสดุเป็นเวลา 15 นาที\nหากไม่ได้เป็นผู้ร้องขอ กรุณาเพิกเฉยอีเมลนี้"
+      );
+
+      logAction(cleanEmail, "TRACKING_OTP", JSON.stringify({ status: "SENT" }));
+      return {
+        success: true,
+        requiresOtp: true,
+        email: cleanEmail,
+        message: "ส่งรหัสยืนยันไปที่อีเมลแล้ว (ใช้ค้นหาได้ 15 นาที)"
+      };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
+  verifyTrackingOtp: function(email, otp) {
+    try {
+      var user = this._findUserByEmail(email);
+      if (!user) return { success: false, error: "ไม่พบอีเมลนี้ในรายชื่อผู้ใช้งานระบบ" };
+
+      var cleanEmail = String(user.Email).trim().toLowerCase();
+      var cache = CacheService.getScriptCache();
+      var cacheKey = this._trackingOtpCacheKey(cleanEmail);
+      var raw = cache.get(cacheKey);
+      if (!raw) return { success: false, error: "รหัสยืนยันหมดอายุ กรุณาขอรหัสใหม่" };
+
+      var record = JSON.parse(raw);
+      if ((record.attempts || 0) >= 5) {
+        cache.remove(cacheKey);
+        return { success: false, error: "กรอกรหัสผิดเกินจำนวนครั้งที่กำหนด กรุณาขอรหัสใหม่" };
+      }
+
+      var expected = this._sha256(String(otp || "").trim() + ":" + record.salt);
+      if (expected !== record.hash) {
+        record.attempts = (record.attempts || 0) + 1;
+        cache.put(cacheKey, JSON.stringify(record), this.OTP_TTL_SECONDS);
+        return { success: false, error: "รหัสยืนยันไม่ถูกต้อง" };
+      }
+
+      // [Security] ปฏิเสธถ้า OTP นี้ไม่ใช่ scope "tracking"
+      if (record.scope && record.scope !== "tracking") {
+        cache.remove(cacheKey);
+        return { success: false, error: "รหัสยืนยันนี้ไม่ใช่สำหรับติดตามพัสดุ กรุณาขอรหัสใหม่" };
+      }
+
+      cache.remove(cacheKey);
+      var payload = this._publicUserPayload(user);
+      // [Security] tracking session 15 นาที + scope tracking (จำกัดสิทธิ์)
+      payload.sessionToken = this.issueSessionToken(cleanEmail, "tracking");
+
+      logAction(cleanEmail, "TRACKING_LOGIN", JSON.stringify({ status: "SUCCESS" }));
       return { success: true, data: payload };
     } catch (e) {
       return { success: false, error: e.message };
@@ -101,12 +244,14 @@ var Service_Auth = {
     return this.requestLoginOtp(email);
   },
 
-  issueSessionToken: function(email) {
+  issueSessionToken: function(email, scope) {
     var now = Math.floor(Date.now() / 1000);
+    var ttl = (scope === "tracking") ? this.TRACKING_SESSION_TTL_SECONDS : this.SESSION_TTL_SECONDS;
     var payload = {
       email: String(email).trim().toLowerCase(),
+      scope: scope || "staff", // "staff" = full session, "tracking" = 15 นาที tracking-only
       iat: now,
-      exp: now + this.SESSION_TTL_SECONDS
+      exp: now + ttl
     };
     var header = { alg: "HS256", typ: "JWT" };
     var unsigned = this._base64Url(JSON.stringify(header)) + "." + this._base64Url(JSON.stringify(payload));
@@ -168,6 +313,10 @@ var Service_Auth = {
 
   _otpCacheKey: function(email) {
     return "LOGIN_OTP_" + String(email).replace(/[^a-zA-Z0-9]/g, "_");
+  },
+
+  _trackingOtpCacheKey: function(email) {
+    return "TRACKING_OTP_" + String(email).replace(/[^a-zA-Z0-9]/g, "_");
   },
 
   _getAuthSecret: function() {

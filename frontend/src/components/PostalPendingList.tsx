@@ -324,7 +324,7 @@ export const PostalPendingList = () => {
     const expectedVersions: Record<string, number> = {};
     selectedPackages.forEach(selId => {
       const pkg = items.find(p => p.id === selId);
-      if (pkg) expectedVersions[pkg.packageId || selId] = pkg.version || 1;
+      if (pkg) expectedVersions[pkg.packageId || selId] = pkg.version ?? 0;
     });
 
     try {
@@ -350,9 +350,25 @@ export const PostalPendingList = () => {
     } catch (error: any) {
       haptics.error();
       if (error.message === 'CONFLICT' || (error.response && error.response.error === 'CONFLICT')) {
-         toast.error('พบข้อมูลพัสดุถูกแก้ไขไปแล้ว กรุณารีเฟรชข้อมูล', { duration: 5000 });
-      } else {
-         // Offline Fallback for Confirmation
+         const conflictList = error.response?.conflicts || [];
+         const count = conflictList.length;
+         const msg = count > 0
+           ? `พัสดุ ${count} รายการถูกแก้ไขไปแล้ว (${conflictList.map((c: any) => c.packageId).join(', ')}) — กรุณารีเฟรช`
+           : 'พบข้อมูลพัสดุถูกแก้ไขไปแล้ว กรุณารีเฟรชข้อมูล';
+         toast.error(msg, { duration: 6000 });
+         fetchItems(); // auto-refresh
+         return;
+      }
+      // Any server response (even 500) = show to user immediately, do NOT queue
+      const hasServerResponse = error?.message || error?.error || error?.status || error?.response;
+      const isNetworkFailure = !navigator.onLine || /network|fetch|failed to|ERR_NETWORK|ERR_CONNECTION|ECONNREFUSED|timeout|abort/i.test(String(error?.message || ''));
+
+      if (hasServerResponse && !isNetworkFailure) {
+        toast.error(error?.message || 'เซิร์ฟเวอร์ปฏิเสธคำขอ', { duration: 5000 });
+        return;
+      }
+      {
+         // Network/Offline Fallback for Confirmation
          try {
             await db.syncQueue.add({
               action: 'update',

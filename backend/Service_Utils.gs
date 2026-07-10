@@ -34,15 +34,21 @@ var Service_Utils = {
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const idIdx = this.findHeader(headers, ["รหัส", "ID"]);
-    const idTop = sheet.getRange(2, idIdx + 1).getValue();
-    const idBottom = sheet.getRange(lastRow, idIdx + 1).getValue();
-    const lastId = String(idTop) > String(idBottom) ? idTop : idBottom;
+    // [P2-3 Fix] สแกนทุกแถวหา max sequence จริง — เดิมเทียบแค่ first vs last ทำให้ได้ ID ซ้ำเมื่อมีการลบแถว
+    const allIds = sheet.getRange(2, idIdx + 1, lastRow - 1, 1).getValues().flat();
+    var maxSeq = 0;
+    for (var i = 0; i < allIds.length; i++) {
+      var parts = String(allIds[i] || "").split("-");
+      // format: PREFIX-YYYYMMDD-NNNN
+      if (parts.length === 3 && parts[1] === dateStr) {
+        var s = parseInt(parts[2], 10) || 0;
+        if (s > maxSeq) maxSeq = s;
+      }
+    }
 
-    const parts = String(lastId).split("-");
-    if (parts.length === 3 && parts[1] === dateStr) {
-      seq = parseInt(parts[2], 10) || 0;
-      props.setProperty(propKey, seq.toString());
-      return { dateStr: dateStr, seq: seq, fromCache: false };
+    if (maxSeq > 0) {
+      props.setProperty(propKey, maxSeq.toString());
+      return { dateStr: dateStr, seq: maxSeq, fromCache: false };
     }
     
     props.setProperty(propKey, "0");
@@ -259,14 +265,52 @@ var Service_Utils = {
       }
       
       var file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      
-      // Return a direct viewable thumbnail URL
+      // [Security] Keep file private — serve via authenticated doGet endpoint
       var fileId = file.getId();
-      return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400';
+      return fileId;
     } catch (e) {
       console.error('saveBase64ToDrive error:', e.message);
       return '';
+    }
+  },
+
+  /**
+   * [Security] migrateSignaturePrivacy
+   * One-time Admin command: set all files in ePostal_Signatures to Private.
+   * @returns {Object} { success, migrated, errors }
+   */
+  migrateSignaturePrivacy: function() {
+    try {
+      var folderName = 'ePostal_Signatures';
+      var folders = DriveApp.getFoldersByName(folderName);
+      if (!folders.hasNext()) return { success: true, migrated: 0, message: 'Folder not found' };
+      var folder = folders.next();
+      var files = folder.getFiles();
+      var migrated = 0;
+      var errors = 0;
+
+      while (files.hasNext()) {
+        try {
+          var file = files.next();
+          // [Security] Set to PRIVATE — only owner can access
+          file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.VIEW);
+          // Verify the change took effect
+          var access = file.getSharingAccess();
+          if (access !== DriveApp.Access.PRIVATE) {
+            errors++;
+            console.error('migrateSignaturePrivacy: Verification failed for ' + file.getName() + ' — access is ' + access);
+          } else {
+            migrated++;
+          }
+        } catch (e) {
+          errors++;
+          console.error('migrateSignaturePrivacy: Failed to update file - ' + e.message);
+        }
+      }
+
+      return { success: true, migrated: migrated, errors: errors };
+    } catch (e) {
+      return { success: false, error: e.message };
     }
   },
 
@@ -314,6 +358,41 @@ var Service_Utils = {
       }
       console.warn("Rate limit check warning: " + e.message);
     }
+  },
+
+  /**
+   * sanitizeForSheet
+   * ป้องกัน Google Sheets Formula Injection โดย escape ค่าที่ขึ้นต้นด้วยอักขระอันตราย
+   * (ผู้ใช้ใส่ "=IMPORTXML(...)" ในช่อง note → Sheets จะทำงานเป็นสูตร → รั่วข้อมูล)
+   * กลไก: เติม single-quote (') นำหน้าค่าที่ขึ้นต้นด้วย = + - @ → Sheets บังคับตีความเป็น text
+   * Ref: OWASP CSV/Formula Injection mitigation
+   * @param {*} value - ค่าที่จะเขียนลงเซลล์ (string/number/null/undefined)
+   * @returns {*} ค่าที่ผ่านการ sanitize (ปลอดภัยจะเขียนลง Sheet)
+   */
+  sanitizeForSheet: function (value) {
+    // ค่าที่ไม่ใช่ string → คืนตามเดิม (ตัวเลข/วันที่/null ไม่มีความเสี่ยง)
+    if (value === null || value === undefined) return value;
+    if (typeof value !== "string") return value;
+
+    var str = value;
+
+    // 1. ตัด control characters และ null bytes (มักใช้สำหรับ bypass)
+    str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
+    // 2. Formula injection mitigation:
+    //    ถ้าขึ้นต้นด้วย = + - @ เติม single-quote นำหน้า
+    //    (เป็นกลไก escape มาตรฐานของ Google Sheets — apostrophe ไม่แสดงในเซลล์ แต่บังคับเป็น text)
+    var firstChar = str.charAt(0);
+    if (firstChar === "=" || firstChar === "+" || firstChar === "-" || firstChar === "@") {
+      str = "'" + str;
+    }
+
+    // 3. จำกัดความยาว 5000 ตัวอักษร (กัน abuse/DoS ผ่าน payload ใหญ่)
+    if (str.length > 5000) {
+      str = str.substring(0, 5000);
+    }
+
+    return str;
   }
 };
 
@@ -338,4 +417,7 @@ function sendLineNotify(msg) {
 }
 function checkRateLimit(action, limit, periodSeconds) {
   return Service_Utils.checkRateLimit(action, limit, periodSeconds);
+}
+function sanitizeForSheet(value) {
+  return Service_Utils.sanitizeForSheet(value);
 }

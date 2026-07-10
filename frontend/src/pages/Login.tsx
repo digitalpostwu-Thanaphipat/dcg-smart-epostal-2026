@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { ApiClient } from '@/api/client';
@@ -13,6 +14,7 @@ export const Login = () => {
   const [otpRequested, setOtpRequested] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
+  const navigate = useNavigate();
   const { theme, setTheme, initTheme } = useThemeStore();
   const { announcements, fetchMasterData } = useMasterDataStore();
 
@@ -52,6 +54,7 @@ export const Login = () => {
         });
         haptics.success();
         toast.success('เข้าสู่ระบบสำเร็จ');
+        navigate('/', { replace: true });
       } else {
         haptics.error();
         toast.error(response?.error || 'ไม่พบข้อมูลผู้ใช้งานในไฟล์โปรเจกต์ ePostal_2026');
@@ -230,7 +233,7 @@ export const Login = () => {
       <footer aria-label="ข้อมูลส่วนท้าย" className="w-full max-w-[480px] relative z-10 flex items-center justify-between px-8 animate-in fade-in duration-1000 delay-500 border-t border-white/5 pt-6 mt-8">
          <div className="flex flex-col">
             <p className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${isDark ? 'text-zinc-500' : 'text-zinc-700'}`}>เวอร์ชันระบบ</p>
-            <p className={`text-base font-black transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>4.0.2</p>
+            <p className={`text-base font-black transition-colors ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{__APP_VERSION__}</p>
          </div>
          
          <div className="text-right">

@@ -17,9 +17,15 @@ var Service_Batch = {
     if (!rows || rows.length === 0) return 0;
 
     var lock = LockService.getScriptLock();
+    var lockHeld = false;
     try {
-      // 15 seconds timeout to wait for other operations to finish
-      lock.waitLock(15000); 
+      // [Security] If doPost already holds the lock, reuse it; otherwise acquire
+      if (lock.hasLock()) {
+        lockHeld = false; // Already held by caller — don't release
+      } else {
+        lock.waitLock(10000);
+        lockHeld = true; // We acquired it — we must release
+      } 
 
       var sheet = getSheet(sheetName);
       if (!sheet) throw new Error("Sheet not found: " + sheetName);
@@ -43,8 +49,7 @@ var Service_Batch = {
       console.error("Batch Insert Error (" + sheetName + "): " + e.message);
       throw e;
     } finally {
-      // Always release the lock!
-      lock.releaseLock();
+      if (lockHeld) lock.releaseLock();
     }
   },
 

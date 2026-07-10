@@ -4,8 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 import { fileURLToPath } from 'url'
 import path from 'path'
+import https from 'node:https'
+import { readFileSync } from 'fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'))
 
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -28,7 +31,6 @@ export default defineConfig(({ mode }) => {
               if (proxyRes.statusCode === 302 || proxyRes.statusCode === 301) {
                 const redirectUrl = proxyRes.headers.location;
                 if (redirectUrl) {
-                  const https = require('https');
                   https.get(redirectUrl, (redirectRes) => {
                     let body = '';
                     redirectRes.on('data', (chunk) => { body += chunk; });
@@ -52,6 +54,9 @@ export default defineConfig(({ mode }) => {
     : undefined
 
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     cacheDir: path.resolve(__dirname, '../tmp/vite-cache/frontend'),
     plugins: [
       react(),

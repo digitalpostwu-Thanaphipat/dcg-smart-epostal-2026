@@ -215,13 +215,21 @@ export const SystemSettingsPage = () => {
   };
 
   const handleRepairDatabase = async () => {
+    // [Safety] ยืนยันก่อนดำเนินการซ่อมแซมที่ทำลายล้าง (destructive)
+    const confirmed = window.confirm(
+      '⚠️ การซ่อมแซมนี้จะปรับโครงสร้างตารางและอาจลบคอลัมน์เกินออก\n' +
+      'ระบบจะสำรองข้อมูลอัตโนมัติก่อนดำเนินการ แต่การกระทำนี้ไม่สามารถย้อนกลับได้\n\n' +
+      'ต้องการดำเนินการต่อหรือไม่?'
+    );
+    if (!confirmed) return;
+
     setLoading(true);
     haptics.medium();
-    const t = toast.loading('กำลังปรับปรุง Schema และซ่อมแซมหัวตาราง...');
+    const t = toast.loading('กำลังสำรองข้อมูลและซ่อมแซมหัวตาราง...');
     try {
       await ApiClient.admin.repairDatabase();
       haptics.success();
-      toast.success('ซ่อมแซมโครงสร้างตารางและ Normalization ข้อมูลเรียบร้อย', { id: t });
+      toast.success('ซ่อมแซมโครงสร้างตารางและ Normalization ข้อมูลเรียบร้อย (สำรองข้อมูลก่อนซ่อมแล้ว)', { id: t });
       runQuietHealthCheck();
     } catch (error: any) {
       haptics.error();

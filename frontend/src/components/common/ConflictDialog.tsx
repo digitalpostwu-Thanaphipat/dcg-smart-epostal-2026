@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, CheckCircle2, User, Clock } from 'lucide-react';
+import { Modal } from '../ui/Modal';
 
 interface ConflictDialogProps {
   isOpen: boolean;
@@ -25,10 +26,13 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   onResolve,
   conflictData
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label="แยกข้อมูลที่ขัดแย้ง"
+      contentClassName="w-full max-w-lg"
+    >
       <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 flex flex-col animate-in zoom-in-95 duration-300">
         {/* Header */}
         <div className="bg-amber-50 p-6 flex items-start gap-4 border-b border-amber-100">
@@ -132,6 +136,6 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

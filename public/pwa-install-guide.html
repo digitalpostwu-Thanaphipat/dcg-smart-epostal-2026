@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ติดตั้ง DCG Smart ePostal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+  .container { width: 1200px; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
+  .header { background: linear-gradient(135deg, #059669, #10b981); padding: 40px 60px; text-align: center; color: white; }
+  .header h1 { font-size: 36px; font-weight: 900; letter-spacing: -1px; margin-bottom: 8px; }
+  .header p { font-size: 16px; opacity: 0.9; }
+  .content { display: flex; gap: 0; }
+  .device-section { flex: 1; padding: 40px; }
+  .device-section:first-child { border-right: 1px solid #e2e8f0; }
+  .device-label { display: inline-flex; align-items: center; gap: 8px; background: #f0fdf4; color: #059669; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 24px; }
+  .device-label svg { width: 16px; height: 16px; }
+  .screen { background: #1e293b; border-radius: 16px; padding: 12px; margin-bottom: 24px; }
+  .screen-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.red { background: #ef4444; }
+  .dot.yellow { background: #eab308; }
+  .dot.green { background: #22c55e; }
+  .screen-content { background: white; border-radius: 8px; padding: 16px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .screen-content .url-bar { width: 100%; background: #f1f5f9; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #64748b; text-align: left; margin-bottom: 8px; }
+  .menu-hint { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #92400e; font-weight: 600; text-align: center; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .steps { list-style: none; }
+  .steps li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  .step-num { width: 28px; height: 28px; background: #059669; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .step-text { font-size: 14px; color: #334155; line-height: 1.5; }
+  .step-text strong { color: #059669; }
+  .arrow { text-align: center; color: #059669; font-size: 24px; margin: 8px 0; }
+  .footer { background: #f8fafc; padding: 20px 60px; text-align: center; border-top: 1px solid #e2e8f0; }
+  .footer p { font-size: 12px; color: #94a3b8; }
+  .app-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .app-icon svg { width: 28px; height: 28px; fill: white; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+    </div>
+    <h1>ติดตั้ง DCG Smart ePostal</h1>
+    <p>Install on PC & Smartphone — ติดตั้งบนคอมพิวเตอร์และสมาร์ทโฟน</p>
+  </div>
+  <div class="content">
+    <!-- PC Section -->
+    <div class="device-section">
+      <div class="device-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        คอมพิวเตอร์ (PC / Laptop)
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+        </div>
+        <div class="screen-content">
+          <div class="url-bar">🔒 script.google.com/macros/s/.../exec</div>
+          <div class="menu-hint">⋮ เมนู Chrome → <strong>"ติดตั้ง DCG Smart ePostal"</strong></div>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">เปิด <strong>Google Chrome</strong> แล้วเข้า <strong>Production URL</strong></span></li>
+        <li><span class="step-num">2</span><span class="step-text">กดปุ่ม <strong>⋮ (Three Dots)</strong> ที่มุมบนขวา</span></li>
+        <li><span class="step-num">3</span><span class="step-text">เลือก <strong>"ติดตั้ง DCG Smart ePostal"</strong> หรือ <strong>"Install DCG Smart ePostal"</strong></span></li>
+        <li><span class="step-num">4</span><span class="step-text">ยืนยันการติดตั้ง → ไอคอนจะปรากฏบน <strong>Desktop</strong></span></li>
+      </ol>
+    </div>
+    <!-- Smartphone Section -->
+    <div class="device-section">
+      <div class="device-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        สมาร์ทโฟน (Android / iOS)
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+        </div>
+        <div class="screen-content">
+          <div class="url-bar">🔒 script.google.com/macros/s/.../exec</div>
+          <div class="menu-hint">📱 เพิ่มลงหน้าจอหลัก → <strong>"ติดตั้งแอป"</strong></div>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">เปิด <strong>Google Chrome</strong> บนมือถือ แล้วเข้า <strong>Production URL</strong></span></li>
+        <li><span class="step-num">2</span><span class="step-text">กดปุ่ม <strong>⋮ (Three Dots)</strong> หรือ <strong>Share</strong> icon</span></li>
+        <li><span class="step-num">3</span><span class="step-text">เลือก <strong>"เพิ่มลงหน้าจอหลัก"</strong> หรือ <strong>"Add to Home Screen"</strong></span></li>
+        <li><span class="step-num">4</span><span class="step-text">ยืนยัน → ไอคอนจะปรากฏบน <strong>Home Screen</strong></span></li>
+      </ol>
+    </div>
+  </div>
+  <div class="footer">
+    <p>DCG Smart ePostal v4.0.2 — ระบบบริหารจัดการไปรษณีย์ภัณฑ์ภายใน</p>
+  </div>
+</div>
+</body>
+</html>

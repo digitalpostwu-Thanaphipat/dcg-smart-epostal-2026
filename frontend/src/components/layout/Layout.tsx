@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, Search, User, Moon, Sun, Clock, Shield, LogOut, Mail } from 'lucide-react';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -6,12 +7,11 @@ import { cn } from '@/lib/utils';
 import { FeedbackWidget } from '../ui/FeedbackWidget';
 import { haptics } from '../../utils/haptics';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { ROUTES } from '@/routes';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
 }
 
 interface SyncBadgeProps {
@@ -54,9 +54,17 @@ const SyncBadge: React.FC<SyncBadgeProps> = ({ pendingCount, isOnline, isSyncing
   );
 };
 
-export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => {
+const MENU_ITEMS: Array<{ path: string; label: string; icon: React.ComponentType<{ className?: string }>; end?: boolean }> = [
+  { path: ROUTES.HOME, label: 'แดชบอร์ดหลัก', icon: LayoutDashboard, end: true },
+  { path: ROUTES.ENTRY, label: 'บันทึกไปรษณีย์ภัณฑ์', icon: Package },
+  { path: ROUTES.DELIVERY, label: 'การนำจ่ายไปรษณีย์ภัณฑ์', icon: Clock },
+  { path: ROUTES.SEARCH, label: 'ค้นหาไปรษณีย์ภัณฑ์', icon: Search },
+]
+
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { theme, setTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
+  const location = useLocation();
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -69,21 +77,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
 
   const menuItems = useMemo(() => {
     const role = user?.role || 'User';
-
-    const items = [
-      { id: 'home', label: 'แดชบอร์ดหลัก', icon: LayoutDashboard },
-      { id: 'entry', label: 'บันทึกไปรษณีย์ภัณฑ์', icon: Package },
-      { id: 'delivery', label: 'การนำจ่ายไปรษณีย์ภัณฑ์', icon: Clock },
-      { id: 'search', label: 'ค้นหาไปรษณีย์ภัณฑ์', icon: Search },
-    ];
-    
+    const items = [...MENU_ITEMS];
     if (role === 'Admin') {
-      items.push({ id: 'admin', label: 'จัดการสิทธิ์เข้าถึง', icon: Shield });
+      items.push({ path: ROUTES.ADMIN, label: 'จัดการสิทธิ์เข้าถึง', icon: Shield, end: false });
     }
     return items;
   }, [user]);
 
   const { isOnline, isSyncing, pendingCount, processQueue } = useOfflineSync();
+
+  const activeLabel = menuItems.find(item =>
+    item.end ? location.pathname === item.path : location.pathname.startsWith(item.path)
+  )?.label || 'หน้าแรก';
 
   return (
     <div className={cn(
@@ -105,20 +110,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         </div>
         <nav className="flex-1 space-y-1 p-4">
           {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              aria-label={item.label}
-              className={cn(
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.end}
+              onClick={() => haptics.light()}
+              className={({ isActive }) => cn(
                 "flex w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-xs font-black uppercase tracking-widest transition-all duration-300 font-heading",
-                activeTab === item.id
+                isActive
                   ? 'bg-primary text-white shadow-lg shadow-primary/20'
                   : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100'
               )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-            </button>
+            </NavLink>
           ))}
         </nav>
         
@@ -150,7 +156,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         {/* Topbar */}
         <header className="sticky top-4 mx-4 z-40 flex h-16 items-center justify-between rounded-2xl border border-zinc-200/50 bg-white/80 px-6 backdrop-blur-md dark:border-zinc-800/50 dark:bg-zinc-900/40 shadow-sm">
           <h2 className="text-sm font-black text-zinc-400 dark:text-zinc-500 font-heading uppercase tracking-widest">
-            {menuItems.find(m => m.id === activeTab)?.label || 'หน้าแรก'}
+            {activeLabel}
           </h2>
           <div className="flex items-center gap-2 lg:gap-4">
             <SyncBadge 
@@ -187,23 +193,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
       {/* Mobile Nav */}
       <nav className="fixed bottom-6 left-6 right-6 z-50 flex items-center justify-around rounded-[2rem] border border-zinc-200/50 bg-white/90 p-2 backdrop-blur-md dark:border-zinc-800/50 dark:bg-zinc-900/90 lg:hidden shadow-2xl">
         {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            aria-label={item.label}
-            className={cn(
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.end}
+            onClick={() => haptics.light()}
+            className={({ isActive }) => cn(
                "flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2 transition-all duration-300",
-               activeTab === item.id ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "text-zinc-400 hover:text-zinc-600"
+               isActive ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "text-zinc-400 hover:text-zinc-600"
             )}
           >
             <item.icon className="h-5 w-5" />
             <span className={cn(
-               "text-[10px] font-black uppercase tracking-tight text-center leading-none",
-               activeTab === item.id ? "opacity-100" : "opacity-60"
+               "text-[10px] font-black uppercase tracking-tight text-center leading-none"
             )}>
               {item.label.replace('ไปรษณีย์ภัณฑ์', 'ปณ.')}
             </span>
-          </button>
+          </NavLink>
         ))}
       </nav>
     </div>

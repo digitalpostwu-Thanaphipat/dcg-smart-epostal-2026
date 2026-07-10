@@ -2,8 +2,8 @@
 
 เอกสารนี้เป็นเกณฑ์ตรวจความพร้อมของ ePostal ก่อนนำขึ้นใช้งานจริง และเป็นบันทึกสถานะหลังตรวจ production ล่าสุด
 
-วันที่อัปเดต: 3 กรกฎาคม 2026
-Production deployment ปัจจุบัน: **@275**
+วันที่อัปเดต: 10 กรกฎาคม 2026
+Production deployment ปัจจุบัน: **@276** (Security & Conflict Control Release)
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะ Go-Live
@@ -19,7 +19,47 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | Android Chrome PWA | ผ่าน | install + online + offline ยืนยันแล้ว |
 | GitHub Actions deploy | ผ่าน | ใช้ `CLASP_RC_JSON` + `clasp redeploy` เพื่อรักษา Production URL เดิม |
 
-สถานะรวม: **Full Production Ready (95/100)**
+สถานะรวม: **Full Production Ready (98/100)**
+
+## Gate 7: RBAC Security Tests
+
+สถานะ: **ผ่าน**
+
+- RBAC tests: 78/78 ผ่าน (source-of-truth from actual backend code)
+- `getSystemConfigs` / `updateSystemConfig` — Admin-only
+- `migrateSignaturePrivacy` — Admin-only
+- `getSignatureImage` — all authenticated roles + department check
+- `getInitialData` — ไม่มี configs leak
+- Role cache clearing — ล้างก่อนและหลัง delete/update
+
+## Gate 8: Signature Security
+
+สถานะ: **ผ่าน**
+
+- ไฟล์ลายเซ็นบน Drive เป็น Private (ไม่มี `ANYONE_WITH_LINK`)
+- `getSignatureImage` รับ `packageId` (ไม่ใช่ `fileId`) — ป้องกันอ่านไฟล์เกินสิทธิ์
+- Frontend fetch ผ่าน authenticated endpoint เท่านั้น
+- `confirmDelivery` บังคับ base64 format — ปฏิเสธ URL/ข้อความ
+- `migrateSignaturePrivacy` — คำสั่ง Admin ย้ายไฟล์เก่าเป็น Private
+
+## Gate 9: Conflict Control
+
+สถานะ: **ผ่าน**
+
+- `confirmDelivery` ตรวจ `expectedVersions` ก่อนเขียน
+- ไม่ partial write — ถ้า conflict แม้ตัวเดียว ไม่เขียนทั้ง batch
+- `version` column เพิ่มใน schema (index 18)
+- `version=1` ตอนสร้าง, `version+1` ตอนนำจ่าย
+- Frontend ส่ง `pkg.version ?? 0` (ไม่ใช่ `|| 1`)
+- Offline sync normalize conflict shape ตรง ConflictDialog
+
+## Gate 10: Batch Dead-Letter
+
+สถานะ: **ผ่าน**
+
+- `create-batch` หลัง `MAX_RETRIES` → mark `receiveRecords` เป็น `failed` + `lastError`
+- ลบ queue AFTER mark records (ไม่ทิ้ง records ค้าง)
+- Fallback by `offlineCreatedAt` หรือ `trackingIds`
 
 ## Gate 1: Security Audit
 

@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquareWarning, X, Send, AlertCircle, Star } from 'lucide-react';
+import { MessageSquareWarning, X, Send, AlertCircle, Star, ShieldCheck } from 'lucide-react';
 import { ApiClient } from '../../api/client';
 import toast from 'react-hot-toast';
+import { Modal } from './Modal';
 import { haptics } from '../../utils/haptics';
 import { useAuthStore } from '@/store/useAuthStore';
+
+const RATE_LIMIT_KEY = 'epostal_feedback_last_submit';
+const RATE_LIMIT_MS = 60_000; // 1 minute cooldown
 
 export const FeedbackWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +17,8 @@ export const FeedbackWidget = () => {
   const [formData, setFormData] = useState({
     category: 'Bug',
     rating: 0,
-    comment: ''
+    comment: '',
+    consent: false
   });
 
   const categories = [
@@ -26,7 +31,7 @@ export const FeedbackWidget = () => {
     haptics.light();
     setIsOpen(!isOpen);
     if (!isOpen) {
-      setFormData({ category: 'Bug', rating: 0, comment: '' });
+      setFormData({ category: 'Bug', rating: 0, comment: '', consent: false });
     }
   };
 
@@ -37,9 +42,20 @@ export const FeedbackWidget = () => {
       return;
     }
 
+    if (!formData.consent) {
+      toast.error('กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนส่ง');
+      return;
+    }
+
+    // Client-side rate-limit: 1 submission per minute
+    const lastSubmit = Number(localStorage.getItem(RATE_LIMIT_KEY) || '0');
+    if (Date.now() - lastSubmit < RATE_LIMIT_MS) {
+      toast.error('กรุณารอสักครู่ก่อนส่งอีกครั้ง (1 นาที)');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Default to guest if no user is found, as Service_Feedback requires userEmail
       const email = user?.email || 'guest@epostal.app';
 
       const res = await ApiClient.feedback.submit({
@@ -48,10 +64,12 @@ export const FeedbackWidget = () => {
         comment: formData.comment,
         url: window.location.href,
         userAgent: navigator.userAgent,
-        userEmail: email
+        userEmail: email,
+        consent: true
       });
 
       if (res.success) {
+        localStorage.setItem(RATE_LIMIT_KEY, String(Date.now()));
         haptics.success();
         toast.success('ส่งข้อเสนอแนะเรียบร้อย ขอบคุณครับ!');
         setIsOpen(false);
@@ -78,13 +96,14 @@ export const FeedbackWidget = () => {
       </button>
 
       {isOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 pb-20 sm:pb-6 font-body">
-          <div 
-            className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-300" 
-            onClick={toggleModal}
-          />
-          
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-300 border border-zinc-200/50 dark:border-zinc-800/50 max-h-[90vh] flex flex-col">
+        <Modal
+          isOpen={isOpen}
+          onClose={toggleModal}
+          label="ส่งข้อเสนอแนะ"
+          className="p-4 sm:p-6 pb-20 sm:pb-6"
+          contentClassName="w-full max-w-md"
+        >
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-300 border border-zinc-200/50 dark:border-zinc-800/50 max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="bg-zinc-900 p-6 sm:p-8 flex items-start justify-between relative overflow-hidden shrink-0">
                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
@@ -167,10 +186,27 @@ export const FeedbackWidget = () => {
                  />
               </div>
 
+              {/* [P3-7] Consent Checkbox + Privacy Notice */}
+              <div className="space-y-3">
+                 <div className="flex items-start gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/50 dark:border-zinc-800">
+                    <input
+                      type="checkbox"
+                      id="feedback-consent"
+                      checked={formData.consent}
+                      onChange={(e) => setFormData(prev => ({ ...prev, consent: e.target.checked }))}
+                      className="mt-0.5 w-4 h-4 rounded border-zinc-300 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <label htmlFor="feedback-consent" className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed cursor-pointer">
+                       <ShieldCheck className="w-3.5 h-3.5 inline-block mr-1 text-emerald-500" />
+                       ข้าพเจ้ายอมรับให้ระบบบันทึก <strong className="text-zinc-700 dark:text-zinc-300">อีเมล, URL หน้าปัจจุบัน, และข้อมูลเบราว์เซอร์</strong> เพื่อใช้ในการแก้ไขปัญหาและพัฒนาระบบ
+                    </label>
+                 </div>
+              </div>
+
               {/* Action */}
               <button
                  type="submit"
-                 disabled={loading}
+                 disabled={loading || !formData.consent}
                  aria-label="ส่งข้อเสนอแนะ"
                  className="w-full flex items-center justify-center gap-2 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-black font-heading uppercase tracking-widest hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 transition-all shadow-xl hover:shadow-emerald-500/20 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -184,7 +220,7 @@ export const FeedbackWidget = () => {
               </button>
             </form>
           </div>
-        </div>,
+        </Modal>,
         document.body
       )}
     </>
