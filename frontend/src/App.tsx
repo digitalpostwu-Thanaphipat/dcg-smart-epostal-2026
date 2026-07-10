@@ -192,11 +192,14 @@ function ConnectionDiagnostic() {
   if (import.meta.env.PROD && !window.location.hostname.includes('localhost')) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 dark:bg-white/90 text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-wider backdrop-blur-md border border-white/10 dark:border-zinc-200 shadow-2xl">
-      <div className={`w-2 h-2 rounded-full ${info ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-500 animate-pulse'}`} />
+    <aside
+      aria-label="Backend connection status"
+      className="fixed bottom-4 right-4 z-[9999] flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 dark:bg-white/90 text-white dark:text-zinc-900 text-[10px] font-black uppercase tracking-wider backdrop-blur-md border border-white/10 dark:border-zinc-200 shadow-2xl"
+    >
+      <div aria-hidden="true" className={`w-2 h-2 rounded-full ${info ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-500 animate-pulse'}`} />
       <span>{info ? `Backend: ${info.version}` : (error ? `ข้อผิดพลาด: การเชื่อมต่อล้มเหลว` : 'กำลังเชื่อมต่อ...')}</span>
       {info && <span className="opacity-40 text-[8px] border-l border-white/20 pl-2 ml-1 truncate max-w-[60px]">{info.activeDbId}</span>}
-    </div>
+    </aside>
   );
 }
 
