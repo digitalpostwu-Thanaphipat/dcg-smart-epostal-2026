@@ -45,22 +45,22 @@ function AppRoutes() {
   
   const APP_VERSION = __APP_VERSION__
   const { fetchMasterData, systemInfo } = useMasterDataStore()
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, user, scope } = useAuthStore()
 
   useEffect(() => {
     const init = async () => {
-      if (isAuthenticated) {
+      if (isAuthenticated && scope === 'staff') {
         await fetchMasterData()
       }
       setIsLoading(false)
     }
     init()
-  }, [fetchMasterData, isAuthenticated])
+  }, [fetchMasterData, isAuthenticated, scope])
 
   // Background Role Sync
   useEffect(() => {
     const syncUserRole = async () => {
-      if (isAuthenticated && user?.email) {
+      if (isAuthenticated && scope === 'staff' && user?.email) {
         try {
           const response: any = await ApiClient.auth.verifySession();
           if (response?.success && response?.data) {
@@ -84,7 +84,7 @@ function AppRoutes() {
     };
     syncUserRole();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user?.email]);
+  }, [isAuthenticated, user?.email, scope]);
 
   // Version Handshake Alert
   const isVersionMismatch = Boolean(systemInfo && systemInfo.version !== APP_VERSION);
@@ -111,11 +111,11 @@ function AppRoutes() {
       <Route path={ROUTES.LOGIN} element={<Login />} />
       <Route path={ROUTES.TRACKING} element={<PublicTrackingPage />} />
 
-      {/* Protected routes — auth required */}
+      {/* Protected routes — auth required (staff scope only) */}
       <Route
         path="*"
         element={
-          isAuthenticated ? (
+          isAuthenticated && scope === 'staff' ? (
             <Layout>
               <VersionMismatchBanner 
                 isVersionMismatch={isVersionMismatch} 
@@ -136,6 +136,9 @@ function AppRoutes() {
               </Routes>
               <ReloadPrompt />
             </Layout>
+          ) : scope === 'tracking' ? (
+            // [P1] Tracking sessions must not reach staff UI — send back to tracking page
+            <Navigate to={ROUTES.TRACKING} replace />
           ) : (
             <Navigate to={ROUTES.LOGIN} replace />
           )
@@ -159,7 +162,8 @@ function App() {
         <Toaster position="top-right" />
         <AppRoutes />
       </HashRouter>
-      <ConnectionDiagnostic />
+      {/* [P1] Diagnostic must never mount in production — fetch only happens inside the component */}
+      {(import.meta.env.DEV || window.location.hostname.includes('localhost')) && <ConnectionDiagnostic />}
     </Sentry.ErrorBoundary>
   );
 }

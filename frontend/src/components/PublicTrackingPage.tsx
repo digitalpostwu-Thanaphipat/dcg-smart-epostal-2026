@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, Building2, Calendar, CheckCircle2, Clock, LogOut, Loader2, Mail, Package, Search } from 'lucide-react';
 import { ApiClient, type PostalPackage } from '@/api/client';
 import { cn, getThaiFiscalYear } from '@/lib/utils';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useTrackingAuthStore } from '@/store/useTrackingAuthStore';
 
 const statusOptions = [
   { id: '', label: 'ทั้งหมด' },
@@ -19,9 +19,9 @@ function displayStatus(status: string) {
 
 export function PublicTrackingPage() {
   const currentFY = String(getThaiFiscalYear());
-  const login = useAuthStore((state) => state.login);
-  const logout = useAuthStore((state) => state.logout);
-  const user = useAuthStore((state) => state.user);
+  const trackingLogin = useTrackingAuthStore((state) => state.login);
+  const trackingLogout = useTrackingAuthStore((state) => state.logout);
+  const trackingUser = useTrackingAuthStore((state) => state.user);
 
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -32,14 +32,14 @@ export function PublicTrackingPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [fiscalYear, setFiscalYear] = useState(currentFY);
-  const [department, setDepartment] = useState(user?.department || '');
+  const [department, setDepartment] = useState(trackingUser?.department || '');
   const [results, setResults] = useState<PostalPackage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const sessionToken = user?.sessionToken || '';
+  const sessionToken = trackingUser?.sessionToken || '';
   const canSearch = Boolean(sessionToken);
-  const displayDepartment = useMemo(() => department || user?.department || 'หน่วยงานของคุณ', [department, user?.department]);
+  const displayDepartment = useMemo(() => department || trackingUser?.department || 'หน่วยงานของคุณ', [department, trackingUser?.department]);
 
   const handleAuth = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,16 +62,14 @@ export function PublicTrackingPage() {
 
       if (!res?.success || !res?.data) throw new Error(res?.error || 'เข้าสู่ระบบไม่สำเร็จ');
       const data = res.data;
-      const nextUser = {
+      // [P1] Tracking session is stored separately (sessionStorage) and never
+      // touches the staff session in epostal-auth-storage (localStorage).
+      trackingLogin({
         email: data.Email || data.email || email.trim(),
         fullName: data.FullName || data.fullName || email.trim(),
-        role: data.Role || data.role || 'User',
         department: data.Department || data.department || data['หน่วยงาน'] || '',
-        picture: data.Picture || data.picture || '',
         sessionToken: data.sessionToken || data.authToken || '',
-      };
-      login(nextUser);
-      setDepartment(nextUser.department);
+      });
       setOtp('');
       setOtpRequested(false);
     } catch (err: any) {
@@ -116,7 +114,7 @@ export function PublicTrackingPage() {
   };
 
   const handleLogout = () => {
-    logout();
+    trackingLogout();
     setResults([]);
     setDepartment('');
     setKeyword('');

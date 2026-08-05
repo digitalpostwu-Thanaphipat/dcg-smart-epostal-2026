@@ -220,6 +220,8 @@ var Service_Auth = {
       var payload = this._publicUserPayload(user);
       // [Security] tracking session 15 นาที + scope tracking (จำกัดสิทธิ์)
       payload.sessionToken = this.issueSessionToken(cleanEmail, "tracking");
+      // [P1] Expose scope so frontend can distinguish tracking vs staff session
+      payload.scope = "tracking";
 
       logAction(cleanEmail, "TRACKING_LOGIN", JSON.stringify({ status: "SUCCESS" }));
       return { success: true, data: payload };
@@ -233,7 +235,10 @@ var Service_Auth = {
       var session = this.verifySessionToken(token);
       var user = this._findUserByEmail(session.email);
       if (!user) return { success: false, error: "บัญชีผู้ใช้ถูกยกเลิกหรือไม่พบในระบบ" };
-      return { success: true, data: this._publicUserPayload(user) };
+      var payload = this._publicUserPayload(user);
+      // [P1] Expose scope so frontend knows which session type is valid
+      payload.scope = session.scope || "staff";
+      return { success: true, data: payload };
     } catch (e) {
       return { success: false, error: e.message };
     }

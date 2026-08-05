@@ -413,7 +413,7 @@ function getManifest() {
  * getServiceWorker - ระบบจัดการ Offline Caching [Enhanced]
  */
 function getServiceWorker() {
-  var CACHE_NAME = "epostal-v" + APP_VERSION;
+  var CACHE_NAME = "epostal-v4.0.2";
   var sw =
     "const CACHE_NAME = '" +
     CACHE_NAME +
@@ -458,7 +458,7 @@ function doPost(e) {
   }
 }
 
-var SYSTEM_VERSION = APP_VERSION;
+var SYSTEM_VERSION = "4.0.2";
 
 /**
  * handleRequest - Internal handler that maintains original standard response structure
