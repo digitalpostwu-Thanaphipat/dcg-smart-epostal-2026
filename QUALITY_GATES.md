@@ -2,8 +2,8 @@
 
 เอกสารนี้เป็นเกณฑ์ตรวจความพร้อมของ ePostal ก่อนนำขึ้นใช้งานจริง และเป็นบันทึกสถานะหลังตรวจ production ล่าสุด
 
-วันที่อัปเดต: 10 กรกฎาคม 2026
-Production deployment ปัจจุบัน: **@276** (Security & Conflict Control Release)
+วันที่อัปเดต: 5 สิงหาคม 2026
+Production deployment ปัจจุบัน: **@281** (P1 scope-separation + SYSTEM_VERSION hardcode + react-router 7.18.2)
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะ Go-Live
@@ -11,11 +11,12 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | Gate | สถานะ | หมายเหตุ |
 | --- | --- | --- |
 | Root security audit | ผ่าน | `npm audit` ที่ root = 0 vulnerabilities |
-| Frontend security audit | ผ่านแบบมีเงื่อนไข | เหลือ `xlsx` high vulnerability ไม่มี fix available |
+| Frontend security audit | ผ่านแบบมีเงื่อนไข | เหลือ 3 high: `xlsx` (2 advisories ไม่มี fix) + `react-router` (RSC-mode เท่านั้น) — ทั้งคู่ documented accepted risk |
 | xlsx decision | ผ่าน | Accept risk + isolate |
-| Live readiness | ผ่าน | health check 7/7 ผ่าน |
-| Authenticated admin read | ผ่าน | adminGetUsers อ่านข้อมูลผู้ใช้ได้ |
-| Write lifecycle smoke | ผ่าน | create -> search -> confirm -> verify ผ่านบน production |
+| react-router decision | ผ่าน | Accept risk — GHSA-qwww-vcr4-c8h2 กระทบ RSC mode เท่านั้น; แอปใช้ `HashRouter` client-side ล้วน |
+| Live readiness | ผ่าน | @281: 3/3 read-only ผ่าน (public tracking, health check, security gate) |
+| Authenticated admin read | ผ่าน (verify ที่ @276) | ต้อง `EPOSTAL_LIVE_AUTH_TOKEN` ถึงจะ rerun — ยังไม่มี token |
+| Write lifecycle smoke | ผ่าน (verify ที่ @276) | ต้อง token + `EPOSTAL_LIVE_WRITE=1` — ยังไม่มี token |
 | Android Chrome PWA | ผ่าน | install + online + offline ยืนยันแล้ว |
 | GitHub Actions deploy | ผ่าน | ใช้ `CLASP_RC_JSON` + `clasp redeploy` เพื่อรักษา Production URL เดิม |
 
@@ -70,11 +71,11 @@ npm.cmd audit
 npm.cmd audit --prefix frontend
 ```
 
-ผลล่าสุด:
+ผลล่าสุด (5 ส.ค. 2026):
 
-- root: 0 vulnerabilities
-- frontend: 1 high vulnerability จาก `xlsx`
-- `npm audit fix` ไม่สามารถแก้ `xlsx` ได้ เพราะไม่มี fixed version
+- root: 0 vulnerabilities (`npm audit fix` แล้ว)
+- frontend: 3 high vulnerabilities = `xlsx` (GHSA-4r6h-8v6p-xvw6 prototype pollution + GHSA-5pgg-2g8v-p4x9 ReDoS) + `react-router` 7.12.0-8.2.0 (GHSA-qwww-vcr4-c8h2 RSC mode CSRF)
+- `npm audit fix` แก้ `xlsx` ไม่ได้ (ไม่มี fixed version); `react-router` ไม่มีเวอร์ชันที่ audit ผ่าน 100% (7.11.0 มี XSS/open-redirect 8 advisories ที่กระทบ client-side navigation มากกว่า)
 
 ## Gate 2: xlsx Accepted Risk
 
@@ -90,6 +91,18 @@ npm.cmd audit --prefix frontend
 - ห้ามเพิ่ม Excel import ด้วย `xlsx` โดยไม่มี security review ใหม่
 - ต้องคง `await import('xlsx')` เพื่อจำกัด attack surface
 - ตรวจ npm advisory เป็นรายไตรมาส หรือเปลี่ยน library หากมีความจำเป็นต้องรับไฟล์จากผู้ใช้
+
+## Gate 2b: react-router Accepted Risk
+
+- Package: `react-router-dom` 7.18.2 (pinned `--save-exact`)
+- Advisory: GHSA-qwww-vcr4-c8h2 (RSC mode CSRF — allows action execution before 400 response)
+- เหตุผลที่ไม่กระทบ: แอปใช้ `HashRouter` จาก react-router-dom client-side ล้วน — ไม่มี `createBrowserRouter`/`RouterProvider`/`loader`/`action`/RSC/server actions
+- หลักฐาน: `npm audit fix --force` เสนอ downgrade 7.11.0 (breaking change) ซึ่งกลับโดน 8 advisories รวม XSS/open-redirect ที่กระทบ client-side navigation จริง — จึงค้าง 7.18.2
+
+เงื่อนไข:
+
+- ห้ามเพิ่ม RSC/server-rendering routing โดยไม่ทบทวน advisory นี้ใหม่
+- ตรวจ npm advisory รายไตรมาส; upgrade เมื่อมีเวอร์ชันที่ audit ผ่านทั้งชุด
 
 ## Gate 3: Live Readiness
 
@@ -206,11 +219,11 @@ npm.cmd run test:live-readiness
 
 ## Final Approval
 
-- [x] Security gate ผ่านแบบมี documented accepted risk
-- [x] Live readiness ผ่าน
-- [x] Authenticated admin read smoke ผ่าน
-- [x] Write lifecycle smoke ผ่าน
+- [x] Security gate ผ่านแบบมี documented accepted risk (xlsx + react-router)
+- [x] Live readiness ผ่าน @281 (read-only 3/3)
+- [x] Authenticated admin read smoke ผ่าน (verify @276, รอ token สำหรับ rerun)
+- [x] Write lifecycle smoke ผ่าน (verify @276, รอ token สำหรับ rerun)
 - [x] Android Chrome PWA validation ผ่าน
-- [x] Deployment ปัจจุบันเป็น `@275`
+- [x] Deployment ปัจจุบันเป็น `@281`
 - [x] GitHub Actions deploy ผ่านและใช้ `clasp redeploy`
 - [x] **Full Production Ready (95/100)**
