@@ -89,18 +89,9 @@ jobs:
           SCRIPT_ID="${{ secrets.CLASP_SCRIPT_ID }}"
           RC="$HOME/.clasprc.json"
           KEEP=150
-          REFRESH_TOKEN=$(jq -r '.refresh_token' "$RC")
-          CLIENT_ID=$(jq -r '.client_id' "$RC")
-          CLIENT_SECRET=$(jq -r '.client_secret' "$RC")
-          RESP=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "grant_type=refresh_token" \
-            --data-urlencode "client_id=$CLIENT_ID" \
-            --data-urlencode "client_secret=$CLIENT_SECRET" \
-            --data-urlencode "refresh_token=$REFRESH_TOKEN")
-          ACCESS_TOKEN=$(echo "$RESP" | jq -r '.access_token')
+          ACCESS_TOKEN=$(jq -r '.access_token' "$RC")
           if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            echo "::error::clasp token refresh failed: $RESP"
+            echo "::error::no access_token found in clasp credentials"
             exit 1
           fi
           PAGE=""
