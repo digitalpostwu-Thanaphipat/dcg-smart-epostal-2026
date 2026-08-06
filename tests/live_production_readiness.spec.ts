@@ -1,62 +1,41 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { postGas, postSave, wakeLive, getGas, type GasResult } from './live_helpers';
 
 const LIVE_BASE_URL = process.env.EPOSTAL_LIVE_BASE_URL || '';
 const LIVE_AUTH_TOKEN = process.env.EPOSTAL_LIVE_AUTH_TOKEN || '';
 const LIVE_WRITE_ENABLED = process.env.EPOSTAL_LIVE_WRITE === '1';
 
-const APP_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../frontend/package.json'), 'utf-8')).version;
-
-type GasResult<T = unknown> = {
-  success?: boolean;
-  data?: T;
-  error?: string;
-  status?: string;
-  checks?: Array<{ name: string; status: string; detail?: string }>;
-  [key: string]: unknown;
-};
-
-async function postGas<T = unknown>(
-  request: APIRequestContext,
-  action: string,
-  data: Record<string, unknown> = {},
-) {
-  const response = await request.post(LIVE_BASE_URL, {
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    data: JSON.stringify({ action, ...data, clientVersion: APP_VERSION }),
-    timeout: 60_000,
-  });
-
-  expect(response.ok(), `${action} HTTP status`).toBeTruthy();
-  const text = await response.text();
-  expect(text, `${action} should return JSON, not HTML`).not.toContain('<html');
-  return JSON.parse(text) as GasResult<T>;
-}
-
 test.describe('Live production readiness gate', () => {
   test.skip(!LIVE_BASE_URL, 'Set EPOSTAL_LIVE_BASE_URL to run live production readiness checks.');
 
-  test('public tracking page and GAS PWA assets are served with expected content', async ({ page, request }) => {
+  test.beforeAll(async ({ request }) => {
+    await wakeLive(request);
+  });
+
+  test('public tracking page and GAS PWA assets are served with expected content', async ({ request }) => {
     // GAS serves content inside an iframe, so check the raw HTML response instead of rendered body
-    const response = await request.get(`${LIVE_BASE_URL}?publicTrack=1`, { timeout: 60_000 });
-    expect(response.ok()).toBeTruthy();
-    const html = await response.text();
-    expect(html).toContain('ePostal');
+    const tracking = await getGas(request, 'publicTrack=1', (body) => body.includes('ePostal'));
+    expect(tracking.ok, 'publicTrack HTML response').toBeTruthy();
 
-    const manifestResponse = await request.get(`${LIVE_BASE_URL}?get=manifest`, { timeout: 60_000 });
-    expect(manifestResponse.ok()).toBeTruthy();
-    expect(manifestResponse.headers()['content-type']).toMatch(/json|text\/plain/i);
-    const manifest = await manifestResponse.json();
-    expect(manifest.name).toBe('DCG Smart ePostal');
-    expect(manifest.display).toBe('standalone');
+    const manifest = await getGas(request, 'get=manifest', (body, headers) => {
+      if (!/json|text\/plain/i.test(headers['content-type'] || '')) return false;
+      try {
+        return JSON.parse(body).name === 'DCG Smart ePostal';
+      } catch {
+        return false;
+      }
+    });
+    expect(manifest.ok, 'manifest response').toBeTruthy();
+    expect(manifest.headers['content-type']).toMatch(/json|text\/plain/i);
+    const manifestJson = JSON.parse(manifest.body);
+    expect(manifestJson.name).toBe('DCG Smart ePostal');
+    expect(manifestJson.display).toBe('standalone');
 
-    const swResponse = await request.get(`${LIVE_BASE_URL}?get=sw`, { timeout: 60_000 });
-    expect(swResponse.ok()).toBeTruthy();
-    expect(swResponse.headers()['content-type']).toMatch(/javascript|text\/plain/i);
-    const sw = await swResponse.text();
-    expect(sw).toContain('CACHE_NAME');
-    expect(sw).toContain('fetch');
+    const sw = await getGas(request, 'get=sw', (body) => body.includes('CACHE_NAME') && body.includes('fetch'));
+    expect(sw.ok, 'service worker response').toBeTruthy();
+    expect(sw.headers['content-type']).toMatch(/javascript|text\/plain/i);
+    expect(sw.body).toContain('CACHE_NAME');
+    expect(sw.body).toContain('fetch');
   });
 
   test('systemHealthCheck exposes production operational checks', async ({ request }) => {
@@ -104,7 +83,7 @@ test.describe('Live production readiness gate', () => {
     test.skip(!LIVE_WRITE_ENABLED, 'Set EPOSTAL_LIVE_WRITE=1 to write test records to production.');
 
     const trackingNo = `LIVE-READINESS-${Date.now()}`;
-    const save = await postGas(request, 'savePackageEntry', {
+    const save = await postSave(request, {
       authToken: LIVE_AUTH_TOKEN,
       userEmail: 'digitalpost.wu@gmail.com',
       staffEmail: 'digitalpost.wu@gmail.com',
@@ -119,7 +98,7 @@ test.describe('Live production readiness gate', () => {
         notes: 'Automated live readiness record',
       }],
     });
-    expect(save.success).toBe(true);
+    expect(save.success, `savePackageEntry: ${save.error || ''}`).toBe(true);
 
     const search = await postGas<Array<Record<string, unknown>>>(request, 'searchPackages', {
       authToken: LIVE_AUTH_TOKEN,
@@ -133,8 +112,7 @@ test.describe('Live production readiness gate', () => {
     );
     expect(created?.id, `created package id for ${trackingNo}`).toBeTruthy();
 
-    const signatureSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80"><rect width="100%" height="100%" fill="white"/><text x="16" y="48" font-family="Arial" font-size="20" fill="black">Live readiness</text></svg>';
-    const signatureImage = `data:image/svg+xml;base64,${Buffer.from(signatureSvg).toString('base64')}`;
+    const signatureImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
     const confirm = await postGas(request, 'confirmDelivery', {
       authToken: LIVE_AUTH_TOKEN,
       packageIds: [String(created?.id)],
