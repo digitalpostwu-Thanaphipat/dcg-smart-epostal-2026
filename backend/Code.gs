@@ -27,6 +27,7 @@ const ROLE_PERMISSIONS = {
     "adminAddUser",
     "adminUpdateUser",
     "adminDeleteUser",
+    "resetOtpRateLimit",
     "getAnnouncements",
     "createManualBackup",
     "restoreFromBackup",
@@ -97,7 +98,6 @@ const PUBLIC_ACTIONS = [
   "verifySession",
   "systemHealthCheck",
   "publicSearchPackages",
-  "getPublicTrackingDepartments",
 ];
 
 var ROUTE_MAP = {
@@ -129,7 +129,6 @@ var ROUTE_MAP = {
       : executeSearchPackages(data),
   publicSearchPackages: (data) => publicSearchPackages(data),
   getPublicTrackingLinks: () => getPublicTrackingLinks(),
-  getPublicTrackingDepartments: () => getPublicTrackingDepartments(),
 
   // [Security] Authenticated signature image serving
   getSignatureImage: (data) => getSignatureImage(data),
@@ -169,6 +168,7 @@ var ROUTE_MAP = {
   requestTrackingOtp: (data) => Service_Auth.requestTrackingOtp(data.email),
   verifyTrackingOtp: (data) => Service_Auth.verifyTrackingOtp(data.email, data.otp),
   verifySession: (data) => Service_Auth.verifySession(data.authToken),
+  resetOtpRateLimit: (data) => Service_Auth.resetOtpRateLimit(data.email),
 
   // Backup & Restore Services
   createManualBackup: () => Service_Backup.createDailyBackup(),
@@ -539,7 +539,7 @@ function _validatePayload(action, data) {
 function manualAuthCheck() {
   const email = Session.getActiveUser().getEmail();
   // FORCE GmailApp Authorization Prompt
-  GmailApp.sendEmail(
+  MailApp.sendEmail(
     email,
     "ePostal Security Check",
     "Your account has successfully authorized the required scopes for ePostal.",

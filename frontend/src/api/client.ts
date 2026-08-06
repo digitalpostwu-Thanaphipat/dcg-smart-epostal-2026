@@ -253,7 +253,6 @@ export const ApiClient = {
     checkDuplicate: (trackingNumber: string) => request("checkDuplicate", { trackingNumber }, "POST"),
   },
   tracking: {
-    getDepartments: () => request("getPublicTrackingDepartments", null, "POST"),
     publicSearch: (filters: {
       authToken?: string;
       deptId?: string;

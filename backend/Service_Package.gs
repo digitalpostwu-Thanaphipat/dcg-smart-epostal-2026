@@ -1041,17 +1041,6 @@ function _resolvePublicTrackingDeptName(deptId) {
   return foundName;
 }
 
-function getPublicTrackingDepartments() {
-  var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
-  return departments.map(function(dept) {
-    var deptId = String(dept.DeptID || dept.id || dept.DeptName || dept.name || "").trim();
-    var deptName = String(dept.DeptName || dept.name || deptId).trim();
-    return { deptId: deptId, department: deptName };
-  }).filter(function(dept) {
-    return dept.deptId && dept.department;
-  });
-}
-
 function getPublicTrackingLinks() {
   var departments = typeof AdminService !== "undefined" && AdminService.getDepartments ? AdminService.getDepartments() : [];
   var baseUrl = "";

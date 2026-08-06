@@ -6,7 +6,7 @@ if (!process.env.EPOSTAL_LIVE_BASE_URL) {
 }
 
 const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const result = spawnSync(command, ['playwright', 'test', 'tests/live_production_readiness.spec.ts'], {
+const result = spawnSync(command, ['playwright', 'test', 'tests/live_production_readiness.spec.ts', 'tests/live_full_cycle.spec.ts'], {
   stdio: 'inherit',
   shell: false,
 });

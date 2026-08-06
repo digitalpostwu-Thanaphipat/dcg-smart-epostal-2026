@@ -85,7 +85,7 @@ var Service_Auth = {
         createdAt: Date.now()
       }), this.OTP_TTL_SECONDS);
 
-      GmailApp.sendEmail(
+      MailApp.sendEmail(
         cleanEmail,
         "รหัสยืนยันเข้าใช้งาน DCG Smart ePostal",
         "รหัสยืนยันของคุณคือ " + otp + "\n\nรหัสนี้ใช้ได้ 10 นาที หากไม่ได้เป็นผู้ร้องขอ กรุณาแจ้งผู้ดูแลระบบ"
@@ -168,7 +168,7 @@ var Service_Auth = {
         createdAt: Date.now()
       }), this.OTP_TTL_SECONDS);
 
-      GmailApp.sendEmail(
+      MailApp.sendEmail(
         cleanEmail,
         "รหัสยืนยันการติดตามพัสดุ DCG Smart ePostal",
         "รหัสยืนยันของคุณคือ " + otp + "\n\nรหัสนี้ใช้สำหรับติดตามพัสดุเป็นเวลา 15 นาที\nหากไม่ได้เป็นผู้ร้องขอ กรุณาเพิกเฉยอีเมลนี้"
@@ -371,6 +371,23 @@ var Service_Auth = {
     } catch (_) {
       return [];
     }
+  },
+
+  // [Dev] Reset OTP rate-limit + cooldown + stored OTP for an email (unblock testing)
+  resetOtpRateLimit: function(email) {
+    var cleanEmail = String(email || "").trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, error: "Missing email" };
+    }
+    var cache = CacheService.getScriptCache();
+    var norm = cleanEmail.replace(/[^a-zA-Z0-9]/g, "_");
+    var rlKey = "otp_rl_" + norm;
+    var cdKey = "otp_cd_" + norm;
+    cache.remove(rlKey);
+    cache.remove(cdKey);
+    cache.remove(this._otpCacheKey(cleanEmail));
+    cache.remove(this._trackingOtpCacheKey(cleanEmail));
+    return { success: true, cleared: [rlKey, cdKey] };
   }
 };
 
