@@ -114,10 +114,15 @@ jobs:
           if [ "$DEL_COUNT" -gt 0 ]; then
             TO_DELETE=$(sort -n "$TMP_FILE" | head -n "$DEL_COUNT")
             for V in $TO_DELETE; do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+              BODY=$(curl -s -X DELETE \
                 -H "Authorization: Bearer $ACCESS_TOKEN" \
                 "https://script.googleapis.com/v1/projects/$SCRIPT_ID/versions/$V")
-              echo "deleted version $V (http $CODE)"
+              CODE=$(echo "$BODY" | jq -r '.error.code // empty')
+              if [ -z "$CODE" ]; then
+                echo "deleted version $V (204)"
+              else
+                echo "failed version $V (code $CODE): $(echo "$BODY" | jq -r '.error.message // empty')"
+              fi
             done
           else
             echo "Nothing to prune."
