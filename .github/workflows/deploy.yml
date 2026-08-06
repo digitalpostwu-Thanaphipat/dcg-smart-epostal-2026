@@ -87,8 +87,15 @@ jobs:
         id: version
         working-directory: backend
         run: |
+          set +e
           OUTPUT=$(npx @google/clasp version "Auto-Deploy ${{ github.sha }}" 2>&1)
+          EXIT=$?
+          set -e
           echo "$OUTPUT"
+          if [ $EXIT -ne 0 ]; then
+            echo "::error::clasp version failed with exit code $EXIT"
+            exit $EXIT
+          fi
           VERSION=$(echo "$OUTPUT" | grep -oE '[0-9]+' | tail -1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
