@@ -89,9 +89,7 @@ jobs:
           SCRIPT_ID="${{ secrets.CLASP_SCRIPT_ID }}"
           RC="$HOME/.clasprc.json"
           KEEP=150
-          echo "clasp rc top-level: $(jq -r 'keys | join(",")' "$RC" 2>&1)"
-          echo "clasp rc tokens keys: $(jq -r '.tokens | keys | join(",")' "$RC" 2>&1)"
-          ACCESS_TOKEN=$(jq -r '.tokens.access_token // .access_token' "$RC")
+          ACCESS_TOKEN=$(jq -r '.tokens.default.access_token // .tokens.access_token // .access_token' "$RC")
           if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
             echo "::error::no access_token found in clasp credentials"
             exit 1
