@@ -83,12 +83,11 @@ jobs:
         working-directory: backend
         run: npx @google/clasp push --force
 
-      - name: Prune old Apps Script versions
+      - name: Check Apps Script version limit
         working-directory: backend
         run: |
           SCRIPT_ID="${{ secrets.CLASP_SCRIPT_ID }}"
           RC="$HOME/.clasprc.json"
-          KEEP=150
           ACCESS_TOKEN=$(jq -r '.tokens.default.access_token // .tokens.access_token // .access_token' "$RC")
           if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
             echo "::error::no access_token found in clasp credentials"
@@ -109,25 +108,15 @@ jobs:
             [ -z "$PAGE" ] && break
           done
           TOTAL=$(sort -n "$TMP_FILE" | wc -l)
-          DEL_COUNT=$(( TOTAL - KEEP ))
-          echo "Total versions reported: $TOTAL (keeping newest $KEEP, deleting $DEL_COUNT)"
-          if [ "$DEL_COUNT" -gt 0 ]; then
-            TO_DELETE=$(sort -n "$TMP_FILE" | head -n "$DEL_COUNT")
-            for V in $TO_DELETE; do
-              BODY=$(curl -s -X DELETE \
-                -H "Authorization: Bearer $ACCESS_TOKEN" \
-                "https://script.googleapis.com/v1/projects/$SCRIPT_ID/versions/$V")
-              CODE=$(echo "$BODY" | jq -r '.error.code // empty')
-              if [ -z "$CODE" ]; then
-                echo "deleted version $V (204)"
-              else
-                echo "failed version $V (code $CODE): $(echo "$BODY" | jq -r '.error.message // empty')"
-              fi
-            done
-          else
-            echo "Nothing to prune."
-          fi
           rm -f "$TMP_FILE"
+          echo "Total versions: $TOTAL"
+          if [ "$TOTAL" -ge 200 ]; then
+            echo "::error::Apps Script version limit reached ($TOTAL/200). Versions can only be deleted from the Project History UI (script.google.com -> Project History -> Bulk delete versions) - the REST API has no delete method. Free up versions manually, then re-run this workflow."
+            exit 1
+          fi
+          if [ "$TOTAL" -ge 190 ]; then
+            echo "::warning::Approaching Apps Script version limit ($TOTAL/200). Plan a manual cleanup via Project History -> Bulk delete versions soon."
+          fi
 
       - name: Create Apps Script version
         id: version
