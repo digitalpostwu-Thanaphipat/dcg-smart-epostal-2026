@@ -83,6 +83,56 @@ jobs:
         working-directory: backend
         run: npx @google/clasp push --force
 
+      - name: Prune old Apps Script versions
+        working-directory: backend
+        run: |
+          SCRIPT_ID="${{ secrets.CLASP_SCRIPT_ID }}"
+          RC="$HOME/.clasprc.json"
+          KEEP=150
+          REFRESH_TOKEN=$(jq -r '.refresh_token' "$RC")
+          CLIENT_ID=$(jq -r '.client_id' "$RC")
+          CLIENT_SECRET=$(jq -r '.client_secret' "$RC")
+          RESP=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=refresh_token" \
+            --data-urlencode "client_id=$CLIENT_ID" \
+            --data-urlencode "client_secret=$CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$REFRESH_TOKEN")
+          ACCESS_TOKEN=$(echo "$RESP" | jq -r '.access_token')
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "::error::clasp token refresh failed: $RESP"
+            exit 1
+          fi
+          PAGE=""
+          TMP_FILE=$(mktemp)
+          while :; do
+            if [ -n "$PAGE" ]; then
+              LIST=$(curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+                "https://script.googleapis.com/v1/projects/$SCRIPT_ID/versions?pageToken=$PAGE")
+            else
+              LIST=$(curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+                "https://script.googleapis.com/v1/projects/$SCRIPT_ID/versions")
+            fi
+            echo "$LIST" | jq -r '.versions[]?.versionNumber' >> "$TMP_FILE"
+            PAGE=$(echo "$LIST" | jq -r '.nextPageToken // empty')
+            [ -z "$PAGE" ] && break
+          done
+          TOTAL=$(sort -n "$TMP_FILE" | wc -l)
+          DEL_COUNT=$(( TOTAL - KEEP ))
+          echo "Total versions reported: $TOTAL (keeping newest $KEEP, deleting $DEL_COUNT)"
+          if [ "$DEL_COUNT" -gt 0 ]; then
+            TO_DELETE=$(sort -n "$TMP_FILE" | head -n "$DEL_COUNT")
+            for V in $TO_DELETE; do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+                -H "Authorization: Bearer $ACCESS_TOKEN" \
+                "https://script.googleapis.com/v1/projects/$SCRIPT_ID/versions/$V")
+              echo "deleted version $V (http $CODE)"
+            done
+          else
+            echo "Nothing to prune."
+          fi
+          rm -f "$TMP_FILE"
+
       - name: Create Apps Script version
         id: version
         working-directory: backend
