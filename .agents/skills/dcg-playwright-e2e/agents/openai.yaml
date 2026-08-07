@@ -1,0 +1,4 @@
+interface:
+  display_name: "DCG Playwright E2E"
+  short_description: "Safely test DCG web flows in TEST environments"
+  default_prompt: "Run a safe Playwright verification of this DCG TEST flow and record evidence."

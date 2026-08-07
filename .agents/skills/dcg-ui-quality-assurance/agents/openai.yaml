@@ -1,0 +1,4 @@
+interface:
+  display_name: "DCG UI Quality"
+  short_description: "Check accessibility, visual consistency, and motion"
+  default_prompt: "Review this DCG Smart screen for accessible, Thai, performant, brand-consistent UI changes."
