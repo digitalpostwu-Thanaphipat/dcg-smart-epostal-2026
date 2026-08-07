@@ -1242,3 +1242,91 @@ function executeSearchPackages(filters) {
     return { success: false, error: e.message };
   }
 }
+
+/**
+ * [ADMIN-ONLY] adminDeletePackages - ลบรายการพัสดุตาม packageId (รหัสพัสดุ)
+ * ลบข้ามทุก shard (fiscal year) ใช้ LockService + logAction สำหรับ audit trail
+ * ปลอดภัย: ต้องส่ง confirmation string ที่ถูกต้อง + RBAC จำกัดเฉพาะ Admin
+ */
+function adminDeletePackages(data) {
+  var lock = LockService.getScriptLock();
+  try {
+    data = data || {};
+    var actorEmail = data.userEmail || data.staffEmail || "system";
+    var ids = (data.ids || []).map(function (v) { return String(v).trim(); }).filter(Boolean);
+    if (!ids.length) throw new Error("ขาดข้อมูลที่จำเป็น: ids (ต้องระบุอย่างน้อย 1 รายการ)");
+    if (ids.length > 50) throw new Error("ลบได้ครั้งละไม่เกิน 50 รายการ");
+
+    // [Safety] ยืนยันตัวตนเพื่อกันลบผิด (ต้องส่งข้อความยืนยันตรงตามที่กำหนด)
+    if (String(data.confirmation || "") !== "ล้างข้อมูลทดสอบ") {
+      throw new Error("โปรดยืนยันการลบด้วย confirmation: 'ล้างข้อมูลทดสอบ'");
+    }
+
+    lock.waitLock(30000);
+
+    var wanted = {};
+    ids.forEach(function (id) { wanted[id] = true; });
+
+    var ssList = _searchSourcesForFiscalYear({ fiscalYear: "all" });
+    var deleted = [];
+    var missing = ids.slice();
+
+    for (var s = 0; s < ssList.length; s++) {
+      try {
+        var ss = ssList[s];
+        var sheet = typeof _getSheetByCanonicalName === "function"
+          ? _getSheetByCanonicalName(ss, SHEET_NAMES.PACKAGE_LOG)
+          : (ss.getSheetByName(SHEET_NAMES.PACKAGE_LOG) || ss.getSheetByName("Package_Log"));
+        if (!sheet || sheet.getLastRow() < 2) continue;
+
+        var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        var idIdx = getHeaderIndex(headers, ["รหัสพัสดุ", "Package ID", "ID"]);
+        if (idIdx === -1) continue;
+
+        var dataRows = sheet.getDataRange().getValues();
+        // ลบจากล่างขึ้นบนเพื่อไม่ให้ index เพี้ยน
+        for (var i = dataRows.length - 1; i >= 1; i--) {
+          var cell = String(dataRows[i][idIdx] || "").trim();
+          if (wanted[cell]) {
+            var rowNum = i + 1;
+            var record = {
+              packageId: cell,
+              trackingNo: dataRows[i][getHeaderIndex(headers, ["เลขพัสดุ", "Tracking No", "Tracking Number"])] || "",
+              department: dataRows[i][getHeaderIndex(headers, ["ชื่อหน่วยงาน", "Department", "Dept Name"])] || "",
+              status: dataRows[i][getHeaderIndex(headers, ["สถานะ", "Status"])] || "",
+              spreadsheet: ss.getName(),
+              sheetName: sheet.getName(),
+            };
+            sheet.deleteRow(rowNum);
+            deleted.push(record);
+            var mIdx = missing.indexOf(cell);
+            if (mIdx !== -1) missing.splice(mIdx, 1);
+          }
+        }
+      } catch (e) {
+        console.warn("adminDeletePackages: shard scan failed: " + e.message);
+      }
+    }
+
+    logAction(actorEmail, "adminDeletePackages", JSON.stringify({
+      requested: ids,
+      deletedCount: deleted.length,
+      deleted: deleted,
+      missing: missing,
+    }));
+
+    if (missing.length) {
+      return {
+        success: false,
+        error: "ไม่พบรายการที่ต้องการลบ: " + missing.join(", "),
+        data: { deleted: deleted, missing: missing },
+      };
+    }
+
+    return { success: true, data: { deleted: deleted, count: deleted.length } };
+  } catch (e) {
+    return { success: false, error: e.message };
+  } finally {
+    lock.releaseLock();
+  }
+}

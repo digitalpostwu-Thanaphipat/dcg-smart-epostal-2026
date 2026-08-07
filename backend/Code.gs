@@ -43,6 +43,7 @@ const ROLE_PERMISSIONS = {
   "normalizePackageLogLegacyValues",
   "getSignatureImage",
   "migrateSignaturePrivacy",
+  "adminDeletePackages",
   ],
   Postal: [
     "getInitialData",
@@ -159,6 +160,8 @@ var ROUTE_MAP = {
     }
     return result;
   },
+  // [Admin-Only] Delete package log entries by packageId (cross-shard, audited)
+  adminDeletePackages: (data) => adminDeletePackages(data),
 
   // Authentication
   handleLogin: (data) =>
@@ -524,6 +527,7 @@ function _validatePayload(action, data) {
     adminAddUser: ["email", "fullName", "role"],
     adminUpdateUser: ["email"],
     adminDeleteUser: ["email"],
+    adminDeletePackages: ["ids", "confirmation"],
     restoreFromBackup: ["fileId"],
   };
 

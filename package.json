@@ -7,6 +7,7 @@
     "dev": "npm run dev --prefix frontend",
     "test:loki": "npx playwright test",
     "test:live-readiness": "node scripts/run-live-readiness.cjs",
+    "cleanup:testdata": "node scripts/run-live-testdata-cleanup.cjs",
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "deploy": "powershell -File ./deploy.ps1",
