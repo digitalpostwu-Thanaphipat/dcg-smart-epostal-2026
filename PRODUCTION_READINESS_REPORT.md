@@ -1,12 +1,12 @@
 # รายงานความพร้อมใช้งานจริง ePostal
 
-วันที่อัปเดต: 3 กรกฎาคม 2026
-Production deployment ปัจจุบัน: **@275**
+วันที่อัปเดต: 7 สิงหาคม 2026
+Production deployment ปัจจุบัน: **@284**
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะสรุป
 
-สถานะปัจจุบัน: **Full Production Ready (95/100)**
+สถานะปัจจุบัน: **Full Production Ready (98/100)**
 
 ระบบผ่าน 6 Gates สุดท้ายก่อน Go-Live แล้ว:
 
@@ -33,7 +33,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 
 | รายการ | สถานะ | รายละเอียด |
 | --- | --- | --- |
-| Apps Script deployment | ผ่าน | redeploy production เป็น `@275` โดย URL เดิมไม่เปลี่ยน |
+| Apps Script deployment | ผ่าน | redeploy production เป็น `@284` โดย URL เดิมไม่เปลี่ยน |
 | GitHub Actions deployment | ผ่าน | CI ใช้ `CLASP_RC_JSON`, สร้าง version และ `clasp redeploy` ไปยัง deployment เดิม |
 | OAuth scope | ผ่าน | เพิ่ม/ยืนยัน `https://www.googleapis.com/auth/script.scriptapp` |
 | Script Properties | ผ่าน | ตั้ง `ROOT_ADMIN_EMAIL` และ `BACKUP_FOLDER_ID` แล้ว |
@@ -47,7 +47,7 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | การตรวจสอบ | ผล |
 | --- | --- |
 | `npm audit` ที่ root | ผ่าน, 0 vulnerabilities |
-| `npm audit` ที่ frontend | เหลือ 1 high vulnerability จาก `xlsx`, ไม่มี fix available |
+| `npm audit` ที่ frontend | เหลือ 3 high vulnerabilities: `xlsx` (2, ไม่มี fix) + `react-router` RSC-mode (ไม่กระทบ HashRouter) |
 | Lint | ผ่าน, 0 warnings, 0 errors |
 | Unit tests | ผ่าน, 22/22 |
 | Playwright E2E | ผ่าน, 11 passed, 5 skipped |
@@ -61,10 +61,10 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 
 | Commit | รายละเอียด |
 | --- | --- |
-| `d253e07` | ci: use clasp credentials secret and redeploy production |
-| `6ef406d` | docs: complete documentation updates for Full Production Ready |
-| `b783848` | chore: clear lint warnings and fix live readiness gate (15 files) |
-| `c69475c` | fix: add GAS redirect handler to Vite dev proxy |
+| `84ffc55` | docs: update GO_LIVE_TASKS evidence (items 1,2,4 done; 5 blocked on version limit) |
+| `2ba061d` | ci: replace impossible version prune with limit check + clear error |
+| `616b98f` | docs: update QUALITY_GATES to @281 (P1 + react-router 7.18.2 accepted risk, live gate 3/3) |
+| `8d33ca4` | release: P1 scope-separation fix, SYSTEM_VERSION hardcode & react-router 7.18.2 |
 
 ## ความเสี่ยงที่ยอมรับ
 

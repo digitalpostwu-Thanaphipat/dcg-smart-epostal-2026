@@ -218,3 +218,15 @@
 - **Evidence:** Tracking `LIVE-READINESS-20260702100910`, Package ID `EMS-20260702-0001`, Delivered at `2/7/2569 17:09`
 - **Status:** Accepted | Deployed @275 | Verified PASS
 - **Lead Agent:** Codex
+
+---
+
+### 2026-08-07 - Live Test Data Cleanup: Admin-Only `adminDeletePackages`
+- **Context:** `checkDuplicate('AS123456789TH')` พบ `isDuplicate=true` — มี test data e2e ค้าง 2 แถวใน EMS shard (`EMS-20260501-0005`, `EMS-20260505-0001`) ที่ต้องล้างก่อน UAT (GO_LIVE_TASKS.md item 13); backend ไม่มี action ลบ package มีแต่ adminDeleteUser
+- **Decision:** เพิ่ม action `adminDeletePackages` (Admin-only) ใน `backend/Service_Package.gs` + register ใน `Code.gs` (ROLE_PERMISSIONS.Admin, ROUTE_MAP, `_validatePayload` SCHEMA `["ids","confirmation"]`) + runner `scripts/run-live-testdata-cleanup.cjs`; deploy ผ่าน `clasp push -f` → version @285 → `clasp redeploy` URL production เดิม
+- **Alternatives Considered:** ลบด้วยมือใน Sheet (เสี่ยง bypass audit + human error), ใช้ GAS console (ต้องเข้า project ของ owner ไม่ง่าย), เพิ่ม action ลบผู้ใช้ปลอมแทน (ไม่ตรงปัญหา)
+- **Rationale:** ต้องการ path ที่ (1) Admin-only ผ่าน `_verifyAccessV2` (2) มี audit trail ผ่าน `logAction` (3) idempotent ปลอดภัย — ต้อง `confirmation: "ล้างข้อมูลทดสอบ"`, จำกัด ≤50 ids, `LockService.waitLock(30000)`, `deleteRow` จากล่างขึ้นบน (กัน index เพี้ยน), ids ที่ไม่เจอคืน `missing` เป็น error
+- **Impact:** ลบ duplicate 2 เรคคอร์ดสำเร็จ → `searchPackages('AS123456789TH')` = 0 rows, `checkDuplicate` = `isDuplicate=false`; live gate rerun หลัง redeploy → 6/6 passed (2.0m); data clean พร้อม UAT
+- **Evidence:** `scripts/run-live-testdata-cleanup.cjs` exit 0; deployment @285 (Auto-Deploy adminDeletePackages, 2026-08-07 15:26); `clasp deployments` — `AKfycby1...` pinned @285
+- **Status:** Accepted | Deployed @285 | Verified PASS
+- **Lead Agent:** opencode

@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [7 สิงหาคม 2026] - Test Data Cleanup & Live Gate Verification
+
+### Added
+- **`adminDeletePackages` (Admin-only)**: action ลบ package หลายรายการพร้อมกันใน `Service_Package.gs` + register ใน `Code.gs` (ROLE_PERMISSIONS.Admin, ROUTE_MAP, SCHEMA validation)
+  - Safety: ต้อง `confirmation: "ล้างข้อมูลทดสอบ"`, จำกัด ≤50 ids, `LockService.waitLock(30000)`, `deleteRow` จากล่างขึ้นบน, idempotent (ids ไม่เจอ → `missing` เป็น error พร้อม `deleted`)
+  - Audit trail ผ่าน `logAction(actor, "adminDeletePackages", {requested, deletedCount, deleted, missing})`
+- **`scripts/run-live-testdata-cleanup.cjs`**: runner ล้าง test data live — env gates 3 ตัว (`EPOSTAL_LIVE_BASE_URL`, `EPOSTAL_LIVE_AUTH_TOKEN`, `CONFIRM_CLEANUP="ล้างข้อมูลทดสอบ"`), retry 6×8s, verify `checkDuplicate` = false; npm script `cleanup:testdata`
+
+### Fixed
+- **Duplicate test records ล้างแล้ว**: `AS123456789TH` ค้าง 2 แถวใน EMS shard (`EMS-20260501-0005`, `EMS-20260505-0001`) โดนลบ → `searchPackages` 0 rows, `checkDuplicate` = `isDuplicate=false`
+- **Runner idempotency**: อ่าน `isDuplicate` top-level + ถ้าไม่มี record ให้ลบถือว่า clean (exit 0)
+
+### Deployment
+- Production redeploy **@285** (Auto-Deploy adminDeletePackages, 7 ส.ค. 2026 15:26) — ใช้ `clasp push -f` → version 285 → `clasp redeploy` กับ deployment `AKfycby1...` ให้ URL เดิมไม่เปลี่ยน
+
+### Verified
+- Live readiness gate rerun หลัง redeploy: **6/6 passed (2.0m)** EXIT 0 (live_production_readiness + live_full_cycle)
+- RBAC unit tests + security gate (จาก release ก่อนหน้า): ผ่าน 78/78 + 3/3
+
+---
+
 ## [10 กรกฎาคม 2026] - Security & Conflict Control Release
 
 ### Security (P0)

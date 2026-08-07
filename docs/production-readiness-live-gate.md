@@ -1,7 +1,7 @@
 # ePostal Production Readiness Live Gate
 
-Generated: 2026-07-02
-Current production deployment: `@275`
+Generated: 2026-08-07
+Current production deployment: `@284`
 Current production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะปัจจุบัน
@@ -11,7 +11,7 @@ Live readiness gate ผ่านแล้ว และ write lifecycle smoke ผ
 สถานะ release:
 
 - **Production Ready for core workflows:** ผ่าน
-- **Full Production Ready with completed PWA offline validation:** ยังรอ manual Android Chrome PWA test
+- **Full Production Ready with completed PWA offline validation:** ผ่าน
 
 ## Local Gates
 
@@ -25,7 +25,7 @@ npm.cmd run build --prefix frontend
 npm.cmd run build:gas --prefix frontend
 ```
 
-หมายเหตุ: frontend audit ยังมี `xlsx` high vulnerability ที่ไม่มี fix available และถูกบันทึกเป็น accepted risk ใน `QUALITY_GATES.md`
+หมายเหตุ: frontend audit ยังมี 3 high: `xlsx` (2 advisories ไม่มี fix) + `react-router` RSC-mode (ไม่กระทบ HashRouter) — บันทึกเป็น accepted risk ใน `QUALITY_GATES.md`
 
 ## Live Readiness Gate
 

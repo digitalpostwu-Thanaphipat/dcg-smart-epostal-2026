@@ -2,8 +2,8 @@
 
 เอกสารนี้เป็นเกณฑ์ตรวจความพร้อมของ ePostal ก่อนนำขึ้นใช้งานจริง และเป็นบันทึกสถานะหลังตรวจ production ล่าสุด
 
-วันที่อัปเดต: 5 สิงหาคม 2026
-Production deployment ปัจจุบัน: **@281** (P1 scope-separation + SYSTEM_VERSION hardcode + react-router 7.18.2)
+วันที่อัปเดต: 7 สิงหาคม 2026
+Production deployment ปัจจุบัน: **@284** (P1 scope-separation + SYSTEM_VERSION 4.0.2 hardcode + react-router 7.18.2 + version-limit check)
 Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTqIFiXT4WAq5CjZduj34FUK9KHGLJYLzaQD6JXc8JqwwGp1g/exec`
 
 ## สถานะ Go-Live
@@ -14,9 +14,9 @@ Production URL: `https://script.google.com/macros/s/AKfycby1OeoMCo5wRhQFc5d-HhTq
 | Frontend security audit | ผ่านแบบมีเงื่อนไข | เหลือ 3 high: `xlsx` (2 advisories ไม่มี fix) + `react-router` (RSC-mode เท่านั้น) — ทั้งคู่ documented accepted risk |
 | xlsx decision | ผ่าน | Accept risk + isolate |
 | react-router decision | ผ่าน | Accept risk — GHSA-qwww-vcr4-c8h2 กระทบ RSC mode เท่านั้น; แอปใช้ `HashRouter` client-side ล้วน |
-| Live readiness | ผ่าน | @281: 3/3 read-only ผ่าน (public tracking, health check, security gate) |
-| Authenticated admin read | ผ่าน (verify ที่ @276) | ต้อง `EPOSTAL_LIVE_AUTH_TOKEN` ถึงจะ rerun — ยังไม่มี token |
-| Write lifecycle smoke | ผ่าน (verify ที่ @276) | ต้อง token + `EPOSTAL_LIVE_WRITE=1` — ยังไม่มี token |
+| Live readiness | ผ่าน | @284: 6/6 ผ่าน (live gate + security gate 3/3) |
+| Authenticated admin read | ผ่าน | rerun ด้วย token ที่ @284 ผ่าน (live gate 6/6 รวม admin read) |
+| Write lifecycle smoke | ผ่าน (verify ที่ @276) | ต้อง token + `EPOSTAL_LIVE_WRITE=1` — รอรอบถัดไป |
 | Android Chrome PWA | ผ่าน | install + online + offline ยืนยันแล้ว |
 | GitHub Actions deploy | ผ่าน | ใช้ `CLASP_RC_JSON` + `clasp redeploy` เพื่อรักษา Production URL เดิม |
 
@@ -220,10 +220,10 @@ npm.cmd run test:live-readiness
 ## Final Approval
 
 - [x] Security gate ผ่านแบบมี documented accepted risk (xlsx + react-router)
-- [x] Live readiness ผ่าน @281 (read-only 3/3)
-- [x] Authenticated admin read smoke ผ่าน (verify @276, รอ token สำหรับ rerun)
+- [x] Live readiness ผ่าน @284 (read-only + admin read 6/6)
+- [x] Authenticated admin read smoke ผ่าน (rerun @284)
 - [x] Write lifecycle smoke ผ่าน (verify @276, รอ token สำหรับ rerun)
 - [x] Android Chrome PWA validation ผ่าน
-- [x] Deployment ปัจจุบันเป็น `@281`
+- [x] Deployment ปัจจุบันเป็น `@284`
 - [x] GitHub Actions deploy ผ่านและใช้ `clasp redeploy`
-- [x] **Full Production Ready (95/100)**
+- [x] **Full Production Ready (98/100)**
