@@ -5,8 +5,8 @@ if (!process.env.EPOSTAL_LIVE_BASE_URL) {
   process.exit(0);
 }
 
-const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const result = spawnSync(command, ['playwright', 'test', 'tests/live_production_readiness.spec.ts', 'tests/live_full_cycle.spec.ts'], {
+const playwrightCli = require.resolve('@playwright/test/cli');
+const result = spawnSync(process.execPath, [playwrightCli, 'test', 'tests/live_production_readiness.spec.ts', 'tests/live_full_cycle.spec.ts'], {
   stdio: 'inherit',
   shell: false,
 });

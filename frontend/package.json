@@ -6,6 +6,7 @@
     "dev": "vite",
     "dev:host": "vite --host",
     "build": "tsc && vite build && node scripts/prepare-gas-build.cjs",
+    "build:vercel": "tsc && vite build",
     "build:gas": "vite build --base ./ && node scripts/prepare-gas-build.cjs",
     "check:size": "du -sh dist/index.html",
     "lint": "eslint . --ext .ts,.tsx",

@@ -10,6 +10,7 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 .vite-cache/
+.vercel/
 
 # Production Build
 dist/
